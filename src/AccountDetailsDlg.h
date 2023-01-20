@@ -41,11 +41,11 @@ private:
     void SetCommandBarWin(bool readOnly);
     bool InputHandler(Dialog &dialog, int ch, DialogResult &result);
 
-    //static constexpr int PASSWORD_CONFIRM = CItem::FieldType::LAST_ATT + 1;
+    //static constexpr int PASSWORD_CONFIRM = PWS_FIELD_TYPE::LAST_ATT + 1;
 
     PWSafeApp &m_app;
 
     CItemData m_item;
     const CItemData &m_itemOrig;
-    StringX m_confirmPassword;
+    std::string m_confirmPassword;
 };

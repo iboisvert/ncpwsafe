@@ -10,7 +10,7 @@ bool DefaultMessageBoxKeyHandler(int ch, DialogResult &result)
     return ch == '\n';
 }
 
-static void SizeMsg(const stringT &msg, int &lines, int &cols)
+static void SizeMsg(const std::string &msg, int &lines, int &cols)
 {
     lines = 0;
     int idx;
@@ -30,7 +30,7 @@ static void SizeMsg(const stringT &msg, int &lines, int &cols)
 }
 
 /** Print a message with embedded newlines */
-static int PrintMessage(WINDOW *win, int y, int x, const stringT &msg)
+static int PrintMessage(WINDOW *win, int y, int x, const std::string &msg)
 {
     int code = 0;
     int idx;
@@ -59,7 +59,7 @@ static void ScaleMsgBox(const WINDOW *parent, const int &lines, const int &cols,
 }
 
 /** Show the message box */
-DialogResult MessageBox::Show(WINDOW *parent, const stringT &msg, KeyHandler handler)
+DialogResult MessageBox::Show(WINDOW *parent, const std::string &msg, KeyHandler handler)
 {
     if (handler == &DefaultMessageBoxKeyHandler)
     {
@@ -87,7 +87,7 @@ DialogResult MessageBox::Show(WINDOW *parent, const stringT &msg, KeyHandler han
     return retval;
 }
 
-void MessageBox::InitTUI(WINDOW *parent, const stringT &msg)
+void MessageBox::InitTUI(WINDOW *parent, const std::string &msg)
 {
     int lines, cols, y, x;
     SizeMsg(msg, lines, cols);

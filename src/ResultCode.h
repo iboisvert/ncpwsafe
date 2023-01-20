@@ -1,8 +1,6 @@
 /* Copyright (c) 2022 Ian Boisvert */
 #pragma once
 
-#include "core/PWScore.h"
-
 enum class ResultCode
 {
     SUCCESS = 0,

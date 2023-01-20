@@ -2,7 +2,6 @@
 #include <cstdio>
 #include "PWSafeApp.h"
 #include "ProgArgs.h"
-#include "core/PWScore.h"
 #include "ExportDbCommand.h"
 #include "Utils.h"
 
@@ -21,10 +20,7 @@ ResultCode ExportDbCommand::Execute()
         return ResultCode::WRONG_PASSWORD;
     }
 
-    cstringT filename;
-    WideToMultibyteString(args.m_file, filename);
-
-    FILE *f = fopen(filename.c_str(), "w");
+    FILE *f = fopen(args.m_file.c_str(), "w");
     if (f == NULL)
     {
         return ResultCode::CANT_OPEN_FILE;
@@ -39,7 +35,7 @@ ResultCode ExportDbCommand::Execute()
     {
         uuid_array_t uuid;
         entry.GetUUID().GetARep(uuid);
-        cstringT suuid;
+        std::string suuid;
         char buf[3];
         for (size_t i = 0; i < sizeof(uuid_array_t); ++i)
         {
@@ -48,8 +44,8 @@ ResultCode ExportDbCommand::Execute()
             sprintf(buf, "%02x", uuid[i]);
             suuid.append(buf);
         }
-        StringX notes = entry.GetNotes();
-        notes = StringX{rtrim(notes.begin(), notes.end()), notes.end()};
+        std::string notes = entry.GetNotes();
+        notes = std::string{rtrim(notes.begin(), notes.end()), notes.end()};
         fprintf(f, "%s, \"%ls\", \"%ls\", \"%ls\", \"%ls\", \"%ls\"\n",
                 suuid.c_str(), entry.GetGroup().c_str(), entry.GetTitle().c_str(),
                 entry.GetUser().c_str(), entry.GetPassword().c_str(), notes.c_str());

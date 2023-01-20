@@ -20,10 +20,10 @@ public:
      * @returns The default return value is `RESULT_CANCEL`. The return value 
      * can be modified by `handler`.
      */
-    DialogResult Show(WINDOW *parent, const stringT &msg, KeyHandler handler = &DefaultMessageBoxKeyHandler);
+    DialogResult Show(WINDOW *parent, const std::string &msg, KeyHandler handler = &DefaultMessageBoxKeyHandler);
 
 private:
-    void InitTUI(WINDOW *parent, const stringT &msg);
+    void InitTUI(WINDOW *parent, const std::string &msg);
     void EndTUI();
     /** Input driver */
     DialogResult ProcessInput(KeyHandler handler);

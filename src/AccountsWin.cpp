@@ -8,7 +8,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #endif  //#ifndef _WINDOWS
-#include "os/dir.h"
 
 #include "AccountDetailsDlg.h"
 #include "AccountsWin.h"
@@ -46,7 +45,7 @@ static const char *XCLIP = "/usr/bin/xclip";
  * 3 if fork() fails
  * 4 if DISPLAY is not set
  */
-static int CopyTextToClipboardUnix(const cstringT &text)
+static int CopyTextToClipboardUnix(const std::string &text)
 {
     constexpr unsigned READ = 0, WRITE = 1;
     struct stat sb;
@@ -171,18 +170,17 @@ static int CopyTextToClipboardUnix(const cstringT &text)
 #endif  //#ifndef _WINDOWS
 
 /** Copy to clipboard, report errors */
-int CopyTextToClipboard(PWSafeApp &app, WINDOW *win, const stringT &text)
+int CopyTextToClipboard(PWSafeApp &app, WINDOW *win, const std::string &text)
 {
 #ifndef _WINDOWS
-    cstringT cstr = WideToMultibyteString(text);
-    int result = CopyTextToClipboardUnix(cstr);
+    int result = CopyTextToClipboardUnix(text);
     if (result == 4)
     {
-        MessageBox(app).Show(win, L"The DISPLAY environment variable is not set.");
+        MessageBox(app).Show(win, "The DISPLAY environment variable is not set.");
     }
     else if (result > 0)
     {
-        MessageBox(app).Show(win, L"An error occurred copying data to the clipboard");
+        MessageBox(app).Show(win, "An error occurred copying data to the clipboard");
     }
     return result;
 #else
@@ -194,14 +192,14 @@ AccountsWin::AccountsWin(PWSafeApp &app, WINDOW *win) : m_app(app), m_win(win)
 {
     // clang-format off
     app.GetCommandBar().Register(this, {
-        {L"Enter", L"View", L"View the account properties"}, 
-        {~CBOPTS_READONLY, L"^A", L"Add", L"Add a new account"},
-        {~CBOPTS_READONLY, L"^D", L"Delete", L"Delete an account"},
-        {L"^U", L"Copy user", L"Copy the account user name to the clipboard"},
-        {L"^P", L"Copy password", L"Copy the account password to the clipboard"},
-        {~CBOPTS_READONLY, L"^S", L"Save and exit", L"Save changes to the database and exit"},
-        {L"^X", L"Exit", L"Exit without saving changes"},
-        {~CBOPTS_READONLY, L"^C", L"Change password", L"Change the account database password"}
+        {"Enter", "View", "View the account properties"}, 
+        {~CBOPTS_READONLY, "^A", "Add", "Add a new account"},
+        {~CBOPTS_READONLY, "^D", "Delete", "Delete an account"},
+        {"^U", "Copy user", "Copy the account user name to the clipboard"},
+        {"^P", "Copy password", "Copy the account password to the clipboard"},
+        {~CBOPTS_READONLY, "^S", "Save and exit", "Save changes to the database and exit"},
+        {"^X", "Exit", "Exit without saving changes"},
+        {~CBOPTS_READONLY, "^C", "Change password", "Change the account database password"}
     });
     // clang-format on
 }
@@ -263,14 +261,14 @@ void AccountsWin::CreateMenu()
 
     auto &accounts = m_app.GetAccountsCollection();
     accounts.Refresh();
-    StringX lastGroup = L"";
+    std::string lastGroup;
 
     ITEM *item;
     int itemIndex = 0;
     // Accounts are sorted by group and title
     for (CItemData &cid : accounts)
     {
-        StringX group = cid.GetGroup();
+        std::string group = cid.GetGroup();
         if (group != lastGroup)
         {
             lastGroup = group;
@@ -294,9 +292,7 @@ void AccountsWin::CreateMenu()
                 }
             }
 
-            char *pcgroup = nullptr;
-            WideToMultibyteString(group, &pcgroup);
-            item = new_item(pcgroup, 0);
+            item = new_item(group.c_str(), 0);
             ++itemIndex;
             m_menuItems.push_back(item);
 
@@ -309,12 +305,9 @@ void AccountsWin::CreateMenu()
             }
         }
 
-        char *pctitle = nullptr, *pcuser = nullptr;
-        StringX title = cid.GetTitle();
-        WideToMultibyteString(title, &pctitle);
-        StringX user = cid.GetUser();
-        WideToMultibyteString(user, &pcuser);
-        item = new_item(pctitle, pcuser);
+        std::string title = cid.GetTitle();
+        std::string user = cid.GetUser();
+        item = new_item(title.c_str(), user.c_str());
         ++itemIndex;
         set_item_userptr(item, &cid);
         m_menuItems.push_back(item);
@@ -377,7 +370,7 @@ static void DestroyMenu(MENU *menu)
 //   else
 //   {
 //     const CUUID &base = item.GetBaseUUID();
-//     const StringX &passwd = m_core.GetEntry(m_core.Find(base)).GetPassword();
+//     const std::string &passwd = m_core.GetEntry(m_core.Find(base)).GetPassword();
 //     Clipboard::GetInstance()->SetData(passwd);
 //   }
 //   UpdateLastClipboardAction(CItemData::FieldType::PASSWORD);
@@ -608,12 +601,12 @@ DialogResult AccountsWin::DeleteEntry(const ITEM *pitem)
     auto &accounts = m_app.GetAccountsCollection();
     bool unique = std::all_of(accounts.begin(), accounts.end(),
         [pItemData](CItemData &cid) { return cid.GetTitle() != pItemData->GetTitle() || &cid == pItemData; });
-    stringT msg = stringT(L"Delete account ").append(pItemData->GetTitle());
+    std::string msg = std::string("Delete account ").append(pItemData->GetTitle());
     if (!unique && pItemData->IsUserSet())
     {
-        msg.append(L" with user ").append(pItemData->GetUser());
+        msg.append(" with user ").append(pItemData->GetUser());
     }
-    msg.append(L"?");
+    msg.append("?");
 
     DialogResult result = MessageBox(m_app).Show(m_win, msg.c_str(), &YesNoKeyHandler);
     if (result == DialogResult::YES)
@@ -655,7 +648,7 @@ static bool YesNoCancelKeyHandler(int ch, DialogResult &result)
 /** Save the database to the current file. */
 bool AccountsWin::Save()
 {
-    m_app.GetCommandBar().Show({Action::YES, Action::NO, {L"^X", L"Cancel"}});
+    m_app.GetCommandBar().Show({Action::YES, Action::NO, {"^X", "Cancel"}});
 
     bool retval = false;
 
@@ -670,8 +663,8 @@ bool AccountsWin::Save()
         else
         {
             PWScore &core = m_app.GetCore();
-            stringT msg(L"An error occurred writing the database to file\n");
-            msg.append(core.GetCurFile()).append(L". Retry?");
+            std::string msg("An error occurred writing the database to file\n");
+            msg.append(core.GetCurFile()).append(". Retry?");
             DialogResult dr = MessageBox(m_app).Show(m_win, msg.c_str(), &YesNoCancelKeyHandler);
             if (dr == DialogResult::NO)
             {
@@ -703,7 +696,7 @@ bool AccountsWin::DiscardChanges()
 
     if (m_app.GetCore().HasDBChanged())
     {
-        const wchar_t *msg = L"The database has changed. Discard changes?";
+        const char *msg = "The database has changed. Discard changes?";
         retval = MessageBox(m_app).Show(m_win, msg, &YesNoKeyHandler) == DialogResult::YES;
 
         redrawwin(m_win);
@@ -777,12 +770,12 @@ DialogResult AccountsWin::ProcessInput()
                 ChangeDbPasswordDlg dialog(m_app);
                 if (dialog.Show(m_win) == DialogResult::OK)
                 {
-                    const StringX &database = m_app.GetCore().GetCurFile();
-                    const StringX &password = dialog.GetPassword();
-                    const StringX &newPassword = dialog.GetNewPassword();
+                    const std::string &database = m_app.GetCore().GetCurFile();
+                    const std::string &password = dialog.GetPassword();
+                    const std::string &newPassword = dialog.GetNewPassword();
                     if (ChangeDbPasswordCommand{m_app, database, password, newPassword}.Execute() != ResultCode::SUCCESS)
                     {
-                        MessageBox(m_app).Show(m_win, L"An error occurred changing the account database password.");
+                        MessageBox(m_app).Show(m_win, "An error occurred changing the account database password.");
                     }
                 }
             }
@@ -817,8 +810,8 @@ DialogResult AccountsWin::ProcessInput()
             if (!IsGroupMenuItem(item))
             {
                 const CItemData *cid = reinterpret_cast<CItemData *>(item_userptr(item));
-                const StringX &str = cid->GetUser();
-                if (CopyTextToClipboard(m_app, m_win, stringx2std(str)) > 0)
+                const std::string &str = cid->GetUser();
+                if (CopyTextToClipboard(m_app, m_win, str) > 0)
                 {
                     m_app.GetCommandBar().Show(this);
                 }
@@ -830,8 +823,8 @@ DialogResult AccountsWin::ProcessInput()
             if (!IsGroupMenuItem(item))
             {
                 const CItemData *cid = reinterpret_cast<CItemData *>(item_userptr(item));
-                const StringX &str = cid->GetPassword();
-                if (CopyTextToClipboard(m_app, m_win, stringx2std(str)) > 0)
+                const std::string &str = cid->GetPassword();
+                if (CopyTextToClipboard(m_app, m_win, str) > 0)
                 {
                     m_app.GetCommandBar().Show(this);
                 }

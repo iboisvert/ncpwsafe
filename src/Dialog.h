@@ -3,17 +3,16 @@
 
 #include <functional>
 #include <map>
-
-#include "core/Item.h"
+#include "libpwsafe.h"
 
 #include "PWSafeApp.h"
 #include "Utils.h"
 
 struct DialogField
 {
-    CItem::FieldType m_fieldType;
-    stringT m_label;
-    StringX m_value;
+    PWS_FIELD_TYPE m_fieldType;
+    std::string m_label;
+    std::string m_value;
     int m_width;
     int m_fieldOptsOn;
     int m_fieldOptsOff;
@@ -63,9 +62,9 @@ public:
     }
 
     /** Set the field to be active when the Dialog is initialized. */
-    Dialog &SetActiveField(CItem::FieldType fieldType);
+    Dialog &SetActiveField(PWS_FIELD_TYPE fieldType);
 
-    DialogResult Show(WINDOW *parent, const stringT &title);
+    DialogResult Show(WINDOW *parent, const std::string &title);
 
     PWSafeApp &GetApp() const
     {
@@ -88,17 +87,17 @@ public:
     }
 
     /** Gets the curses `FIELD` for the given `FieldType` */
-    FIELD *GetField(CItem::FieldType ft) const;
+    FIELD *GetField(PWS_FIELD_TYPE ft) const;
     /** Sets the value of a curses `FIELD` for the given `FieldType` */
-    void SetField(CItem::FieldType ft, const StringX &value);
+    void SetField(PWS_FIELD_TYPE ft, const std::string &value);
     /** Gets the value of the field with the given `FieldType` */
-    const StringX &GetValue(CItem::FieldType ft) const;
+    const std::string &GetValue(PWS_FIELD_TYPE ft) const;
 
 private:
     friend int DefaultInputHandler(Dialog &);
 
     void ConstructFields();
-    void InitTUI(const stringT &title);
+    void InitTUI(const std::string &title);
     void EndTUI();
     /** Input driver */
     DialogResult ProcessInput();
@@ -118,7 +117,7 @@ private:
     InputHandler m_inputDelegate;
     Callback m_validateCallback;
     Callback m_discardChangesCallback;
-    std::map<CItem::FieldType, StringX> m_values;
+    std::map<PWS_FIELD_TYPE, std::string> m_values;
     int m_maxFieldWidth;
 
     WINDOW *m_parentWin = nullptr;

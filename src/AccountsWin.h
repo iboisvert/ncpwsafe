@@ -1,7 +1,6 @@
 /* Copyright 2020 Ian Boisvert */
 #pragma once
 
-#include "core/PWScore.h"
 #include "libncurses.h"
 #include "Utils.h"
 #include <set>
@@ -49,7 +48,7 @@ private:
     DialogResult ProcessInput();
 
     PWSafeApp &m_app;
-    StringX m_database;
+    std::string m_database;
 
     WINDOW *m_win = nullptr;
     WINDOW *m_menuWin = nullptr;
@@ -60,4 +59,4 @@ private:
 };
 
 /** Copy to clipboard, report errors */
-extern int CopyTextToClipboard(PWSafeApp &app, WINDOW *win, const stringT &text);
+extern int CopyTextToClipboard(PWSafeApp &app, WINDOW *win, const std::string &text);

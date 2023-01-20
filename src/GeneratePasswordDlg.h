@@ -20,14 +20,14 @@ public:
 
     DialogResult Show(WINDOW *parent);
 
-    const StringX &GetPassword() const
+    const std::string &GetPassword() const
     {
         return m_password;
     }
 
 private:
     void SetCommandBarWin();
-    void InitTUI(const stringT &title);
+    void InitTUI(const std::string &title);
     void EndTUI();
     /** Input driver */
     DialogResult ProcessInput();
@@ -39,7 +39,7 @@ private:
 
     PWSafeApp &m_app;
     PWPolicy m_pwPolicy;
-    StringX m_password;
+    std::string m_password;
     int m_saveCursor;
     int m_pwPolicyFlagsIndex;
     int m_pwPolicyLength;

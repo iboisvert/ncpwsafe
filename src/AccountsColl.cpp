@@ -1,6 +1,5 @@
 /* Copyright 2022 Ian Boisvert */
 #include "AccountsColl.h"
-#include "core/ItemData.h"
 
 // Reload collection from core, invalidates all iterators
 void AccountsColl::Refresh()

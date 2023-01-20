@@ -38,7 +38,7 @@ const char *GetPolicyName(size_t policyIndex)
 
 PWPolicy CreatePolicy(unsigned flags, size_t length)
 {
-    wchar_t buf[20];
+    char buf[20];
     swprintf(buf, 20, L"%4x%3zx000000000000", flags, length);
     return PWPolicy(buf);
 }
@@ -91,8 +91,8 @@ DialogResult GeneratePasswordDlg::Show(WINDOW *parent)
 {
     PolicyManager pm(m_app.GetCore());
     m_pwPolicy = pm.GetDefaultPolicy();
-    StringX str = m_pwPolicy.GetDisplayString();
-    StringX str2 = m_pwPolicy;
+    std::string str = m_pwPolicy.GetDisplayString();
+    std::string str2 = m_pwPolicy;
 
     SetCommandBarWin();
 
@@ -117,7 +117,7 @@ DialogResult GeneratePasswordDlg::Show(WINDOW *parent)
     return result;
 }
 
-void GeneratePasswordDlg::InitTUI(const stringT &title)
+void GeneratePasswordDlg::InitTUI(const std::string &title)
 {
     int beg_y, beg_x, max_y, max_x;
     getbegyx(m_parentWin, beg_y, beg_x);

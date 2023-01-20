@@ -13,12 +13,12 @@ public:
 
     DialogResult Show(WINDOW *parent);
 
-    const StringX &GetPassword() const
+    const std::string &GetPassword() const
     {
         return m_password;
     }
 
-    const StringX &GetNewPassword() const
+    const std::string &GetNewPassword() const
     {
         return m_newPassword;
     }
@@ -28,6 +28,6 @@ private:
     bool ValidateForm(const Dialog &dialog);
 
     PWSafeApp &m_app;
-    StringX m_password;
-    StringX m_newPassword;
+    std::string m_password;
+    std::string m_newPassword;
 };

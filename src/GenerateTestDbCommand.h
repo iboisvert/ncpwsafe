@@ -10,7 +10,7 @@ class GenerateTestDbCommand
 {
     PWSafeApp &m_app;
 
-    ResultCode Generate(const StringX &database, const StringX &password, bool force, const stringT &language, 
+    ResultCode Generate(const std::string &database, const std::string &password, bool force, const std::string &language, 
         size_t groupCount, size_t itemCount) const;
 
 public:

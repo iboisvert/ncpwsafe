@@ -1,12 +1,11 @@
 /* Copyright (c) 2022 Ian Boisvert */
-#pragma once
-
-#include "core/PWSprefs.h"
+#ifndef HAVE_RECENTDBLIST_H
+#define HAVE_RECENTDBLIST_H
 
 class RecentDbList
 {
 private:
-    std::vector<stringT> m_mruList;
+    std::vector<std::string> m_mruList;
 
 public:
     size_t GetCount()
@@ -14,12 +13,12 @@ public:
         return m_mruList.size();
     }
 
-    const stringT &GetHistoryFile(size_t idx)
+    const std::string &GetHistoryFile(size_t idx)
     {
         return m_mruList[idx];
     }
 
-    void AddFileToHistory(const stringT &file)
+    void AddFileToHistory(const std::string &file)
     {
         m_mruList.push_back(file);
     }
@@ -29,7 +28,7 @@ public:
         m_mruList.erase(m_mruList.begin() + idx);
     }
 
-    void RemoveFile(const stringT &file)
+    void RemoveFile(const std::string &file)
     {
         for (size_t idx = 0, max = GetCount(); idx < max; ++idx)
         {
@@ -51,7 +50,7 @@ public:
     {
         PWSprefs *prefs = PWSprefs::GetInstance();
         const auto nExpected = prefs->GetPref(PWSprefs::MaxMRUItems);
-        std::vector<stringT> mruList(nExpected);
+        std::vector<std::string> mruList(nExpected);
         __attribute__((unused)) const auto nFound = prefs->GetMRUList(&mruList[0]);
         assert(nExpected >= nFound);
         m_mruList = mruList;
@@ -62,3 +61,5 @@ public:
         m_mruList.clear();
     }
 };
+
+#endif

@@ -1,6 +1,8 @@
 /* Copyright 2022 Ian Boisvert */
 #pragma once
 
+#include <cstring>
+
 #include "PWSafeApp.h"
 
 class Label
@@ -16,18 +18,6 @@ public:
     }
 
     static int Write(
-        WINDOW *win, int y, int x, int width, const wchar_t *msg, int attrs = 0, int justification = JUSTIFY_LEFT)
-    {
-        if (attrs)
-            wattron(win, attrs);
-        if (justification != JUSTIFY_LEFT) x = CalcX(x, width, wcslen(msg), justification);
-        int retval = mvwaddwstr(win, y, x, msg);
-        if (attrs)
-            wattroff(win, attrs);
-        return retval;
-    }
-
-    static int Write(
         WINDOW *win, int y, int x, int width, const char *msg, int attrs = 0, int justification = JUSTIFY_LEFT)
     {
         if (attrs)
@@ -40,20 +30,9 @@ public:
     }
 
     static int WriteJustified(
-        WINDOW *win, int y, int x, int width, const wchar_t *msg, int justification)
-    {
-        return Write(win, y, x, width, msg, /*attrs*/0, justification);
-    }
-
-    static int WriteJustified(
         WINDOW *win, int y, int x, int width, const char *msg, int justification)
     {
         return Write(win, y, x, width, msg, /*attrs*/0, justification);
-    }
-
-    static int Write(WINDOW *win, int y, int x, const wchar_t *msg)
-    {
-        return mvwaddwstr(win, y, x, msg);
     }
 
     static int Write(WINDOW *win, int y, int x, const char *msg)
@@ -67,22 +46,10 @@ public:
         return mvwhline(m_win, m_y, m_x, ch, m_width);
     }
 
-    int Write(const wchar_t *msg)
-    {
-        assert(m_win);
-        return Label::Write(m_win, m_y, m_x, m_width, msg, m_attrs, m_justification);
-    }
-
     int Write(const char *msg)
     {
         assert(m_win);
         return Label::Write(m_win, m_y, m_x, m_width, msg, m_attrs, m_justification);
-    }
-
-    int Rewrite(const wchar_t *msg)
-    {
-        Clear();
-        return Write(msg);
     }
 
     int Rewrite(const char *msg)

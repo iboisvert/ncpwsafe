@@ -1,7 +1,6 @@
 /* Copyright 2022 Ian Boisvert */
 #pragma once
 
-#include "core/PWScore.h"
 #include <functional>
 #include <tuple>
 #include <vector>

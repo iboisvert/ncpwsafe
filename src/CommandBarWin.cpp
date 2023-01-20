@@ -2,8 +2,8 @@
 #include "PWSafeApp.h"
 #include "CommandBarWin.h"
 
-const Action Action::YES{L"Y", L"Yes"};
-const Action Action::NO{L"N", L"No"};
+const Action Action::YES{"Y", "Yes"};
+const Action Action::NO{"N", "No"};
 
 const std::vector<Action> CommandBarWin::YES_NO{Action::YES, Action::NO};
 
@@ -41,10 +41,10 @@ void CommandBarWin::ShowActions(WINDOW *win, const std::vector<Action> &actions,
         for (int j = 0; j < spacer; ++j)
             waddch(win, ' ');
         wattron(win, A_BOLD);
-        waddwstr(win, action.m_key.c_str());
+        waddstr(win, action.m_key.c_str());
         wattroff(win, A_BOLD);
         waddch(win, ' ');
-        waddwstr(win, action.m_name.c_str());
+        waddstr(win, action.m_name.c_str());
 
         spacer = 2;
         col += len;

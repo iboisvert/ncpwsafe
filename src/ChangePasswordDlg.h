@@ -13,7 +13,7 @@ public:
 
     DialogResult Show(WINDOW *parent);
 
-    const StringX &GetPassword() const
+    const std::string &GetPassword() const
     {
         return m_password;
     }
@@ -25,5 +25,5 @@ private:
     bool InputHandler(Dialog &dialog, int ch, DialogResult &result);
 
     PWSafeApp &m_app;
-    StringX m_password;
+    std::string m_password;
 };

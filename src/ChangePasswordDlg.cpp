@@ -5,15 +5,15 @@
 #include "MessageBox.h"
 #include "Utils.h"
 
-static CItem::FieldType PASSWORD_CONFIRM = static_cast<CItem::FieldType>(CItem::LAST_USER_FIELD+1);
+static PWS_FIELD_TYPE PASSWORD_CONFIRM = static_cast<PWS_FIELD_TYPE>(FT_LAST_USER_FIELD+1);
 
 ChangePasswordDlg::ChangePasswordDlg(PWSafeApp &app)
     : m_app(app)
 {
     m_app.GetCommandBar().Register(this, {
-        {L"^S", L"Save and close", L"Save the new password and close"},
-        {L"^X", L"Cancel", L"Cancel changing password"},
-        {L"^P", L"Generate", L"Randomly generate a new password"}
+        {"^S", "Save and close", "Save the new password and close"},
+        {"^X", "Cancel", "Cancel changing password"},
+        {"^P", "Generate", "Randomly generate a new password"}
     });
 }
 
@@ -25,18 +25,18 @@ void ChangePasswordDlg::SetCommandBarWin()
 /** Validate form field values */
 bool ChangePasswordDlg::ValidateForm(const Dialog &dialog)
 {
-    bool valid = dialog.GetValue(CItem::PASSWORD) == dialog.GetValue(PASSWORD_CONFIRM);
+    bool valid = dialog.GetValue(FT_PASSWORD) == dialog.GetValue(PASSWORD_CONFIRM);
     if (!valid)
     {
-        const wchar_t *msg = L"Passwords do not match";
+        const char *msg = "Passwords do not match";
         MessageBox(m_app).Show(dialog.GetParentWindow(), msg);
 
         SetCommandBarWin();
     }
-    else if (dialog.GetValue(CItem::PASSWORD).empty())
+    else if (dialog.GetValue(FT_PASSWORD).empty())
     {
         m_app.GetCommandBar().Show(CommandBarWin::YES_NO);
-        const wchar_t *msg = L"Password is empty. Are you sure?";
+        const char *msg = "Password is empty. Are you sure?";
         valid = MessageBox(m_app).Show(dialog.GetParentWindow(), msg, &YesNoKeyHandler) == DialogResult::YES;
 
         SetCommandBarWin();
@@ -56,8 +56,8 @@ bool ChangePasswordDlg::InputHandler(Dialog &dialog, int ch, DialogResult &resul
         result = GeneratePasswordDlgDlg.Show(win);
         if (result == DialogResult::OK)
         {
-            const StringX &newPassword = GeneratePasswordDlgDlg.GetPassword();
-            dialog.SetField(CItem::PASSWORD, newPassword);
+            const std::string &newPassword = GeneratePasswordDlgDlg.GetPassword();
+            dialog.SetField(FT_PASSWORD, newPassword);
             dialog.SetField(PASSWORD_CONFIRM, newPassword);
             retval = true;
         }
@@ -75,16 +75,16 @@ DialogResult ChangePasswordDlg::Show(WINDOW *parent)
     SetCommandBarWin();
 
     std::vector<DialogField> fields{
-        {CItem::PASSWORD, L"New password:", L"", /*m_width*/ 40, /*m_fieldOptsOn*/ 0, O_STATIC | O_PUBLIC},
-        {PASSWORD_CONFIRM, L"Confirm password:", L"", /*m_width*/ 40, /*m_fieldOptsOn*/ 0, O_STATIC | O_PUBLIC}};
+        {FT_PASSWORD, "New password:", "", /*m_width*/ 40, /*m_fieldOptsOn*/ 0, O_STATIC | O_PUBLIC},
+        {PASSWORD_CONFIRM, "Confirm password:", "", /*m_width*/ 40, /*m_fieldOptsOn*/ 0, O_STATIC | O_PUBLIC}};
 
     auto f_validate = std::bind(&ChangePasswordDlg::ValidateForm, this, _1);
     auto f_inputHandler = std::bind(&ChangePasswordDlg::InputHandler, this, _1, _2, _3);
     Dialog dialog(m_app, fields, /*readOnly*/ false, f_validate, nullptr, f_inputHandler);
-    DialogResult result = dialog.Show(parent, L"Change Password");
+    DialogResult result = dialog.Show(parent, "Change Password");
     if (result == DialogResult::OK)
     {
-        m_password = dialog.GetValue(CItem::PASSWORD);
+        m_password = dialog.GetValue(FT_PASSWORD);
     }
 
     return result;

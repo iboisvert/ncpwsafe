@@ -5,7 +5,7 @@
 #include "GeneratePasswordDlg.h"
 
 /** Generate passwords to stdout */
-std::vector<StringX> GeneratePasswordCommand::Execute()
+std::vector<std::string> GeneratePasswordCommand::Execute()
 {
     const ProgArgs &args = m_app.GetArgs();
 
@@ -15,7 +15,7 @@ std::vector<StringX> GeneratePasswordCommand::Execute()
     unsigned policyFlags = GetPolicyFlags(policyIndex);
     PWPolicy policy = CreatePolicy(policyFlags, length);
 
-    std::vector<StringX> passwords;
+    std::vector<std::string> passwords;
     for (size_t i = 0; i < count; ++i)
     {
         passwords.push_back(policy.MakeRandomPassword());

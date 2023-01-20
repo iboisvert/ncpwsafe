@@ -1,8 +1,6 @@
 /* Copyright 2020 Ian Boisvert */
 #pragma once
 
-#include "core/StringX.h"
-
 #include <optional>
 
 enum class Operation
@@ -16,7 +14,7 @@ enum class Operation
 
 struct InputProgArgs
 {
-    stringT m_progName;
+    std::string m_progName;
 
     bool m_cmdGenerateTestDb = false;
     bool m_cmdGeneratePassword = false;
@@ -24,17 +22,17 @@ struct InputProgArgs
     bool m_cmdChangeDbPassword = false;
 
     bool m_force = false;                       // Force overwrite output file
-    std::optional<StringX> m_database;                 // Account database
-    std::optional<StringX> m_password;                 // Database password
-    std::optional<StringX> m_newPassword;              // New database password, for when password is being changed
+    std::optional<std::string> m_database;                 // Account database
+    std::optional<std::string> m_password;                 // Database password
+    std::optional<std::string> m_newPassword;              // New database password, for when password is being changed
     std::optional<bool> m_readOnly;                    // Database read-only flag
-    std::optional<stringT> m_generateLanguage;         // Language to use in generated database
+    std::optional<std::string> m_generateLanguage;         // Language to use in generated database
     std::optional<unsigned long> m_generateGroupCount; // Number of account groups to generate
     std::optional<unsigned long> m_generateItemCount;  // Number of account items to generate
     std::optional<size_t> m_generatePasswordCount;     // Number of passwords to generate
     std::optional<size_t> m_passwordPolicy;            // Policy used when generating passwords
     std::optional<size_t> m_passwordLength;            // Length of generated passwords
-    std::optional<stringT> m_outputFile;                     // Target file, used for export database
+    std::optional<std::string> m_outputFile;                     // Target file, used for export database
 
     Operation GetCommand() const
     {
@@ -68,20 +66,20 @@ struct InputProgArgs
  */
 struct ProgArgs
 {
-    stringT m_progName;
+    std::string m_progName;
     Operation m_command;
     bool m_force;                       // Force overwrite output file
-    StringX m_database;                 // Account database
-    StringX m_password;                 // Database password
-    StringX m_newPassword;  // New database password, for when password is being changed
+    std::string m_database;                 // Account database
+    std::string m_password;                 // Database password
+    std::string m_newPassword;  // New database password, for when password is being changed
     bool m_readOnly;                    // Database read-only flag
-    stringT m_generateLanguage;         // Language to use in generated database
+    std::string m_generateLanguage;         // Language to use in generated database
     unsigned long m_generateGroupCount; // Number of account groups to generate
     unsigned long m_generateItemCount;  // Number of account items to generate
     size_t m_generatePasswordCount;     // Number of passwords to generate
     size_t m_passwordPolicy;            // Policy used when generating passwords
     size_t m_passwordLength;            // Length of generated passwords
-    stringT m_file;                     // Target file, used for export database
+    std::string m_file;                     // Target file, used for export database
 
     ProgArgs() = default;
 

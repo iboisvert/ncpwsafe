@@ -14,12 +14,12 @@ public:
     /** Show the unlock dialog */
     DialogResult Show(WINDOW *parent);
 
-    StringX GetFilename()
+    std::string GetFilename()
     {
         return m_filename;
     }
 
-    StringX GetPassword()
+    std::string GetPassword()
     {
         return m_password;
     }
@@ -27,8 +27,8 @@ public:
 private:
     PWSafeApp &m_app;
 
-    StringX m_filename;
-    StringX m_password;
+    std::string m_filename;
+    std::string m_password;
 
     WINDOW *m_parentWin = nullptr;
 

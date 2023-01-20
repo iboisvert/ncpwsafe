@@ -9,18 +9,18 @@
 #include "Utils.h"
 
 [[gnu::unused]]
-static const wchar_t *WORDS_EN_CA[] = {
+static const char *WORDS_EN_CA[] = {
 #include "en_CA.dat"
 };
 static const size_t NWORDS_EN_CA = sizeof(WORDS_EN_CA)/sizeof(*WORDS_EN_CA);
 
 [[gnu::unused]]
-static const wchar_t *WORDS_RU[] = {
+static const char *WORDS_RU[] = {
 #include "ru.dat"
 };
 static const size_t NWORDS_RU = sizeof(WORDS_RU) / sizeof(*WORDS_RU);
 
-static void GetWordList(const stringT &lang, const wchar_t ***wordList, size_t &wordCount)
+static void GetWordList(const std::string &lang, const char ***wordList, size_t &wordCount)
 {
   *wordList = nullptr;
   wordCount = 0;
@@ -36,12 +36,12 @@ static void GetWordList(const stringT &lang, const wchar_t ***wordList, size_t &
   }
 }
 
-static StringX GeneratePhrase(const wchar_t *words[], unsigned wordsCount, unsigned phraseWordCount)
+static std::string GeneratePhrase(const char *words[], unsigned wordsCount, unsigned phraseWordCount)
 {
   PWSrand *rand = PWSrand::GetInstance();
 
-  StringX result;
-  const wchar_t * sep = L"";
+  std::string result;
+  const char * sep = L"";
   for (unsigned i = 0; i < phraseWordCount; ++i)
   {
     int idx = rand->RandUInt() % wordsCount;
@@ -52,7 +52,7 @@ static StringX GeneratePhrase(const wchar_t *words[], unsigned wordsCount, unsig
 }
 
 /** Create a new file, fails if file exists. */
-static ResultCode CreateNewFile(cstringT &filename, bool force)
+static ResultCode CreateNewFile(std::string &filename, bool force)
 {
   int flags = O_WRONLY | O_CREAT;
   if (!force) flags = flags | O_EXCL;
@@ -68,8 +68,8 @@ static ResultCode CreateNewFile(cstringT &filename, bool force)
   return ResultCode::SUCCESS;
 }
 
-ResultCode GenerateTestDbCommand::Generate(const StringX &database, const StringX &password, bool force,
-  const stringT &language, size_t groupCount, size_t itemCount) const
+ResultCode GenerateTestDbCommand::Generate(const std::string &database, const std::string &password, bool force,
+  const std::string &language, size_t groupCount, size_t itemCount) const
 {
   assert(!database.empty());
   assert(!language.empty());
@@ -77,7 +77,7 @@ ResultCode GenerateTestDbCommand::Generate(const StringX &database, const String
   PWScore & core = m_app.GetCore();
   PWSrand *rand = PWSrand::GetInstance();
 
-  cstringT filename;
+  std::string filename;
   WideToMultibyteString(database, filename);
 
   ResultCode result = CreateNewFile(filename, force);
@@ -86,12 +86,12 @@ ResultCode GenerateTestDbCommand::Generate(const StringX &database, const String
   core.SetCurFile(database);
   core.NewFile(password);
 
-  const wchar_t **words;
+  const char **words;
   size_t wordCount;
   GetWordList(language, &words, wordCount);
 
   const unsigned long NGROUP = groupCount;
-  std::vector<StringX> groups(NGROUP);
+  std::vector<std::string> groups(NGROUP);
   for (unsigned long i = 1; i < NGROUP; ++i)
   {
     int size = rand->RandUInt() % 3 + 1;

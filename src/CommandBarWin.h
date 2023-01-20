@@ -1,8 +1,10 @@
 /* Copyright 2020 Ian Boisvert */
-#pragma once
+#ifndef HAVE_COMMANDBARWIN_H
+#define HAVE_COMMANDBARWIN_H
 
 #include <map>
 #include <vector>
+#include <string>
 
 class PWSafeApp;
 
@@ -16,21 +18,21 @@ struct Action
      * If `opts & m_mask == 0` the action will not be displayed.
      */
     int m_mask;
-    stringT m_key;
-    stringT m_name;
-    stringT m_description;
+    std::string m_key;
+    std::string m_name;
+    std::string m_description;
 
-    Action(int mask, stringT key, stringT name, stringT description)
+    Action(int mask, std::string key, std::string name, std::string description)
         : m_mask(mask), m_key(key), m_name(name), m_description(description)
     {
     }
-    Action(stringT key, stringT name, stringT description) : Action(-1, key, name, description)
+    Action(std::string key, std::string name, std::string description) : Action(-1, key, name, description)
     {
     }
-    Action(int mask, stringT key, stringT name) : Action(mask, key, name, L"")
+    Action(int mask, std::string key, std::string name) : Action(mask, key, name, "")
     {
     }
-    Action(stringT key, stringT name) : Action(key, name, L"")
+    Action(std::string key, std::string name) : Action(key, name, "")
     {
     }
 };
@@ -72,3 +74,5 @@ private:
 
     WINDOW *m_win = nullptr;
 };
+
+#endif

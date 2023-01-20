@@ -1,5 +1,5 @@
 # ncpwsafe
-An ncurses terminal program that manages encrypted account password databases
+An ncurses terminal program that manages encrypted account password database files
 that are compatible with the V1 and V2 [Password Safe](https://www.pwsafe.org/)
 database formats.
 

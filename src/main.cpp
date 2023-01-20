@@ -7,7 +7,7 @@
 #include "PWSafeApp.h"
 #include "ProgArgs.h"
 #include "Utils.h"
-#include "core/PWScore.h"
+#include "libpwsafe.h"
 
 #include <climits>
 #include <cstdarg>
@@ -21,7 +21,7 @@
 using std::fprintf;
 using std::srand;
 
-static constexpr const wchar_t *DEFAULT_LANG = L"en-CA";
+static constexpr const char *DEFAULT_LANG = "en-CA";
 static constexpr size_t DEFAULT_NGROUP = 10;
 static constexpr size_t DEFAULT_NITEM = 50;
 static constexpr size_t DEFAULT_NPASS = 1;
@@ -57,7 +57,7 @@ static void Usage(const char *progName)
             "\n"
             "Generate test database options:\n"
             "  --test-db-lang=STR   Language of strings in generated database\n"
-            "                       Valid values are en-CA, ru. Default value is %ls\n"
+            "                       Valid values are en-CA, ru. Default value is %s\n"
             "  --test-db-groups=N   Number of groups in the generated database\n"
             "                       Default value is %zd\n"
             "  --test-db-items=N    Number of itesm in the generated database\n"
@@ -140,7 +140,7 @@ static bool ValidateArgs(InputProgArgs &args)
             result = false;
         else
         {
-            if (args.m_generateLanguage->compare(L"en-CA") != 0 && args.m_generateLanguage->compare(L"ru") != 0)
+            if (args.m_generateLanguage->compare("en-CA") != 0 && args.m_generateLanguage->compare("ru") != 0)
                 result = Error("Valid languages for test database are: en-CA, ru\n");
         }
     }
@@ -319,7 +319,7 @@ static constexpr struct option options[] {
 
 static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
 {
-    args.m_progName = MultibyteToWideString<stringT>(argv[0]);
+    args.m_progName = argv[0];
 
     if (argc < 2)
         return true;
@@ -375,7 +375,7 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
         }
         case 'o': {
             assert(optarg);
-            args.m_outputFile = MultibyteToWideString<stringT>(optarg);
+            args.m_outputFile = optarg;
             break;
         }
         case O_CHANGE_PASSWORD: {
@@ -384,7 +384,7 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
         }
         case O_NEW_PASSWORD: {
             assert(optarg);
-            args.m_newPassword = MultibyteToWideString<stringT>(optarg);
+            args.m_newPassword = optarg;
             break;
         }
         case O_GENERATE_TEST_DB: {
@@ -393,7 +393,7 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
         }
         case O_TEST_DB_LANG: {
             assert(optarg);
-            args.m_generateLanguage = MultibyteToWideString<stringT>(optarg);
+            args.m_generateLanguage = optarg;
             break;
         }
         case O_TEST_DB_GROUPS: {
@@ -408,7 +408,7 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
         }
         case 'P': {
             assert(optarg);
-            args.m_password = MultibyteToWideString<StringX>(optarg);
+            args.m_password = optarg;
             break;
         }
         case 'r': {
@@ -429,7 +429,7 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
     if (count == 1)
     {
         const char *filename = argv[optind];
-        args.m_database = MultibyteToWideString<StringX>(filename);
+        args.m_database = filename;
     }
     else if (count > 1)
     {
@@ -489,7 +489,7 @@ int main(int argc, char *argv[])
         break;
     }
     case Operation::GENERATE_TEST_DB: {
-        fprintf(stdout, "Generating test database at %ls\n", args.m_database->c_str());
+        fprintf(stdout, "Generating test database at %s\n", args.m_database->c_str());
         ResultCode rc = GenerateTestDbCommand{app}.Execute();
         result = static_cast<int>(rc);
         fflush(stdout);
@@ -505,14 +505,14 @@ int main(int argc, char *argv[])
         const auto passwords = GeneratePasswordCommand{app}.Execute();
         for (const auto &pw : passwords)
         {
-            fprintf(stdout, "%ls\n", pw.c_str());
+            fprintf(stdout, "%s\n", pw.c_str());
         }
         fflush(stdout);
         break;
     }
     case Operation::EXPORT_DB: {
         fprintf(stdout,
-                "Exporting account database at %ls\n"
+                "Exporting account database at %s\n"
                 "Warning! The exported file will contain unencrypted passwords.\n"
                 "You should securely delete the file when it is no longer needed.\n",
                 args.m_outputFile->c_str());
@@ -526,7 +526,7 @@ int main(int argc, char *argv[])
             }
             else if (rc == ResultCode::WRONG_PASSWORD)
             {
-                fprintf(stderr, "An error occurred reading database file %ls\n", args.m_database->c_str());
+                fprintf(stderr, "An error occurred reading database file %s\n", args.m_database->c_str());
             }
             else
             {

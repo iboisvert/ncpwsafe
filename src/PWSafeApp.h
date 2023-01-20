@@ -1,7 +1,6 @@
 /* Copyright 2020 Ian Boisvert */
 #pragma once
 
-#include "core/PWScore.h"
 #include "libncurses.h"
 #include <memory>
 

@@ -1,7 +1,9 @@
 /* Copyright 2022 Ian Boisvert */
-#pragma once
+#ifndef HAVE_GENERATEPASSWORDCOMMAND_H
+#define HAVE_GENERATEPASSWORDCOMMAND_H
+
 #include <vector>
-#include <core/StringX.h>
+#include <string>
 
 class PWSafeApp;
 
@@ -13,5 +15,7 @@ class GeneratePasswordCommand
 public:
     GeneratePasswordCommand(PWSafeApp &app) : m_app(app) {}
     /** Generate passwords to stdout */
-    std::vector<StringX> Execute();
+    std::vector<std::string> Execute();
 };
+
+#endif

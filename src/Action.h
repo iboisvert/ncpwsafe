@@ -7,7 +7,7 @@
 struct Action
 {
     char m_mnemonic;
-    stringT m_description;
+    std::string m_description;
 };
 
 #endif //#ifndef __COMMANDMAP_H

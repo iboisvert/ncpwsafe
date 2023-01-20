@@ -3,7 +3,6 @@
 
 #include "PWSafeApp.h"
 #include "Utils.h"
-#include "core/StringX.h"
 #include "libncurses.h"
 #include <functional>
 #include <tuple>
@@ -38,7 +37,7 @@ private:
 
     PWSafeApp &m_app;
     AccountsWin &m_AccountsWin;
-    stringT m_query;
+    std::string m_query;
     AccountsColl::iterator m_saveMatch;      ///< Item selected when search bar openend
     AccountsColl::iterator m_lastMatch;      ///< Item selected after last "Find Next"
     AccountsColl::iterator m_transientMatch; ///< Item selected while typing query

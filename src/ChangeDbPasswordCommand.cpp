@@ -3,7 +3,6 @@
 
 #include "PWSafeApp.h"
 #include "ProgArgs.h"
-#include "core/PWScore.h"
 
 ResultCode ChangeDbPasswordCommand::Execute()
 {

@@ -3,7 +3,7 @@
 #include "CommandBarWin.h"
 #include "PWSafeApp.h"
 #include "Utils.h"
-#include "core/StringX.h"
+#include "core/std::string.h"
 #include <utility>
 
 void SearchBarWin::InitTUI()
@@ -79,18 +79,18 @@ void SearchBarWin::Show()
 }
 
 /** Search title, name, user, notes fields for query */
-static bool Matches(const CItemData &cid, const stringT &query)
+static bool Matches(const CItemData &cid, const std::string &query)
 {
     // clang-format off
     return 
-        cid.Matches(query, CItem::FieldType::TITLE, PWSMatch::MatchRule::MR_CONTAINS)
-        || cid.Matches(query, CItem::FieldType::NAME, PWSMatch::MatchRule::MR_CONTAINS)
-        || cid.Matches(query, CItem::FieldType::USER, PWSMatch::MatchRule::MR_CONTAINS)
-        || cid.Matches(query, CItem::FieldType::NOTES, PWSMatch::MatchRule::MR_CONTAINS);
+        cid.Matches(query, FT_TITLE, PWSMatch::MatchRule::MR_CONTAINS)
+        || cid.Matches(query, PWS_FIELD_TYPE::NAME, PWSMatch::MatchRule::MR_CONTAINS)
+        || cid.Matches(query, PWS_FIELD_TYPE::USER, PWSMatch::MatchRule::MR_CONTAINS)
+        || cid.Matches(query, PWS_FIELD_TYPE::NOTES, PWSMatch::MatchRule::MR_CONTAINS);
     // clang-format on
 }
 
-static AccountsColl::iterator FindNext(AccountsColl::iterator begin, AccountsColl::iterator end, const stringT &query)
+static AccountsColl::iterator FindNext(AccountsColl::iterator begin, AccountsColl::iterator end, const std::string &query)
 {
     AccountsColl::iterator &it = begin;
     for (; it != end; ++it)

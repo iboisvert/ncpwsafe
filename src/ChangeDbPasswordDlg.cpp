@@ -4,15 +4,15 @@
 #include "MessageBox.h"
 #include "Utils.h"
 
-static CItem::FieldType NEW_PASSWORD = static_cast<CItem::FieldType>(CItem::LAST_USER_FIELD+1);
-static CItem::FieldType NEW_PASSWORD_CONFIRM = static_cast<CItem::FieldType>(CItem::LAST_USER_FIELD+2);
+static PWS_FIELD_TYPE NEW_PASSWORD = static_cast<PWS_FIELD_TYPE>(FT_LAST_USER_FIELD+1);
+static PWS_FIELD_TYPE NEW_PASSWORD_CONFIRM = static_cast<PWS_FIELD_TYPE>(FT_LAST_USER_FIELD+2);
 
 ChangeDbPasswordDlg::ChangeDbPasswordDlg(PWSafeApp &app)
     : m_app(app)
 {
     m_app.GetCommandBar().Register(this, {
-        {L"^S", L"Save and close", L"Save the new password and close"},
-        {L"^X", L"Cancel", L"Cancel changing password"},
+        {"^S", "Save and close", "Save the new password and close"},
+        {"^X", "Cancel", "Cancel changing password"},
     });
 }
 
@@ -21,22 +21,22 @@ bool ChangeDbPasswordDlg::ValidateForm(const Dialog &dialog)
 {
     WINDOW *win = dialog.GetParentWindow();
     PWScore &core = m_app.GetCore();
-    if (core.CheckPasskey(core.GetCurFile(), dialog.GetValue(CItem::PASSWORD)) != PWScore::SUCCESS)
+    if (core.CheckPasskey(core.GetCurFile(), dialog.GetValue(FT_PASSWORD)) != PWScore::SUCCESS)
     {
-        const wchar_t *msg = L"Account database password is incorrect";
+        const char *msg = "Account database password is incorrect";
         MessageBox(m_app).Show(win, msg);
         return false;
     }
     if (dialog.GetValue(NEW_PASSWORD) != dialog.GetValue(NEW_PASSWORD_CONFIRM))
     {
-        const wchar_t *msg = L"New passwords do not match";
+        const char *msg = "New passwords do not match";
         MessageBox(m_app).Show(win, msg);
         return false;
     }
     if (dialog.GetValue(NEW_PASSWORD).empty())
     {
         m_app.GetCommandBar().Show(CommandBarWin::YES_NO);
-        const wchar_t *msg = L"Password is empty. Are you sure?";
+        const char *msg = "Password is empty. Are you sure?";
         if (MessageBox(m_app).Show(win, msg, &YesNoKeyHandler) != DialogResult::YES)
             return false;
     }
@@ -49,16 +49,16 @@ DialogResult ChangeDbPasswordDlg::Show(WINDOW *parent)
     using std::placeholders::_1;
 
     std::vector<DialogField> fields{
-        {CItem::PASSWORD, L"Current password:", L"", /*m_width*/ 40, /*m_fieldOptsOn*/ 0, O_STATIC | O_PUBLIC},
-        {NEW_PASSWORD, L"New password:", L"", /*m_width*/ 40, /*m_fieldOptsOn*/ 0, O_STATIC | O_PUBLIC},
-        {NEW_PASSWORD_CONFIRM, L"Confirm password:", L"", /*m_width*/ 40, /*m_fieldOptsOn*/ 0, O_STATIC | O_PUBLIC}};
+        {FT_PASSWORD, "Current password:", "", /*m_width*/ 40, /*m_fieldOptsOn*/ 0, O_STATIC | O_PUBLIC},
+        {NEW_PASSWORD, "New password:", "", /*m_width*/ 40, /*m_fieldOptsOn*/ 0, O_STATIC | O_PUBLIC},
+        {NEW_PASSWORD_CONFIRM, "Confirm password:", "", /*m_width*/ 40, /*m_fieldOptsOn*/ 0, O_STATIC | O_PUBLIC}};
 
     auto f_validate = std::bind(&ChangeDbPasswordDlg::ValidateForm, this, _1);
     Dialog dialog(m_app, fields, /*readOnly*/ false, f_validate);
-    DialogResult result = dialog.Show(parent, L"Change Account Database Password");
+    DialogResult result = dialog.Show(parent, "Change Account Database Password");
     if (result == DialogResult::OK)
     {
-        m_password = dialog.GetValue(CItem::PASSWORD);
+        m_password = dialog.GetValue(FT_PASSWORD);
         m_newPassword = dialog.GetValue(NEW_PASSWORD);
     }
 

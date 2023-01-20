@@ -7,7 +7,7 @@
 #include "Utils.h"
 #include "Label.h"
 
-Dialog &Dialog::SetActiveField(CItem::FieldType ft)
+Dialog &Dialog::SetActiveField(PWS_FIELD_TYPE ft)
 {
     m_activeField = GetField(ft);
     return *this;
@@ -23,12 +23,10 @@ void Dialog::ConstructFields()
     // Fields are contained by a subwindow that is
     // moved to align with labels
     int row = 0;
-    cstringT tmp;
     for (const DialogField &df : m_dialogFields)
     {
         if (df.m_width > m_maxFieldWidth) m_maxFieldWidth = df.m_width;
 
-        WideToMultibyteString(df.m_value, tmp);
         FIELD *field = new_field(/*height*/ 1, df.m_width, row++, /*leftcol*/ 0, /*offscreen*/ 0, /*nbuffers*/ 0);
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-value"
@@ -38,14 +36,14 @@ void Dialog::ConstructFields()
         field_opts_on(field, df.m_fieldOptsOn);
         field_opts_off(field, df.m_fieldOptsOff);
         set_field_back(field, A_UNDERLINE);
-        set_field_buffer(field, /*buf*/ 0, tmp.c_str());
+        set_field_buffer(field, /*buf*/ 0, df.m_value.c_str());
         m_fields.push_back(field);
     }
     // End of fields marker
     m_fields.push_back(NULL);
 }
 
-DialogResult Dialog::Show(WINDOW *parent, const stringT &title)
+DialogResult Dialog::Show(WINDOW *parent, const std::string &title)
 {
     m_parentWin = parent;
 
@@ -68,7 +66,7 @@ DialogResult Dialog::Show(WINDOW *parent, const stringT &title)
     return result;
 }
 
-void Dialog::InitTUI(const stringT &title)
+void Dialog::InitTUI(const std::string &title)
 {
     // Calculate dimensions and coordinates to size and position dialog
 
@@ -151,7 +149,7 @@ void Dialog::EndTUI()
     curs_set(m_saveCursor);
 }
 
-static StringX GetFieldValue(const FIELD *field)
+static std::string GetFieldValue(const FIELD *field)
 {
     char *cbuf = field_buffer(field, /*buffer*/ 0);
 #pragma GCC diagnostic push
@@ -160,8 +158,8 @@ static StringX GetFieldValue(const FIELD *field)
 #pragma GCC diagnostic pop
     int rows, cols, max;
     dynamic_field_info(field, &rows, &cols, &max);
-    StringX wbuf = Utf8ToWideString(rtrim(cbuf, cbuf + (rows*cols)));
-    return wbuf;
+    std::string buf = rtrim(cbuf, cbuf + (rows*cols));
+    return buf;
 }
 
 /** Copy data from form fields to values array */
@@ -171,7 +169,7 @@ void Dialog::SaveData()
     for (size_t i = 0; i < m_fields.size() - 1; ++i)
     {
         const FIELD *field = m_fields[i];
-        const CItem::FieldType ft = reinterpret_cast<const DialogField*>(field_userptr(field))->m_fieldType;
+        const PWS_FIELD_TYPE ft = reinterpret_cast<const DialogField*>(field_userptr(field))->m_fieldType;
         m_values[ft] = GetFieldValue(field);
     }
 }
@@ -300,7 +298,7 @@ void Dialog::RandomizeBuffers()
     RandomizeFieldsBuffer(m_fields.data());
 }
 
-FIELD *Dialog::GetField(CItem::FieldType ft) const
+FIELD *Dialog::GetField(PWS_FIELD_TYPE ft) const
 {
     FIELD *retval = nullptr;
     auto it = std::find_if(m_fields.begin(), m_fields.end(), [ft](FIELD *field){
@@ -314,18 +312,17 @@ FIELD *Dialog::GetField(CItem::FieldType ft) const
 }
 
 /** Sets the value of a curses `FIELD` for the given `FieldType` */
-void Dialog::SetField(CItem::FieldType ft, const StringX &value)
+void Dialog::SetField(PWS_FIELD_TYPE ft, const std::string &value)
 {
-    cstringT tmp = WideToMultibyteString(value);
     FIELD *field = GetField(ft);
     assert(field != nullptr);
     if (field != nullptr)
     {
-        set_field_buffer(field, /*buf*/0, tmp.c_str());
+        set_field_buffer(field, /*buf*/0, value.c_str());
     }
 }
 
-const StringX &Dialog::GetValue(CItem::FieldType ft) const
+const std::string &Dialog::GetValue(PWS_FIELD_TYPE ft) const
 {
     return m_values.at(ft);
 }

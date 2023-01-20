@@ -1,7 +1,9 @@
 /* Copyright 2022 Ian Boisvert */
-#pragma once
+#ifndef HAVE_CHANGEDBPASSWORDCOMMAND_H
+#define HAVE_CHANGEDBPASSWORDCOMMAND_H
+
 #include "ResultCode.h"
-#include "core/StringX.h"
+#include <string>
 
 class PWSafeApp;
 
@@ -9,14 +11,16 @@ class PWSafeApp;
 class ChangeDbPasswordCommand
 {
     PWSafeApp &m_app;
-    StringX m_database;
-    StringX m_password;
-    StringX m_newPassword;
+    std::string m_database;
+    std::string m_password;
+    std::string m_newPassword;
 
 public:
-    ChangeDbPasswordCommand(PWSafeApp &app, StringX database, StringX password, StringX newPassword)
+    ChangeDbPasswordCommand(PWSafeApp &app, std::string database, std::string password, std::string newPassword)
         : m_app(app), m_database(database), m_password(password), m_newPassword(newPassword)
     {
     }
     ResultCode Execute();
 };
+
+#endif
