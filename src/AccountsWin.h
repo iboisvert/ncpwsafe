@@ -3,6 +3,7 @@
 
 #include "libncurses.h"
 #include "Utils.h"
+#include "AccountRecord.h"
 #include <set>
 
 class PWSafeApp;
@@ -15,8 +16,8 @@ public:
     /** Show the password item list */
     DialogResult Show();
 
-    void SetSelection(const CItemData &cid) const;
-    const CItemData *GetSelection() const;
+    void SetSelection(const AccountRecord &cid) const;
+    const AccountRecord *GetSelection() const;
 
 private:
     /* Command bar display mask */
@@ -29,12 +30,12 @@ private:
     /** Ask for confirmation to discard changes */
     bool DiscardChanges();
     /** View or edit an account entry */
-    DialogResult ShowAccountRecord(CItemData &itemData);
+    DialogResult ShowAccountRecord(AccountRecord &itemData);
     /** Add a new account entry */
     DialogResult AddNewEntry();
     /** Delete an account entry */
     DialogResult DeleteEntry(const ITEM *item);
-    ITEM *FindItem(const CItemData &cid) const;
+    ITEM *FindItem(const AccountRecord &cid) const;
 
     void InitTUI();
     void EndTUI();

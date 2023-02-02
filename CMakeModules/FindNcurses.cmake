@@ -106,8 +106,8 @@ foreach(comp ${Ncurses_FIND_COMPONENTS})
   )
 
   find_package_handle_standard_args(Ncurses_${comp}
-    REQUIRED_VARS
-      NCURSES_${comp}_LIBRARY
+    REQUIRED_VARS NCURSES_${comp}_LIBRARY
+    NAME_MISMATCHED
   )
 
   if(Ncurses_${comp}_FOUND)

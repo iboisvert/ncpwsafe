@@ -1,0 +1,4 @@
+#cmakedefine NCPWSAFE_APPNAME "@NCPWSAFE_APPNAME@"
+#cmakedefine NCPWSAFE_VERSION "@NCPWSAFE_VERSION@"
+#cmakedefine HAVE_SYS_PRCTL_H
+#cmakedefine HAVE_SYS_RANDOM_H

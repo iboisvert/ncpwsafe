@@ -204,7 +204,7 @@ AccountsWin::AccountsWin(PWSafeApp &app, WINDOW *win) : m_app(app), m_win(win)
     // clang-format on
 }
 
-ITEM *AccountsWin::FindItem(const CItemData &cid) const
+ITEM *AccountsWin::FindItem(const AccountRecord &cid) const
 {
     ITEM *pitem = nullptr;
     auto it = std::find_if(
@@ -216,7 +216,7 @@ ITEM *AccountsWin::FindItem(const CItemData &cid) const
     return pitem;
 }
 
-void AccountsWin::SetSelection(const CItemData &cid) const
+void AccountsWin::SetSelection(const AccountRecord &cid) const
 {
     ITEM *pitem = FindItem(cid);
     if (pitem != nullptr)
@@ -225,13 +225,13 @@ void AccountsWin::SetSelection(const CItemData &cid) const
     }
 }
 
-const CItemData *AccountsWin::GetSelection() const
+const AccountRecord *AccountsWin::GetSelection() const
 {
-    CItemData *pcid = nullptr;
+    AccountRecord *pcid = nullptr;
     ITEM *item = current_item(m_menu);
     if (item != nullptr)
     {
-        pcid = reinterpret_cast<CItemData *>(item_userptr(item));
+        pcid = reinterpret_cast<AccountRecord *>(item_userptr(item));
     }
     return pcid;
 }
@@ -266,7 +266,7 @@ void AccountsWin::CreateMenu()
     ITEM *item;
     int itemIndex = 0;
     // Accounts are sorted by group and title
-    for (CItemData &cid : accounts)
+    for (AccountRecord &cid : accounts)
     {
         std::string group = cid.GetGroup();
         if (group != lastGroup)
@@ -363,17 +363,17 @@ static void DestroyMenu(MENU *menu)
 }
 
 // Copied from ui/wxWidgets/MenuEditHandlers.cpp
-// void PasswordSafeFrame::DoCopyPassword(CItemData &item)
+// void PasswordSafeFrame::DoCopyPassword(AccountRecord &item)
 // {
 //   if (!item.IsDependent())
 //     Clipboard::GetInstance()->SetData(item.GetPassword());
 //   else
 //   {
 //     const CUUID &base = item.GetBaseUUID();
-//     const std::string &passwd = m_core.GetEntry(m_core.Find(base)).GetPassword();
+//     const std::string &passwd = m_db.GetEntry(m_db.Find(base)).GetPassword();
 //     Clipboard::GetInstance()->SetData(passwd);
 //   }
-//   UpdateLastClipboardAction(CItemData::FieldType::PASSWORD);
+//   UpdateLastClipboardAction(AccountRecord::FieldType::PASSWORD);
 //   UpdateAccessTime(item);
 // }
 
@@ -517,23 +517,23 @@ static void NavigatePageDown(MENU *menu, int cols, const std::vector<ITEM *> &it
     }
 }
 
-static bool EqualMenuData(const CItemData &a, const CItemData &b)
+static bool EqualMenuData(const AccountRecord &a, const AccountRecord &b)
 {
     return a.GetGroup() == b.GetGroup() && a.GetTitle() == b.GetTitle() && a.GetUser() == b.GetUser();
 }
 
 /** View or edit an account entry */
-DialogResult AccountsWin::ShowAccountRecord(CItemData &itemData)
+DialogResult AccountsWin::ShowAccountRecord(AccountRecord &itemData)
 {
-    PWScore &core = m_app.GetCore();
-    bool readOnly = core.IsReadOnly();
+    AccountDb &db = m_app.GetDb();
+    bool readOnly = db.ReadOnly();
     AccountDetailsDlg details(m_app, itemData);
 
     DialogResult result = details.Show(m_win, readOnly);
     if (result == DialogResult::OK && !readOnly)
     {
-        const CItemData &newItemData = details.GetItem(), oldItemData = itemData;
-        core.Execute(EditEntryCommand::Create(&core, itemData, newItemData));
+        const AccountRecord &newItemData = details.GetItem(), oldItemData = itemData;
+        db.Execute(EditEntryCommand::Create(&db, itemData, newItemData));
 
         if (!EqualMenuData(oldItemData, newItemData))
         {
@@ -553,9 +553,9 @@ DialogResult AccountsWin::ShowAccountRecord(CItemData &itemData)
 /** Display an account item dialog */
 DialogResult AccountsWin::AddNewEntry()
 {
-    PWScore &core = m_app.GetCore();
+    AccountDb &db = m_app.GetDb();
 
-    CItemData itemData;
+    AccountRecord itemData;
     itemData.CreateUUID();
 
     AccountDetailsDlg details(m_app, itemData);
@@ -563,8 +563,8 @@ DialogResult AccountsWin::AddNewEntry()
     DialogResult result = details.Show(m_win);
     if (result == DialogResult::OK)
     {
-        const CItemData &newItemData = details.GetItem();
-        int status = core.Execute(AddEntryCommand::Create(&core, newItemData));
+        const AccountRecord &newItemData = details.GetItem();
+        int status = db.Execute(AddEntryCommand::Create(&db, newItemData));
         if (status == PWScore::SUCCESS)
         {
             DestroyMenu(m_menu);
@@ -573,7 +573,7 @@ DialogResult AccountsWin::AddNewEntry()
             // Reset selection
             const pws_os::CUUID newUuid = newItemData.GetUUID();
             auto it = std::find_if(m_menuItems.begin(), m_menuItems.end(), [&newUuid](const ITEM *pitem) {
-                return item_userptr(pitem) && reinterpret_cast<CItemData *>(item_userptr(pitem))->GetUUID() == newUuid;
+                return item_userptr(pitem) && reinterpret_cast<AccountRecord *>(item_userptr(pitem))->GetUUID() == newUuid;
             });
             assert(it != m_menuItems.end());
             if (it != m_menuItems.end())
@@ -591,18 +591,18 @@ DialogResult AccountsWin::AddNewEntry()
 /** Display an account item dialog */
 DialogResult AccountsWin::DeleteEntry(const ITEM *pitem)
 {
-    PWScore &core = m_app.GetCore();
+    AccountDb &db = m_app.GetDb();
 
-    const CItemData *pItemData = reinterpret_cast<CItemData *>(item_userptr(pitem));
+    const AccountRecord *pItemData = reinterpret_cast<AccountRecord *>(item_userptr(pitem));
     assert(pItemData != nullptr);
 
     m_app.GetCommandBar().Show(CommandBarWin::YES_NO);
 
     auto &accounts = m_app.GetAccountsCollection();
     bool unique = std::all_of(accounts.begin(), accounts.end(),
-        [pItemData](CItemData &cid) { return cid.GetTitle() != pItemData->GetTitle() || &cid == pItemData; });
+        [pItemData](AccountRecord &cid) { return cid.GetTitle() != pItemData->GetTitle() || &cid == pItemData; });
     std::string msg = std::string("Delete account ").append(pItemData->GetTitle());
-    if (!unique && pItemData->IsUserSet())
+    if (!unique && pItemData->GetUser())
     {
         msg.append(" with user ").append(pItemData->GetUser());
     }
@@ -611,7 +611,7 @@ DialogResult AccountsWin::DeleteEntry(const ITEM *pitem)
     DialogResult result = MessageBox(m_app).Show(m_win, msg.c_str(), &YesNoKeyHandler);
     if (result == DialogResult::YES)
     {
-        int status = core.Execute(DeleteEntryCommand::Create(&core, *pItemData));
+        int status = db.Execute(DeleteEntryCommand::Create(&db, *pItemData));
         if (status == PWScore::SUCCESS)
         {
             DestroyMenu(m_menu);
@@ -652,29 +652,29 @@ bool AccountsWin::Save()
 
     bool retval = false;
 
-    ResultCode rc = ResultCode::FAILURE;
-    while (rc != ResultCode::SUCCESS && rc != ResultCode::USER_CANCEL)
+    ResultCode rc = RC_FAILURE;
+    while (rc != RC_SUCCESS && rc != RC_USER_CANCEL)
     {
         rc = m_app.Save();
-        if (rc == ResultCode::SUCCESS)
+        if (rc == RC_SUCCESS)
         {
             retval = true;
         }
         else
         {
-            PWScore &core = m_app.GetCore();
+            AccountDb &db = m_app.GetDb();
             std::string msg("An error occurred writing the database to file\n");
-            msg.append(core.GetCurFile()).append(". Retry?");
+            msg.append(db.DbPathName()).append(". Retry?");
             DialogResult dr = MessageBox(m_app).Show(m_win, msg.c_str(), &YesNoCancelKeyHandler);
             if (dr == DialogResult::NO)
             {
-                rc = ResultCode::SUCCESS;
+                rc = RC_SUCCESS;
                 retval = true;
                 break;
             }
             else if (dr == DialogResult::CANCEL)
             {
-                rc = ResultCode::USER_CANCEL;
+                rc = RC_USER_CANCEL;
                 break;
             }
 
@@ -694,7 +694,7 @@ bool AccountsWin::DiscardChanges()
 
     m_app.GetCommandBar().Show(CommandBarWin::YES_NO);
 
-    if (m_app.GetCore().HasDBChanged())
+    if (m_app.GetDb().HasDBChanged())
     {
         const char *msg = "The database has changed. Discard changes?";
         retval = MessageBox(m_app).Show(m_win, msg, &YesNoKeyHandler) == DialogResult::YES;
@@ -715,15 +715,6 @@ DialogResult AccountsWin::Show()
     // TODO check through items for items that have same group and title
     // if matching items found, enable display of username
 
-    // m_InitialTreeDisplayStatusAtOpen = true;
-    // Show();
-    // wxGetApp().recentDatabases().AddFileToHistory(fname);
-    // }
-    //   return retval;
-    // }
-    // else
-    //   return PWScore::USER_CANCEL;
-
     InitTUI();
     werase(m_win);
 
@@ -743,14 +734,14 @@ DialogResult AccountsWin::Show()
 
 void AccountsWin::SetCommandBar()
 {
-    bool readOnly = m_app.GetCore().IsReadOnly();
+    bool readOnly = m_app.GetDb().ReadOnly();
     const unsigned char opts = readOnly ? CBOPTS_READONLY : ~CBOPTS_READONLY;
     m_app.GetCommandBar().Show(this, opts);
 }
 
 DialogResult AccountsWin::ProcessInput()
 {
-    bool readOnly = m_app.GetCore().IsReadOnly();
+    bool readOnly = m_app.GetDb().ReadOnly();
     DialogResult result = DialogResult::CANCEL;
     int c;
     while ((c = wgetch(m_win)) != ERR)
@@ -770,10 +761,10 @@ DialogResult AccountsWin::ProcessInput()
                 ChangeDbPasswordDlg dialog(m_app);
                 if (dialog.Show(m_win) == DialogResult::OK)
                 {
-                    const std::string &database = m_app.GetCore().GetCurFile();
+                    const std::string &database = m_app.GetDb().DbPathName();
                     const std::string &password = dialog.GetPassword();
                     const std::string &newPassword = dialog.GetNewPassword();
-                    if (ChangeDbPasswordCommand{m_app, database, password, newPassword}.Execute() != ResultCode::SUCCESS)
+                    if (ChangeDbPasswordCommand{m_app, database, password, newPassword}.Execute() != RC_SUCCESS)
                     {
                         MessageBox(m_app).Show(m_win, "An error occurred changing the account database password.");
                     }
@@ -809,7 +800,7 @@ DialogResult AccountsWin::ProcessInput()
             ITEM *item = current_item(m_menu);
             if (!IsGroupMenuItem(item))
             {
-                const CItemData *cid = reinterpret_cast<CItemData *>(item_userptr(item));
+                const AccountRecord *cid = reinterpret_cast<AccountRecord *>(item_userptr(item));
                 const std::string &str = cid->GetUser();
                 if (CopyTextToClipboard(m_app, m_win, str) > 0)
                 {
@@ -822,7 +813,7 @@ DialogResult AccountsWin::ProcessInput()
             ITEM *item = current_item(m_menu);
             if (!IsGroupMenuItem(item))
             {
-                const CItemData *cid = reinterpret_cast<CItemData *>(item_userptr(item));
+                const AccountRecord *cid = reinterpret_cast<AccountRecord *>(item_userptr(item));
                 const std::string &str = cid->GetPassword();
                 if (CopyTextToClipboard(m_app, m_win, str) > 0)
                 {
@@ -839,7 +830,7 @@ DialogResult AccountsWin::ProcessInput()
         }
             // case 'a': {
             //     // Check for Group/Username/Title uniqueness
-            //     // if (m_core.Find(m_Item.GetGroup(), m_Item.GetTitle(), m_Item.GetUser()) !=
+            //     // if (m_db.Find(m_Item.GetGroup(), m_Item.GetTitle(), m_Item.GetUser()) !=
             //     //     m_Core.GetEntryEndIter())
             //     // {
             //     //   wxMessageDialog msg(
@@ -862,7 +853,7 @@ DialogResult AccountsWin::ProcessInput()
             }
             else
             {
-                CItemData *cid = reinterpret_cast<CItemData *>(item_userptr(item));
+                AccountRecord *cid = reinterpret_cast<AccountRecord *>(item_userptr(item));
                 assert(cid != nullptr);
                 ShowAccountRecord(*cid);
             }

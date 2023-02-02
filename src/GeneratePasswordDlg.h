@@ -2,16 +2,10 @@
 #pragma once
 
 #include <array>
-
 #include "Label.h"
 #include "PWSafeApp.h"
 #include "Utils.h"
-
-constexpr size_t PW_POLICY_COUNT = 5;
-
-extern unsigned int GetPolicyFlags(size_t policyIndex);
-extern const char *GetPolicyName(size_t policyIndex);
-extern PWPolicy CreatePolicy(unsigned flags, size_t length);
+#include "Policy.h"
 
 class GeneratePasswordDlg
 {
@@ -38,11 +32,11 @@ private:
     void UpdatePassword();
 
     PWSafeApp &m_app;
-    PWPolicy m_pwPolicy;
+    PasswordPolicy m_pwPolicy;
     std::string m_password;
     int m_saveCursor;
-    int m_pwPolicyFlagsIndex;
-    int m_pwPolicyLength;
+    size_t m_pwPolicyFlagsIndex;
+    size_t m_pwPolicyLength;
 
     WINDOW *m_parentWin = nullptr;
     WINDOW *m_win = nullptr;

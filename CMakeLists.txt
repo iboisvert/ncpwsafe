@@ -3,7 +3,10 @@ project (ncpwsafe
     VERSION 0.1.0 
     DESCRIPTION "An ncurses terminal program that manages encrypted password databases"
     HOMEPAGE_URL "https://github.com/iboisvert/ncpwsafe"
+    LANGUAGES C CXX
 )
+set(NCPWSAFE_APPNAME "${CMAKE_PROJECT_NAME}")
+set(NCPWSAFE_VERSION "${CMAKE_PROJECT_VERSION}")
 
 list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules")
 
@@ -13,17 +16,25 @@ CHECK_LIBRARY_EXISTS(pwsafe pws_db_open "/usr/lib" HAVE_LIBPWSAFE)
 if (NOT ${HAVE_LIBPWSAFE})
     message (FATAL_ERROR "Could not find libpwsafe.a")
 endif ()
+include (CheckIncludeFile)
+CHECK_INCLUDE_FILE("sys/prctl.h" HAVE_SYS_PRCTL_H)
+CHECK_INCLUDE_FILE("sys/random.h" HAVE_SYS_RANDOM_H)
+
+CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/config.h.in" "${CMAKE_CURRENT_BINARY_DIR}/config.h")
+include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 
 enable_testing ()
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_CXX_STANDARD 17)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -Wall -Wextra")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall -Wextra")
-# set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -ggdb -O0 -fsanitize=address,undefined")
-# set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -ggdb -O0 -fsanitize=address,undefined")
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -ggdb -O0")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -ggdb -O0")
+# TODO IMB 2023-01-22 Move to preset
+add_compile_options(
+    -fPIC -Wall -Wextra
+    "$<$<CONFIG:DEBUG>:-ggdb;-O0;-fsanitize=address,undefined>"
+)
+add_compile_definitions(
+    "$<$<CONFIG:RELEASE>:NDEBUG>"
+)
 
 add_subdirectory(src)

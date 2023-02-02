@@ -1,13 +1,14 @@
 /* Copyright 2020 Ian Boisvert */
+#include "PWSafeApp.h"
 #include "ExportDbCommand.h"
 #include "ChangeDbPasswordCommand.h"
 #include "GeneratePasswordCommand.h"
 #include "GeneratePasswordDlg.h"
 #include "GenerateTestDbCommand.h"
-#include "PWSafeApp.h"
 #include "ProgArgs.h"
 #include "Utils.h"
 #include "libpwsafe.h"
+#include "FileUtils.h"
 
 #include <climits>
 #include <cstdarg>
@@ -17,6 +18,9 @@
 #include <cwctype>
 #include <getopt.h>
 #include <wchar.h>
+#ifdef HAVE_SYS_PRCTL_H
+#include <sys/prctl.h>
+#endif
 
 using std::fprintf;
 using std::srand;
@@ -27,6 +31,20 @@ static constexpr size_t DEFAULT_NITEM = 50;
 static constexpr size_t DEFAULT_NPASS = 1;
 static constexpr size_t DEFAULT_PASS_LEN = 20;
 static constexpr unsigned char DEFAULT_PASS_POLICY = 2;
+
+static bool DisableCoreDump()
+{
+#ifndef NDEBUG
+#ifdef HAVE_SYS_PRCTL_H
+    // prevent ptrace and creation of core dumps
+    return prctl(PR_SET_DUMPABLE, 0) == 0;
+#else
+    return true;
+#endif
+#else
+    return true;
+#endif
+}
 
 static void Usage(const char *progName)
 {
@@ -85,8 +103,8 @@ static void Usage(const char *progName)
             DEFAULT_LANG, DEFAULT_NGROUP, DEFAULT_NITEM,
             DEFAULT_NPASS,
             DEFAULT_PASS_LEN,
-            GetPolicyName(0), GetPolicyName(1), GetPolicyName(2), GetPolicyName(3), GetPolicyName(4),
-            GetPolicyName(DEFAULT_PASS_POLICY-1)
+            PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(0)), PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(1)), PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(2)), PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(3)), PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(4)),
+            PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(DEFAULT_PASS_POLICY-1))
     );
     // clang-format on
 }
@@ -186,7 +204,7 @@ static bool ValidateArgs(InputProgArgs &args)
             result = false;
         else
         {
-            if (*args.m_passwordPolicy > PW_POLICY_COUNT)
+            if (*args.m_passwordPolicy > PasswordPolicy::Composition::COUNT)
             {
                 result = Error("Invalid policy for generated passwords\n");
             }
@@ -211,9 +229,9 @@ static bool ValidateArgs(InputProgArgs &args)
         {
             result = Error("Account database file is required\n");
         }
-        else if (!args.m_force && pws_os::FileExists(args.m_database->c_str()))
+        else if (!args.m_force && FileExists(args.m_database->c_str()))
         {
-            result = Error("File %ls already exists\n", args.m_database->c_str());
+            result = Error("File %s already exists\n", args.m_database->c_str());
         }
         if (!args.m_password || args.m_password->empty())
         {
@@ -227,9 +245,9 @@ static bool ValidateArgs(InputProgArgs &args)
         {
             result = Error("Account database file is required\n");
         }
-        else if (!pws_os::FileExists(args.m_database->c_str()))
+        else if (!FileExists(args.m_database->c_str()))
         {
-            result = Error("Account database file %ls does not exist\n", args.m_database->c_str());
+            result = Error("Account database file %s does not exist\n", args.m_database->c_str());
         }
         if (!args.m_password || args.m_password->empty())
         {
@@ -239,9 +257,9 @@ static bool ValidateArgs(InputProgArgs &args)
         {
             result = Error("Output file is required\n");
         }
-        if (!args.m_force && pws_os::FileExists(args.m_outputFile->c_str()))
+        if (!args.m_force && FileExists(args.m_outputFile->c_str()))
         {
-            result = Error("Output file %ls already exists\n", args.m_outputFile->c_str());
+            result = Error("Output file %s already exists\n", args.m_outputFile->c_str());
         }
     }
 
@@ -251,9 +269,9 @@ static bool ValidateArgs(InputProgArgs &args)
         {
             result = Error("Account database file is required\n");
         }
-        else if (!pws_os::FileExists(args.m_database->c_str()))
+        else if (!FileExists(args.m_database->c_str()))
         {
-            result = Error("Account database file %ls does not exist\n", args.m_database->c_str());
+            result = Error("Account database file %s does not exist\n", args.m_database->c_str());
         }
         if (!args.m_password || args.m_password->empty())
         {
@@ -351,9 +369,9 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
             if (policy == 0 && pend == pstr)
             {
                 policy = (size_t)-1;
-                for (size_t i = 0; i < PW_POLICY_COUNT; ++i)
+                for (size_t i = 0; i < PasswordPolicy::Composition::COUNT; ++i)
                 {
-                    const char *policyName = GetPolicyName(i);
+                    const char *policyName = PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(i));
                     if (strncmp(policyName, optarg, strlen(policyName)) == 0)
                     {
                         policy = i;
@@ -447,14 +465,14 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
 int main(int argc, char *argv[])
 {
     // Don't allow ptrace or gdump on release build
-    if (!pws_os::DisableDumpAttach())
+    if (!DisableCoreDump())
         return false;
 
     InputProgArgs args;
     if (!ParseArgs(argc, argv, args))
     {
         Usage(basename(argv[0]));
-        return PWScore::FAILURE;
+        return PRC_ERR_FAIL;
     }
 
     srand(time(0));
@@ -462,23 +480,23 @@ int main(int argc, char *argv[])
     PWSafeApp app;
     app.Init(args);
 
-    int result = static_cast<int>(ResultCode::SUCCESS);
+    int result = static_cast<int>(RC_SUCCESS);
     switch (args.GetCommand())
     {
     case Operation::OPEN_DB: {
         DialogResult rc = app.Show();
-        result = static_cast<int>(rc == DialogResult::OK ? ResultCode::SUCCESS : ResultCode::FAILURE);
+        result = static_cast<int>(rc == DialogResult::OK ? RC_SUCCESS : RC_FAILURE);
         app.SavePrefs();
         break;
     }
     case Operation::CHANGE_DB_PASSWORD: {
         ResultCode rc = ChangeDbPasswordCommand{app, *args.m_database, *args.m_password, *args.m_newPassword}.Execute();
         result = static_cast<int>(rc);
-        if (rc == ResultCode::SUCCESS)
+        if (rc == RC_SUCCESS)
         {
             fprintf(stdout, "Account database password changed\n");
         }
-        else if (rc == ResultCode::WRONG_PASSWORD)
+        else if (rc == RC_ERR_WRONG_PASSWORD)
         {
             fprintf(stdout, "Incorrect account database password\n");
         }
@@ -499,7 +517,7 @@ int main(int argc, char *argv[])
         size_t count = *args.m_generatePasswordCount;
         size_t length = *args.m_passwordLength;
         int policyIndex = *args.m_passwordPolicy - 1;
-        const char *policyName = GetPolicyName(policyIndex);
+        const char *policyName = PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(policyIndex));
         fprintf(stdout, "Generating %zd password%s of length %zd using policy %s\n", count, count == 1 ? "" : "s",
                 length, policyName);
         const auto passwords = GeneratePasswordCommand{app}.Execute();
@@ -517,14 +535,14 @@ int main(int argc, char *argv[])
                 "You should securely delete the file when it is no longer needed.\n",
                 args.m_outputFile->c_str());
         ResultCode rc = ExportDbCommand{app}.Execute();
-        if (rc != ResultCode::SUCCESS)
+        if (rc != RC_SUCCESS)
         {
-            result = static_cast<int>(ResultCode::FAILURE);
-            if (rc == ResultCode::CANT_OPEN_FILE)
+            result = static_cast<int>(RC_FAILURE);
+            if (rc == RC_ERR_CANT_OPEN_FILE)
             {
                 fprintf(stderr, "Error %d creating export file: %s\n", errno, strerror(errno));
             }
-            else if (rc == ResultCode::WRONG_PASSWORD)
+            else if (rc == RC_ERR_WRONG_PASSWORD)
             {
                 fprintf(stderr, "An error occurred reading database file %s\n", args.m_database->c_str());
             }

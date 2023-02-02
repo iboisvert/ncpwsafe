@@ -1,11 +1,12 @@
 /* Copyright 2022 Ian Boisvert */
 #include "AccountsColl.h"
+#include <cstring>
 
 // Reload collection from core, invalidates all iterators
 void AccountsColl::Refresh()
 {
     m_accounts.clear();
-    for (auto it = m_core.GetEntryIter(); it != m_core.GetEntryEndIter(); ++it)
+    for (auto it = m_db.GetEntryIter(); it != m_db.GetEntryEndIter(); ++it)
     {
         m_accounts.push_back(it->second);
     }
@@ -14,10 +15,10 @@ void AccountsColl::Refresh()
 
 void AccountsColl::Sort()
 {
-    std::sort(m_accounts.begin(), m_accounts.end(), [](const CItemData &a, const CItemData &b) {
+    std::sort(m_accounts.begin(), m_accounts.end(), [](const AccountRecord &a, const AccountRecord &b) {
         // Compare group first, then title
         int result;
-        return (result = a.GetGroup().compare(b.GetGroup())) < 0 ||
-               (result == 0 && (result = a.GetTitle().compare(b.GetTitle())) < 0);
+        return (result = strcmp(a.GetGroup(), b.GetGroup())) < 0 ||
+               (result == 0 && (strcmp(a.GetTitle(), b.GetTitle())) < 0);
     });
 }

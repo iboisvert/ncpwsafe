@@ -12,18 +12,18 @@ ResultCode ExportDbCommand::Execute()
 
     assert(!args.m_file.empty());
 
-    PWScore &core = m_app.GetCore();
-    core.SetReadOnly(true);
-    int rc = core.ReadCurFile(args.m_password);
+    AccountDb &db = m_app.GetDb();
+    db.ReadOnly() = true;
+    int rc = db.ReadCurFile(args.m_password);
     if (rc != PWScore::SUCCESS)
     {
-        return ResultCode::WRONG_PASSWORD;
+        return RC_ERR_WRONG_PASSWORD;
     }
 
     FILE *f = fopen(args.m_file.c_str(), "w");
     if (f == NULL)
     {
-        return ResultCode::CANT_OPEN_FILE;
+        return RC_ERR_CANT_OPEN_FILE;
     }
 
     // Header
@@ -31,13 +31,12 @@ ResultCode ExportDbCommand::Execute()
     // Records
     AccountsColl &accounts = m_app.GetAccountsCollection();
     accounts.Refresh();
-    for (const CItemData &entry : accounts)
+    for (const AccountRecord &entry : accounts)
     {
-        uuid_array_t uuid;
-        entry.GetUUID().GetARep(uuid);
+        const char *uuid = entry.GetUUID();
         std::string suuid;
         char buf[3];
-        for (size_t i = 0; i < sizeof(uuid_array_t); ++i)
+        for (size_t i = 0; i < 16; ++i)
         {
             if (i == 4 || i == 6 || i == 8 || i == 10)
                 suuid.append("-");
@@ -46,12 +45,12 @@ ResultCode ExportDbCommand::Execute()
         }
         std::string notes = entry.GetNotes();
         notes = std::string{rtrim(notes.begin(), notes.end()), notes.end()};
-        fprintf(f, "%s, \"%ls\", \"%ls\", \"%ls\", \"%ls\", \"%ls\"\n",
-                suuid.c_str(), entry.GetGroup().c_str(), entry.GetTitle().c_str(),
-                entry.GetUser().c_str(), entry.GetPassword().c_str(), notes.c_str());
+        fprintf(f, "%s, \"%s\", \"%s\", \"%s\", \"%s\", \"%s\"\n",
+                suuid.c_str(), entry.GetGroup(), entry.GetTitle(),
+                entry.GetUser(), entry.GetPassword(), notes.c_str());
     }
 
     fclose(f);
 
-    return ResultCode::SUCCESS;
+    return RC_SUCCESS;
 }

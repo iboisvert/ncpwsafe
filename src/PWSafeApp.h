@@ -1,14 +1,15 @@
 /* Copyright 2020 Ian Boisvert */
 #pragma once
 
+#include "config.h"
 #include "libncurses.h"
 #include <memory>
 
+#include "AccountDb.h"
 #include "AccountsColl.h"
 #include "AccountsWin.h"
 #include "CommandBarWin.h"
 #include "ProgArgs.h"
-#include "RecentDbList.h"
 #include "ResultCode.h"
 #include "SearchBarWin.h"
 #include "Utils.h"
@@ -16,7 +17,10 @@
 class PWSafeApp
 {
 public:
-    PWSafeApp() : m_core{}, m_accountsColl{m_core}
+    /** NCPWSAFE_APPNAME " " NCPWSAFE_VERSION */
+    static const char *APPNAME_VERSION;
+
+    PWSafeApp() : m_db{}, m_accountsColl{m_db}
     {
     }
     ~PWSafeApp()
@@ -55,9 +59,9 @@ public:
         return m_accountsColl;
     }
 
-    PWScore &GetCore()
+    AccountDb &GetDb()
     {
-        return m_core;
+        return m_db;
     }
 
     WINDOW *GetWindow()
@@ -71,17 +75,14 @@ public:
     }
 
 private:
-    RecentDbList &RecentDatabases();
-
     void InitTUI();
     void EndTUI();
     void ProcessInput();
 
     ProgArgs m_progArgs;
-    PWScore m_core;
+    AccountDb m_db;
     AccountsColl m_accountsColl;
     std::unique_ptr<AccountsWin> m_accounts;
-    std::unique_ptr<RecentDbList> m_recentDatabases;
     std::unique_ptr<CommandBarWin> m_commandBar;
 
     WINDOW *m_rootWin = nullptr;        // stdscr

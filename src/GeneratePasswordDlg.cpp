@@ -1,57 +1,22 @@
 /* Copyright 2022 Ian Boisvert */
 #include "GeneratePasswordDlg.h"
+#include <cassert>
 #include "Label.h"
 #include "Utils.h"
-#include "core/PolicyManager.h"
 
 static constexpr int MAX_PASSWORD_LENGTH = 56;
 static constexpr int MIN_PASSWORD_LENGTH = 4;
 static constexpr int PASSWORD_LENGTH_STEP = 4;
 
-struct PWPolicyFlags
-{
-    unsigned flags;
-    const char *name;
-};
-
-// clang-format off
-static PWPolicyFlags PW_POLICY[PW_POLICY_COUNT]{
-    {0xf000, "alpha/digit/symbol"},
-    {0xe000, "alpha/digit"},
-    {0xf400, "easy-to-read alpha/digit/symbol"},
-    {0x2000, "digits only"},
-    {0x0800, "hex digits only"},
-};
-// clang-format on
-
-unsigned int GetPolicyFlags(size_t policyIndex)
-{
-    assert(policyIndex < PW_POLICY_COUNT);
-    return PW_POLICY[policyIndex].flags;
-}
-
-const char *GetPolicyName(size_t policyIndex)
-{
-    assert(policyIndex < PW_POLICY_COUNT);
-    return PW_POLICY[policyIndex].name;
-}
-
-PWPolicy CreatePolicy(unsigned flags, size_t length)
-{
-    char buf[20];
-    swprintf(buf, 20, L"%4x%3zx000000000000", flags, length);
-    return PWPolicy(buf);
-}
-
 GeneratePasswordDlg::GeneratePasswordDlg(PWSafeApp &app) : m_app(app), m_pwPolicyFlagsIndex(0), m_pwPolicyLength(12)
 {
     // clang-format off
     m_app.GetCommandBar().Register(this, {
-        {L"^S", L"Save and close", L"Save the new password and close"},
-        {L"^X", L"Cancel", L"Cancel changing password"}, 
-        {L"Enter", L"Generate", L"Generate a new password"},
-        {L"<,>", L"Length", L"Change the password length"},
-        {L"Space", L"Complexity", L"Change the complexity of the generated password. The generated password may contain symbols, characters, and digits"}
+        {"^S", "Save and close", "Save the new password and close"},
+        {"^X", "Cancel", "Cancel changing password"}, 
+        {"Enter", "Generate", "Generate a new password"},
+        {"<,>", "Length", "Change the password length"},
+        {"Space", "Complexity", "Change the complexity of the generated password. The generated password may contain symbols, characters, and digits"}
     });
     // clang-format on
 }
@@ -70,35 +35,30 @@ void GeneratePasswordDlg::Update()
 
 void GeneratePasswordDlg::UpdatePWPolicy()
 {
-    m_pwPolicy = CreatePolicy(PW_POLICY[m_pwPolicyFlagsIndex].flags, m_pwPolicyLength);
-    m_pwPolicyField.Rewrite(PW_POLICY[m_pwPolicyFlagsIndex].name);
+    m_pwPolicy = PasswordPolicy{static_cast<PasswordPolicy::Composition>(m_pwPolicyFlagsIndex), m_pwPolicyLength};
+    m_pwPolicyField.Rewrite(m_pwPolicy.GetName());
 }
 
 void GeneratePasswordDlg::UpdatePWLength()
 {
     char buf[4];
-    snprintf(buf, 4, "%d", m_pwPolicyLength);
+    snprintf(buf, 4, "%zd", m_pwPolicyLength);
     m_pwLengthField.Rewrite(buf);
 }
 
 void GeneratePasswordDlg::UpdatePassword()
 {
-    m_password = m_pwPolicy.MakeRandomPassword();
+    m_password = m_pwPolicy.MakePassword();
     m_passwordField.Rewrite(m_password.c_str());
 }
 
 DialogResult GeneratePasswordDlg::Show(WINDOW *parent)
 {
-    PolicyManager pm(m_app.GetCore());
-    m_pwPolicy = pm.GetDefaultPolicy();
-    std::string str = m_pwPolicy.GetDisplayString();
-    std::string str2 = m_pwPolicy;
-
     SetCommandBarWin();
 
     m_parentWin = parent;
 
-    InitTUI(L"Generate Password");
+    InitTUI("Generate Password");
 
     Update();
 
@@ -193,7 +153,7 @@ DialogResult GeneratePasswordDlg::ProcessInput()
             break;
         }
         case ' ': {
-            m_pwPolicyFlagsIndex = (m_pwPolicyFlagsIndex + 1) % PW_POLICY_COUNT;
+            m_pwPolicyFlagsIndex = (m_pwPolicyFlagsIndex + 1) % PasswordPolicy::Composition::COUNT;
             UpdatePWPolicy();
             UpdatePassword();
             break;

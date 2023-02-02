@@ -1,5 +1,6 @@
 list(APPEND SRC
   main.cpp
+  AccountRecord.cpp
   AccountsColl.cpp
   AccountDetailsDlg.cpp
   AccountsWin.cpp
@@ -13,6 +14,7 @@ list(APPEND SRC
   GeneratePasswordCommand.cpp
   GenerateTestDbCommand.cpp
   MessageBox.cpp
+  Policy.cpp
   PWSafeApp.cpp
   SafeCombinationPromptDlg.cpp
   SearchBarWin.cpp

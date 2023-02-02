@@ -7,12 +7,15 @@
 #include "SafeCombinationPromptDlg.h"
 #include "Utils.h"
 #include "ResultCode.h"
+#include "FileUtils.h"
+
+const char *PWSafeApp::APPNAME_VERSION = NCPWSAFE_APPNAME " " NCPWSAFE_VERSION;
 
 void PWSafeApp::Init(ProgArgs args)
 {
     m_progArgs = args;
 
-    m_core.SetReadOnly(args.m_readOnly);
+    m_db.ReadOnly() = args.m_readOnly;
 
     // Get progname
     std::string progName = args.m_progName;
@@ -21,7 +24,6 @@ void PWSafeApp::Init(ProgArgs args)
     {
         progName = progName.substr(pos + 1);
     }
-    m_core.SetApplicationNameAndVersion(progName, MAKELONG(MINORVERSION, MAJORVERSION));
 
     // OK to load prefs now
     PWSprefs *prefs = PWSprefs::GetInstance();
@@ -35,7 +37,7 @@ void PWSafeApp::Init(ProgArgs args)
     }
     if (!filename.empty())
     {
-        m_core.SetCurFile(filename);
+        m_db.DbPathName() = filename;
     }
 }
 
@@ -64,39 +66,35 @@ DialogResult PWSafeApp::Show()
             std::string filename = pwdprompt.GetFilename();
             std::string password = pwdprompt.GetPassword();
 
-            m_core.SetCurFile(filename);
+            m_db.DbPathName() = filename;
 
-            int status = m_core.CheckPasskey(filename, password);
-            if (status == PWScore::SUCCESS)
+            if (m_db.CheckPassword(filename, password))
             {
-                RecentDatabases().AddFileToHistory(filename);
-
-                const bool readOnly = m_core.IsReadOnly();
-                std::string locker(L"");
-                const bool locked = m_core.LockFile(filename, locker);
+                const bool readOnly = m_db.ReadOnly();
+                std::string locker("");
+                const bool locked = m_db.LockFile(filename, locker);
                 if (!readOnly && !locked)
                 {
-                    std::string msg(L"Could not lock file, opening read-only\nLocked by ");
+                    std::string msg("Could not lock file, opening read-only\nLocked by ");
                     msg.append(locker.c_str());
                     MessageBox(*this).Show(m_win, msg.c_str());
-                    m_core.SetReadOnly(true);
+                    m_db.ReadOnly() = true;
                 }
 
-                status = m_core.ReadCurFile(password);
-                if (status == PWScore::SUCCESS)
+                if (m_db.ReadCurFile(password) == PWScore::SUCCESS)
                 {
                     rc = m_accounts->Show();
                 }
                 else
                 {
-                    std::string msg(L"An error occurred reading database file ");
+                    std::string msg("An error occurred reading database file ");
                     msg.append(filename.c_str());
                     MessageBox(*this).Show(m_win, msg.c_str());
                 }
 
                 if (locked)
                 {
-                    m_core.UnlockFile(filename);
+                    m_db.UnlockFile(filename);
                 }
             }
         }
@@ -123,15 +121,15 @@ ResultCode PWSafeApp::BackupCurFile()
         std::wstring userBackupPrefix = prefs->GetPref(PWSprefs::BackupPrefixValue).c_str();
         std::wstring userBackupDir = prefs->GetPref(PWSprefs::BackupDir).c_str();
         std::string bu_fname; // used to undo backup if save failed
-        if (m_core.PreBackupCurFile(maxNumIncBackups, backupSuffix, 
+        if (m_db.PreBackupCurFile(maxNumIncBackups, backupSuffix, 
             userBackupPrefix, userBackupDir, bu_fname))
         {
-            const std::string &src = m_core.GetCurFile();
-            if (pws_os::CopyAFile(src.c_str(), bu_fname))
-                return ResultCode::SUCCESS;
+            const std::string &src = m_db.GetDbPathname();
+            if (CopyFile(src.c_str(), bu_fname))
+                return RC_SUCCESS;
         }
     }
-    return ResultCode::FAILURE;
+    return RC_FAILURE;
 }
 
 /**
@@ -140,11 +138,11 @@ ResultCode PWSafeApp::BackupCurFile()
  */
 ResultCode PWSafeApp::Save()
 {
-    ResultCode rc = ResultCode::SUCCESS;
-    const std::string sxCurrFile = m_core.GetCurFile();
+    ResultCode rc = RC_SUCCESS;
+    const std::string sxCurrFile = m_db.GetDbPathname();
     std::string bu_fname; // used to undo backup if save failed
 
-    const PWSfile::VERSION current_version = m_core.GetReadFileVersion();
+    const PWSfile::VERSION current_version = m_db.GetReadFileVersion();
     switch (current_version)
     {
     case PWSfile::V30:
@@ -161,17 +159,17 @@ ResultCode PWSafeApp::Save()
     case PWSfile::V20:
     case PWSfile::NEWFILE:
     case PWSfile::UNKNOWN_VERSION:
-        ASSERT(0);
-        return ResultCode::FAILURE;
+        assert(false);
+        return RC_FAILURE;
     }
 
     // We are saving the current DB. Retain current version
-    rc = StatusToRC(m_core.WriteFile(sxCurrFile, current_version));
-    if (rc != ResultCode::SUCCESS)
+    rc = StatusToRC(m_db.WriteFile(sxCurrFile, current_version));
+    if (rc != RC_SUCCESS)
     { // Save failed!
         // Restore backup, if we have one
         if (!bu_fname.empty() && !sxCurrFile.empty())
-            pws_os::RenameFile(bu_fname, sxCurrFile.c_str());
+            MoveFile(bu_fname.c_str(), sxCurrFile.c_str());
         return rc;
     }
 
@@ -181,26 +179,13 @@ ResultCode PWSafeApp::Save()
 /** Save state */
 void PWSafeApp::SavePrefs()
 {
-    RecentDatabases().Save();
     PWSprefs *prefs = PWSprefs::GetInstance();
-    if (m_core.IsDbOpen())
+    if (m_db.IsDbOpen())
     {
-        prefs->SetPref(PWSprefs::CurrentFile, m_core.GetCurFile());
+        prefs->SetPref(PWSprefs::CurrentFile, m_db.GetDbPathname());
     }
     prefs->SaveApplicationPreferences();
     prefs->SaveShortcuts();
-}
-
-RecentDbList &PWSafeApp::RecentDatabases()
-{
-    // we create an instance of m_recentDatabases
-    // as late as possible in order to make
-    // sure that prefs' is set correctly (user, machine, etc.)
-    if (m_recentDatabases.get() == nullptr)
-    {
-        m_recentDatabases = std::make_unique<RecentDbList>();
-    }
-    return *m_recentDatabases.get();
 }
 
 /** Release memory held by app, including core */
@@ -240,10 +225,7 @@ void PWSafeApp::InitTUI()
 
     m_accountsWin = derwin(m_rootWin, nlines - 1, ncols, /*begin_y*/ 0, /*begin_x*/ 0);
     box(m_accountsWin, /*verch*/ 0, /*horch*/ 0);
-    std::string progName;
-    // Copied from PWScore::SetApplicationNameAndVersion
-    Format(progName, L"%ls V%d.%02d", L"pwsafe", MAJORVERSION, MINORVERSION);
-    Label::WriteJustified(m_accountsWin, beg_y, beg_x, max_x, progName.c_str(), JUSTIFY_CENTER);
+    Label::WriteJustified(m_accountsWin, beg_y, beg_x, max_x, APPNAME_VERSION, JUSTIFY_CENTER);
 
     m_win = newwin(nlines - 3, ncols - 2, /*begin_y*/ beg_y + 1, /*begin_x*/ beg_x + 1);
 

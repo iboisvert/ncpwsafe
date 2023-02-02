@@ -7,7 +7,7 @@
 #include "Utils.h"
 #include "Label.h"
 
-Dialog &Dialog::SetActiveField(PWS_FIELD_TYPE ft)
+Dialog &Dialog::SetActiveField(PwsFieldType ft)
 {
     m_activeField = GetField(ft);
     return *this;
@@ -169,7 +169,7 @@ void Dialog::SaveData()
     for (size_t i = 0; i < m_fields.size() - 1; ++i)
     {
         const FIELD *field = m_fields[i];
-        const PWS_FIELD_TYPE ft = reinterpret_cast<const DialogField*>(field_userptr(field))->m_fieldType;
+        const PwsFieldType ft = reinterpret_cast<const DialogField*>(field_userptr(field))->m_fieldType;
         m_values[ft] = GetFieldValue(field);
     }
 }
@@ -295,10 +295,10 @@ bool Dialog::DiscardChanges()
 
 void Dialog::RandomizeBuffers()
 {
-    RandomizeFieldsBuffer(m_fields.data());
+    ZeroFieldsBuffer(m_fields.data());
 }
 
-FIELD *Dialog::GetField(PWS_FIELD_TYPE ft) const
+FIELD *Dialog::GetField(PwsFieldType ft) const
 {
     FIELD *retval = nullptr;
     auto it = std::find_if(m_fields.begin(), m_fields.end(), [ft](FIELD *field){
@@ -312,7 +312,7 @@ FIELD *Dialog::GetField(PWS_FIELD_TYPE ft) const
 }
 
 /** Sets the value of a curses `FIELD` for the given `FieldType` */
-void Dialog::SetField(PWS_FIELD_TYPE ft, const std::string &value)
+void Dialog::SetField(PwsFieldType ft, const std::string &value)
 {
     FIELD *field = GetField(ft);
     assert(field != nullptr);
@@ -322,7 +322,7 @@ void Dialog::SetField(PWS_FIELD_TYPE ft, const std::string &value)
     }
 }
 
-const std::string &Dialog::GetValue(PWS_FIELD_TYPE ft) const
+const std::string &Dialog::GetValue(PwsFieldType ft) const
 {
     return m_values.at(ft);
 }

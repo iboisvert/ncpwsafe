@@ -1,26 +1,30 @@
 /* Copyright 2022 Ian Boisvert */
-#pragma once
+#ifndef HAVE_ACCOUNTSCOLL_H
+#define HAVE_ACCOUNTSCOLL_H
 
 #include <functional>
 #include <tuple>
 #include <vector>
+#include "AccountDb.h"
+#include "AccountRecord.h"
 
-// The existing CITemData collection is a map
+// The existing AccountRecord collection is a map
 // where the key duplicates data in the element.
 // This is not a good public interface, define a new collection
 
-class CItemData;
+class AccountRecord;
 
 /**
- * Wrapper around the CItemData collection owned by core
+ * Wrapper around the AccountRecord collection owned by core
  */
 struct AccountsColl
 {
-    typedef std::vector<std::reference_wrapper<CItemData>> coll;
+    // FIXME IMB 2023-01-21
+    typedef std::vector<std::reference_wrapper<AccountRecord>> coll;
     typedef coll::iterator iterator;
     typedef coll::const_iterator const_iterator;
 
-    AccountsColl(PWScore &core) : m_core(core)
+    AccountsColl(AccountDb &db) : m_db(db)
     {
     }
     // Reload collection from core, invalidates all iterators
@@ -45,6 +49,8 @@ struct AccountsColl
 private:
     void Sort();
 
-    PWScore &m_core;
+    AccountDb &m_db;
     coll m_accounts;
 };
+
+#endif

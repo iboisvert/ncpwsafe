@@ -3,7 +3,6 @@
 #include "CommandBarWin.h"
 #include "PWSafeApp.h"
 #include "Utils.h"
-#include "core/std::string.h"
 #include <utility>
 
 void SearchBarWin::InitTUI()
@@ -11,13 +10,13 @@ void SearchBarWin::InitTUI()
     m_panel = new_panel(m_win);
 
     const std::vector<Action> actions{
-        {L"^L", L"Next"},
-        {L"Enter", L"Exit"},
-        {L"Esc", L"Cancel"},
+        {"^L", "Next"},
+        {"Enter", "Exit"},
+        {"Esc", "Cancel"},
     };
     CommandBarWin::ShowActions(m_win, actions);
 
-    waddwstr(m_win, L"Search: ");
+    waddstr(m_win, "Search: ");
 
     int curx = getcurx(m_win), cols = getmaxx(m_win) - curx;
     FIELD *fields[]{new_field(/*height*/ 1, cols, /*toprow*/ 0, /*leftcol*/ 0, /*offscreen*/ 0, /*nbuffers*/ 0), NULL};
@@ -60,12 +59,12 @@ void SearchBarWin::Show()
 {
     m_query.clear();
 
-    const CItemData *pcid = m_AccountsWin.GetSelection();
+    const AccountRecord *pcid = m_AccountsWin.GetSelection();
     auto &accounts = m_app.GetAccountsCollection();
     m_saveMatch = accounts.begin();
     if (pcid)
     {
-        auto it = std::find_if(accounts.begin(), accounts.end(), [pcid](const CItemData &cid) {
+        auto it = std::find_if(accounts.begin(), accounts.end(), [pcid](const AccountRecord &cid) {
             return cid == *pcid;
         });
         m_saveMatch = it;
@@ -79,14 +78,14 @@ void SearchBarWin::Show()
 }
 
 /** Search title, name, user, notes fields for query */
-static bool Matches(const CItemData &cid, const std::string &query)
+static bool Matches(const AccountRecord &cid, const std::string &query)
 {
     // clang-format off
     return 
         cid.Matches(query, FT_TITLE, PWSMatch::MatchRule::MR_CONTAINS)
-        || cid.Matches(query, PWS_FIELD_TYPE::NAME, PWSMatch::MatchRule::MR_CONTAINS)
-        || cid.Matches(query, PWS_FIELD_TYPE::USER, PWSMatch::MatchRule::MR_CONTAINS)
-        || cid.Matches(query, PWS_FIELD_TYPE::NOTES, PWSMatch::MatchRule::MR_CONTAINS);
+        || cid.Matches(query, FT_NAME, PWSMatch::MatchRule::MR_CONTAINS)
+        || cid.Matches(query, FT_USER, PWSMatch::MatchRule::MR_CONTAINS)
+        || cid.Matches(query, FT_NOTES, PWSMatch::MatchRule::MR_CONTAINS);
     // clang-format on
 }
 
@@ -169,7 +168,7 @@ void SearchBarWin::UpdateQueryString()
     form_driver(m_form, REQ_VALIDATION);
     FIELD *field = current_field(m_form);
     char *cbuf = field_buffer(field, /*buffer*/ 0);
-    m_query = Utf8ToWideString(rtrim(cbuf, cbuf + strlen(cbuf)));
+    m_query = rtrim(cbuf, cbuf + strlen(cbuf));
 }
 
 DialogResult SearchBarWin::ProcessInput()

@@ -37,7 +37,7 @@ static int PrintMessage(WINDOW *win, int y, int x, const std::string &msg)
     size_t pos = 0;
     while ((idx = msg.find(L'\n', pos)) != -1)
     {
-        code = mvwaddnwstr(win, y, x, msg.c_str() + pos, idx - pos);
+        code = mvwaddnstr(win, y, x, msg.c_str() + pos, idx - pos);
         if (code != 0)
             return code;
         ++y;
@@ -45,7 +45,7 @@ static int PrintMessage(WINDOW *win, int y, int x, const std::string &msg)
     }
     if (msg.length() > pos)
     {
-        code = mvwaddnwstr(win, y, x, msg.c_str() + pos, msg.length() - pos);
+        code = mvwaddnstr(win, y, x, msg.c_str() + pos, msg.length() - pos);
     }
     return code;
 }
@@ -64,7 +64,7 @@ DialogResult MessageBox::Show(WINDOW *parent, const std::string &msg, KeyHandler
     if (handler == &DefaultMessageBoxKeyHandler)
     {
         m_app.GetCommandBar().Show({
-            {L"Enter", L"Close"}
+            {"Enter", "Close"}
         });
     }
 

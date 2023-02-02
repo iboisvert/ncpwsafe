@@ -10,7 +10,7 @@
 
 struct DialogField
 {
-    PWS_FIELD_TYPE m_fieldType;
+    PwsFieldType m_fieldType;
     std::string m_label;
     std::string m_value;
     int m_width;
@@ -62,7 +62,7 @@ public:
     }
 
     /** Set the field to be active when the Dialog is initialized. */
-    Dialog &SetActiveField(PWS_FIELD_TYPE fieldType);
+    Dialog &SetActiveField(PwsFieldType fieldType);
 
     DialogResult Show(WINDOW *parent, const std::string &title);
 
@@ -87,11 +87,11 @@ public:
     }
 
     /** Gets the curses `FIELD` for the given `FieldType` */
-    FIELD *GetField(PWS_FIELD_TYPE ft) const;
+    FIELD *GetField(PwsFieldType ft) const;
     /** Sets the value of a curses `FIELD` for the given `FieldType` */
-    void SetField(PWS_FIELD_TYPE ft, const std::string &value);
+    void SetField(PwsFieldType ft, const std::string &value);
     /** Gets the value of the field with the given `FieldType` */
-    const std::string &GetValue(PWS_FIELD_TYPE ft) const;
+    const std::string &GetValue(PwsFieldType ft) const;
 
 private:
     friend int DefaultInputHandler(Dialog &);
@@ -117,7 +117,7 @@ private:
     InputHandler m_inputDelegate;
     Callback m_validateCallback;
     Callback m_discardChangesCallback;
-    std::map<PWS_FIELD_TYPE, std::string> m_values;
+    std::map<PwsFieldType, std::string> m_values;
     int m_maxFieldWidth;
 
     WINDOW *m_parentWin = nullptr;

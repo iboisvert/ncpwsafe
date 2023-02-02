@@ -10,7 +10,7 @@
 #include "Dialog.h"
 #include "AccountsWin.h"
 
-AccountDetailsDlg::AccountDetailsDlg(PWSafeApp &app, const CItemData &item)
+AccountDetailsDlg::AccountDetailsDlg(PWSafeApp &app, const AccountRecord &item)
     : m_app(app), m_item(item), m_itemOrig(item)
 {
     m_app.GetCommandBar().Register(this, {
@@ -35,7 +35,7 @@ bool AccountDetailsDlg::DiscardChanges(const Dialog &dialog)
         m_app.GetCommandBar().Show(CommandBarWin::YES_NO);
 
         SaveData(dialog);
-        if (m_item != m_itemOrig)
+        if (!(m_item == m_itemOrig))
         {
             // Ask for confirmation
             const char *msg = "The account entry has changed. Discard changes?";
@@ -104,19 +104,25 @@ void AccountDetailsDlg::SetCommandBarWin(bool readOnly)
     m_app.GetCommandBar().Show(this, opts);
 }
 
+static void SetRecordValue(AccountRecord &rec, uint8_t field_type, const std::string &value)
+{
+    const char *pstr = value.empty() ? nullptr : value.c_str();
+    rec.SetField(field_type, pstr);
+}
+
 /** 
  * Copy data from the dialog input controls back
  * into the account entry
  */
 void AccountDetailsDlg::SaveData(const Dialog &dialog)
 {
-    m_item.SetGroup(dialog.GetValue(FT_GROUP));
-    m_item.SetTitle(dialog.GetValue(FT_TITLE));
-    m_item.SetUser(dialog.GetValue(FT_USER));
-    m_item.SetPassword(dialog.GetValue(FT_PASSWORD));
-    m_item.SetURL(dialog.GetValue(FT_URL));
-    m_item.SetEmail(dialog.GetValue(FT_EMAIL));
-    m_item.SetNotes(dialog.GetValue(FT_NOTES));
+    SetRecordValue(m_item, FT_GROUP, dialog.GetValue(FT_GROUP));
+    SetRecordValue(m_item, FT_TITLE, dialog.GetValue(FT_TITLE));
+    SetRecordValue(m_item, FT_USER, dialog.GetValue(FT_USER));
+    SetRecordValue(m_item, FT_PASSWORD, dialog.GetValue(FT_PASSWORD));
+    SetRecordValue(m_item, FT_URL, dialog.GetValue(FT_URL));
+    SetRecordValue(m_item, FT_EMAIL, dialog.GetValue(FT_EMAIL));
+    SetRecordValue(m_item, FT_NOTES, dialog.GetValue(FT_NOTES));
 }
 
 /** Show the account details */

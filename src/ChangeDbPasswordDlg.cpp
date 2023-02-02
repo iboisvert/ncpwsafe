@@ -4,8 +4,8 @@
 #include "MessageBox.h"
 #include "Utils.h"
 
-static PWS_FIELD_TYPE NEW_PASSWORD = static_cast<PWS_FIELD_TYPE>(FT_LAST_USER_FIELD+1);
-static PWS_FIELD_TYPE NEW_PASSWORD_CONFIRM = static_cast<PWS_FIELD_TYPE>(FT_LAST_USER_FIELD+2);
+static PwsFieldType NEW_PASSWORD = static_cast<PwsFieldType>(FT_END+1);
+static PwsFieldType NEW_PASSWORD_CONFIRM = static_cast<PwsFieldType>(FT_END+2);
 
 ChangeDbPasswordDlg::ChangeDbPasswordDlg(PWSafeApp &app)
     : m_app(app)
@@ -20,8 +20,8 @@ ChangeDbPasswordDlg::ChangeDbPasswordDlg(PWSafeApp &app)
 bool ChangeDbPasswordDlg::ValidateForm(const Dialog &dialog)
 {
     WINDOW *win = dialog.GetParentWindow();
-    PWScore &core = m_app.GetCore();
-    if (core.CheckPasskey(core.GetCurFile(), dialog.GetValue(FT_PASSWORD)) != PWScore::SUCCESS)
+    AccountDb &db = m_app.GetDb();
+    if (!db.CheckPassword(dialog.GetValue(FT_PASSWORD)))
     {
         const char *msg = "Account database password is incorrect";
         MessageBox(m_app).Show(win, msg);

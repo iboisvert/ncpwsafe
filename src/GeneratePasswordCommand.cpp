@@ -12,13 +12,13 @@ std::vector<std::string> GeneratePasswordCommand::Execute()
     size_t count = args.m_generatePasswordCount;
     size_t length = args.m_passwordLength;
     int policyIndex = args.m_passwordPolicy - 1;
-    unsigned policyFlags = GetPolicyFlags(policyIndex);
-    PWPolicy policy = CreatePolicy(policyFlags, length);
+    PasswordPolicy policy = 
+        PasswordPolicy{static_cast<PasswordPolicy::Composition>(policyIndex), length};
 
     std::vector<std::string> passwords;
     for (size_t i = 0; i < count; ++i)
     {
-        passwords.push_back(policy.MakeRandomPassword());
+        passwords.push_back(policy.MakePassword());
     }
 
     return passwords;

@@ -1,5 +1,6 @@
 /* Copyright 2022 Ian Boisvert */
-#pragma once
+#ifndef HAVE_EXPORTDBCOMMAND_H
+#define HAVE_EXPORTDBCOMMAND_H
 
 #include "ResultCode.h"
 
@@ -14,3 +15,5 @@ public:
     ExportDbCommand(PWSafeApp &app) : m_app(app) {}
     ResultCode Execute();
 };
+
+#endif

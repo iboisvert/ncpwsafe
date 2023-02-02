@@ -5,43 +5,38 @@
 #include "Dialog.h"
 #include "MessageBox.h"
 #include "PWSafeApp.h"
+#include "FileUtils.h"
 
 SafeCombinationPromptDlg::SafeCombinationPromptDlg(PWSafeApp &app) : m_app(app)
 {
     m_app.GetCommandBar().Register(this, {
-        {L"^S", L"Save and continue", L"Unlock the account database"},
-        {L"^X", L"Cancel", L"Cancel opening the account database"}
+        {"^S", "Save and continue", "Unlock the account database"},
+        {"^X", "Cancel", "Cancel opening the account database"}
     });
 }
 
 bool SafeCombinationPromptDlg::ValidateForm(const Dialog &dialog)
 {
-    std::string filename = dialog.GetValue(FT_FILENAME);
+    std::string filename = dialog.GetValue(FT_FILEPATH);
     std::string password = dialog.GetValue(FT_PASSWORD);
 
     if (filename.empty())
     {
-        MessageBox(m_app).Show(m_parentWin, L"Account database file is required");
+        MessageBox(m_app).Show(m_parentWin, "Account database file is required");
         redrawwin(dialog.GetWindow());
         SetCommandBarWin();
         return false;
     }
     else
     {
-        bool exists = pws_os::FileExists(filename.c_str());
+        bool exists = FileExists(filename.c_str());
         if (exists)
         {
-            std::FILE *pfile = pws_os::FOpen(filename, "r");
-            ulong64 len = 0;
-            if (pfile != nullptr)
+            size_t len = FileLength(filename.c_str());
+            if (len == 0)
             {
-                len = pws_os::fileLength(pfile);
-                pws_os::FClose(pfile, /*bIsWrite*/false);
-            }
-            if (pfile == nullptr || len == 0)
-            {
-                std::string msg(L"An error occurred opening file ");
-                msg.append(filename).append(L".\nCheck that the file is valid.");
+                std::string msg("An error occurred opening file ");
+                msg.append(filename).append(".\nCheck that the file is valid.");
                 MessageBox(m_app).Show(m_parentWin, msg.c_str());
                 redrawwin(dialog.GetWindow());
                 SetCommandBarWin();
@@ -50,8 +45,8 @@ bool SafeCombinationPromptDlg::ValidateForm(const Dialog &dialog)
         }
         else
         {
-            std::string msg(L"File ");
-            msg.append(filename).append(L" does not exist");
+            std::string msg("File ");
+            msg.append(filename).append(" does not exist");
             MessageBox(m_app).Show(m_parentWin, msg.c_str());
             redrawwin(dialog.GetWindow());
             SetCommandBarWin();
@@ -59,29 +54,26 @@ bool SafeCombinationPromptDlg::ValidateForm(const Dialog &dialog)
         } // !exists
     }
 
-    int status = m_app.GetCore().CheckPasskey(filename, password);
-    switch (status)
+    PwsResultCode rc;
+    if (!m_app.GetDb().CheckPassword(filename, password, &rc))
     {
-    case PWScore::WRONG_PASSWORD: {
-        std::string msg;
-        LoadAString(msg, IDSC_BADPASSWORD);
-        MessageBox(m_app).Show(m_parentWin, msg);
-        redrawwin(dialog.GetWindow());
-        SetCommandBarWin();
-        break;
-    }
-    case PWScore::SUCCESS: {
-        break;
-    }
-    default: {
-        MessageBox(m_app).Show(m_parentWin, L"Incorrect passkey, not a PasswordSafe database, or a corrupt database.");
-        redrawwin(dialog.GetWindow());
-        SetCommandBarWin();
-        break;
-    }
+        if (rc == PRC_ERR_INCORRECT_PW)
+        {
+            std::string msg;
+            LoadAString(msg, IDSC_BADPASSWORD);
+            MessageBox(m_app).Show(m_parentWin, msg);
+            redrawwin(dialog.GetWindow());
+            SetCommandBarWin();
+        }
+        else
+        {
+            MessageBox(m_app).Show(m_parentWin, "Incorrect passkey, not a PasswordSafe database, or a corrupt database.");
+            redrawwin(dialog.GetWindow());
+            SetCommandBarWin();
+        }
     }
 
-    return status == PWScore::SUCCESS;
+    return rc == PRC_SUCCESS;
 }
 
 void SafeCombinationPromptDlg::SetCommandBarWin()
@@ -97,19 +89,19 @@ DialogResult SafeCombinationPromptDlg::Show(WINDOW *parent)
 
     SetCommandBarWin();
 
-    const std::string filename = m_app.GetCore().GetCurFile();
+    const std::string &filename = m_app.GetDb().DbPathName();
     std::vector<DialogField> fields{
-        {FT_FILENAME, L"Database:", filename, /*m_width*/ 40, /*m_fieldOptsOn*/ 0, O_STATIC},
-        {FT_PASSWORD, L"Password:", L"", /*m_width*/ 40, /*m_fieldOptsOn*/ 0, O_STATIC | O_PUBLIC}};
+        {FT_FILEPATH, "Database:", filename, /*m_width*/ 40, /*m_fieldOptsOn*/ 0, O_STATIC},
+        {FT_PASSWORD, "Password:", "", /*m_width*/ 40, /*m_fieldOptsOn*/ 0, O_STATIC | O_PUBLIC}};
 
     auto fvalidate = std::bind(&SafeCombinationPromptDlg::ValidateForm, this, _1);
     Dialog dialog(m_app, fields, /*readOnly*/ false, fvalidate);
-    dialog.SetActiveField(filename.empty() ? FT_FILENAME : FT_PASSWORD);
-    DialogResult result = dialog.Show(parent, L"Unlock Database");
+    dialog.SetActiveField(filename.empty() ? FT_FILEPATH : FT_PASSWORD);
+    DialogResult result = dialog.Show(parent, "Unlock Database");
     if (result == DialogResult::OK)
     {
         // Retrieve values from dialog fields
-        m_filename = dialog.GetValue(FT_FILENAME);
+        m_filename = dialog.GetValue(FT_FILEPATH);
         m_password = dialog.GetValue(FT_PASSWORD);
     }
     return result;

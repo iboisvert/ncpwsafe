@@ -23,10 +23,10 @@ inline constexpr char KEY_CTRL(char c)
 }
 
 /**
- * Randomize the 0 buffer of curses fields
+ * Overwrite the 0 buffer of curses fields
  * @param fields A null-terminated array of curses `FIELD`s
  */
-void RandomizeFieldsBuffer(FIELD **fields);
+void ZeroFieldsBuffer(FIELD **fields);
 
 /** Key handler for `MessageBox`. */
 inline bool YesNoKeyHandler(int ch, DialogResult &result)
@@ -55,3 +55,5 @@ template <typename T> inline T rtrim(T begin, T end)
         *end = 0;
     return begin;
 }
+
+void ZeroMemory(void *p, size_t len);

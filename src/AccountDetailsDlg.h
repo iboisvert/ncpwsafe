@@ -3,16 +3,17 @@
 
 #include "PWSafeApp.h"
 #include "Utils.h"
+#include "AccountRecord.h"
 #include <vector>
 
 class PWScore;
-class CItemData;
+class AccountRecord;
 class Dialog;
 
 class AccountDetailsDlg
 {
 public:
-    AccountDetailsDlg(PWSafeApp &app, const CItemData &item);
+    AccountDetailsDlg(PWSafeApp &app, const AccountRecord &item);
 
     /** Show the account details */
     DialogResult Show(WINDOW *parent, bool readOnly = false);
@@ -20,7 +21,7 @@ public:
     /**
      * Get account entry containing data entered by user
      */
-    const CItemData &GetItem() const
+    const AccountRecord &GetItem() const
     {
         return m_item;
     }
@@ -41,11 +42,11 @@ private:
     void SetCommandBarWin(bool readOnly);
     bool InputHandler(Dialog &dialog, int ch, DialogResult &result);
 
-    //static constexpr int PASSWORD_CONFIRM = PWS_FIELD_TYPE::LAST_ATT + 1;
+    //static constexpr int PASSWORD_CONFIRM = PwsFieldType::LAST_ATT + 1;
 
     PWSafeApp &m_app;
 
-    CItemData m_item;
-    const CItemData &m_itemOrig;
+    AccountRecord m_item;
+    const AccountRecord &m_itemOrig;
     std::string m_confirmPassword;
 };

@@ -1,26 +1,23 @@
 /* Copyright (c) 2022 Ian Boisvert */
-#pragma once
+#ifndef HAVE_RESULTCODE_H
+#define HAVE_RESULTCODE_H
 
-enum class ResultCode
+#include "libpwsafe.h"
+
+enum ResultCode
 {
-    SUCCESS = 0,
-    FAILURE,
-    USER_CANCEL,
-    FILE_DOESNT_EXIST,
-    WRONG_PASSWORD,
-    CANT_OPEN_FILE
+    RC_SUCCESS = PRC_SUCCESS,
+    RC_FAILURE = PRC_ERR_FAIL,
+    RC_ERR_WRONG_PASSWORD = PRC_ERR_INCORRECT_PW,
+    RC_USER_CANCEL = 1024,
+    RC_ERR_FILE_DOESNT_EXIST,
+    RC_ERR_CANT_OPEN_FILE,
+    RC_ERR_READONLY
 };
 
-inline ResultCode StatusToRC(int status)
+inline void SetResultCode(int *prc, int rc)
 {
-    switch (status)
-    {
-    case PWScore::SUCCESS: return ResultCode::SUCCESS;
-    case PWScore::FAILURE: return ResultCode::FAILURE;
-    case PWScore::USER_CANCEL: return ResultCode::USER_CANCEL;
-    case PWScore::CANT_OPEN_FILE: return ResultCode::CANT_OPEN_FILE;
-    case PWScore::WRONG_PASSWORD: return ResultCode::WRONG_PASSWORD;
-    default:
-        return ResultCode::FAILURE;
-    }
+    if (prc) *prc = rc;
 }
+
+#endif
