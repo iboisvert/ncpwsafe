@@ -23,7 +23,7 @@ static const char * const COMPOSITION_NAME[] {
 #define COMP_ETS_ALPHA "ABCDEFGHIKLMNOPRSTUVYZabcdefghiklmnoprstuvwxy"
 
 // clang-format off
-static constexpr char * const POLICY_CHARSET[] = {
+static constexpr const char * const POLICY_CHARSET[] = {
     COMP_ALPHA COMP_DIGIT COMP_SYMBOL,
     COMP_ALPHA COMP_DIGIT,
     COMP_ETR_ALPHA COMP_ETR_DIGIT COMP_SYMBOL,

@@ -8,9 +8,9 @@ static PwsFieldType NEW_PASSWORD = static_cast<PwsFieldType>(FT_END+1);
 static PwsFieldType NEW_PASSWORD_CONFIRM = static_cast<PwsFieldType>(FT_END+2);
 
 ChangeDbPasswordDlg::ChangeDbPasswordDlg(PWSafeApp &app)
-    : m_app(app)
+    : app_(app)
 {
-    m_app.GetCommandBar().Register(this, {
+    app_.GetCommandBar().Register(this, {
         {"^S", "Save and close", "Save the new password and close"},
         {"^X", "Cancel", "Cancel changing password"},
     });
@@ -20,24 +20,24 @@ ChangeDbPasswordDlg::ChangeDbPasswordDlg(PWSafeApp &app)
 bool ChangeDbPasswordDlg::ValidateForm(const Dialog &dialog)
 {
     WINDOW *win = dialog.GetParentWindow();
-    AccountDb &db = m_app.GetDb();
+    AccountDb &db = app_.GetDb();
     if (!db.CheckPassword(dialog.GetValue(FT_PASSWORD)))
     {
         const char *msg = "Account database password is incorrect";
-        MessageBox(m_app).Show(win, msg);
+        MessageBox(app_).Show(win, msg);
         return false;
     }
     if (dialog.GetValue(NEW_PASSWORD) != dialog.GetValue(NEW_PASSWORD_CONFIRM))
     {
         const char *msg = "New passwords do not match";
-        MessageBox(m_app).Show(win, msg);
+        MessageBox(app_).Show(win, msg);
         return false;
     }
     if (dialog.GetValue(NEW_PASSWORD).empty())
     {
-        m_app.GetCommandBar().Show(CommandBarWin::YES_NO);
+        app_.GetCommandBar().Show(CommandBarWin::YES_NO);
         const char *msg = "Password is empty. Are you sure?";
-        if (MessageBox(m_app).Show(win, msg, &YesNoKeyHandler) != DialogResult::YES)
+        if (MessageBox(app_).Show(win, msg, &YesNoKeyHandler) != DialogResult::YES)
             return false;
     }
 
@@ -54,12 +54,12 @@ DialogResult ChangeDbPasswordDlg::Show(WINDOW *parent)
         {NEW_PASSWORD_CONFIRM, "Confirm password:", "", /*m_width*/ 40, /*m_fieldOptsOn*/ 0, O_STATIC | O_PUBLIC}};
 
     auto f_validate = std::bind(&ChangeDbPasswordDlg::ValidateForm, this, _1);
-    Dialog dialog(m_app, fields, /*readOnly*/ false, f_validate);
+    Dialog dialog(app_, fields, /*readOnly*/ false, f_validate);
     DialogResult result = dialog.Show(parent, "Change Account Database Password");
     if (result == DialogResult::OK)
     {
-        m_password = dialog.GetValue(FT_PASSWORD);
-        m_newPassword = dialog.GetValue(NEW_PASSWORD);
+        password_ = dialog.GetValue(FT_PASSWORD);
+        new_password_ = dialog.GetValue(NEW_PASSWORD);
     }
 
     return result;

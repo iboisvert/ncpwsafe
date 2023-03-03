@@ -2,7 +2,7 @@
 #pragma once
 
 #include "PWSafeApp.h"
-#include "Utils.h"
+#include "Dialog.h"
 #include "AccountRecord.h"
 #include <vector>
 
@@ -23,7 +23,7 @@ public:
      */
     const AccountRecord &GetItem() const
     {
-        return m_item;
+        return account_rec_;
     }
 
 private:
@@ -44,9 +44,9 @@ private:
 
     //static constexpr int PASSWORD_CONFIRM = PwsFieldType::LAST_ATT + 1;
 
-    PWSafeApp &m_app;
+    PWSafeApp &app_;
 
-    AccountRecord m_item;
+    AccountRecord account_rec_;
     const AccountRecord &m_itemOrig;
     std::string m_confirmPassword;
 };

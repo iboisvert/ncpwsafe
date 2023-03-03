@@ -2,7 +2,7 @@
 #pragma once
 
 #include "PWSafeApp.h"
-#include "Utils.h"
+#include "Dialog.h"
 
 class Dialog;
 
@@ -24,6 +24,6 @@ private:
     bool ValidateForm(const Dialog &dialog);
     bool InputHandler(Dialog &dialog, int ch, DialogResult &result);
 
-    PWSafeApp &m_app;
+    PWSafeApp &app_;
     std::string m_password;
 };

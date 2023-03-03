@@ -1,7 +1,7 @@
 list(APPEND SRC
   main.cpp
+  AccountDb.cpp
   AccountRecord.cpp
-  AccountsColl.cpp
   AccountDetailsDlg.cpp
   AccountsWin.cpp
   ChangeDbPasswordCommand.cpp
@@ -22,8 +22,9 @@ list(APPEND SRC
 )
 
 add_executable(ncpwsafe ${SRC})
-install (TARGETS ncpwsafe RUNTIME)
 target_link_libraries(ncpwsafe 
-  ${PWSAFE_LIBRARIES}
-  ${NCURSES_LIBRARIES} 
+    ${NCURSES_LIBRARIES} 
+    ICU::uc
+    pwsafe
 )
+install (TARGETS ncpwsafe RUNTIME)

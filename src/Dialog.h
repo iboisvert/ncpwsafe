@@ -1,12 +1,23 @@
 /* Copyright 2022 Ian Boisvert */
-#pragma once
+#ifndef HAVE_DIALOG_H
+#define HAVE_DIALOG_H
 
 #include <functional>
 #include <map>
+#include <string>
 #include "libpwsafe.h"
+#include "libncurses.h"
 
-#include "PWSafeApp.h"
-#include "Utils.h"
+class PWSafeApp;
+
+enum class DialogResult
+{
+    OK = 0,
+    CANCEL,
+    CONTINUE,
+    YES,
+    NO,
+};
 
 struct DialogField
 {
@@ -124,8 +135,10 @@ private:
     WINDOW *m_win = nullptr;
     PANEL *m_panel = nullptr;
     WINDOW *m_formWin = nullptr;
-    FORM *m_form = nullptr;
+    FORM *form_ = nullptr;
     std::vector<FIELD *> m_fields;
     FIELD *m_activeField = nullptr;
     int m_saveCursor = 0;
 };
+
+#endif  //#ifndef HAVE_DIALOG_H

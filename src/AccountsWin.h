@@ -2,7 +2,7 @@
 #pragma once
 
 #include "libncurses.h"
-#include "Utils.h"
+#include "Dialog.h"
 #include "AccountRecord.h"
 #include <set>
 
@@ -23,7 +23,7 @@ private:
     /* Command bar display mask */
     static constexpr int CBOPTS_READONLY = 1;
     /** Number of columns in which accounts will be displayed */
-    static constexpr int m_ncols = 2;
+    static constexpr int NCOLS = 2;
 
     /** Save changes to database */
     bool Save();
@@ -48,15 +48,15 @@ private:
     void SetCommandBar();
     DialogResult ProcessInput();
 
-    PWSafeApp &m_app;
-    std::string m_database;
+    PWSafeApp &app_;
+    // std::string db_pathname_;
 
-    WINDOW *m_win = nullptr;
-    WINDOW *m_menuWin = nullptr;
-    MENU *m_menu = nullptr;
-    PANEL *m_panel = nullptr;
-    std::vector<ITEM *> m_menuItems;
-    int m_saveCursor = 0;
+    WINDOW *win_ = nullptr;
+    WINDOW *menu_win_ = nullptr;
+    MENU *menu_ = nullptr;
+    PANEL *panel_ = nullptr;
+    std::vector<ITEM *> menu_items_;
+    int save_cursor_ = 0;
 };
 
 /** Copy to clipboard, report errors */

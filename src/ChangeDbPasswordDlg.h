@@ -2,7 +2,7 @@
 #pragma once
 
 #include "PWSafeApp.h"
-#include "Utils.h"
+#include "Dialog.h"
 
 class Dialog;
 
@@ -15,19 +15,19 @@ public:
 
     const std::string &GetPassword() const
     {
-        return m_password;
+        return password_;
     }
 
     const std::string &GetNewPassword() const
     {
-        return m_newPassword;
+        return new_password_;
     }
 
 private:
     /** Validate form field values */
     bool ValidateForm(const Dialog &dialog);
 
-    PWSafeApp &m_app;
-    std::string m_password;
-    std::string m_newPassword;
+    PWSafeApp &app_;
+    std::string password_;
+    std::string new_password_;
 };

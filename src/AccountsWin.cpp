@@ -7,7 +7,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#endif  //#ifndef _WINDOWS
+#endif // #ifndef _WINDOWS
 
 #include "AccountDetailsDlg.h"
 #include "AccountsWin.h"
@@ -167,7 +167,7 @@ static int CopyTextToClipboardUnix(const std::string &text)
     }
     return 0;
 }
-#endif  //#ifndef _WINDOWS
+#endif // #ifndef _WINDOWS
 
 /** Copy to clipboard, report errors */
 int CopyTextToClipboard(PWSafeApp &app, WINDOW *win, const std::string &text)
@@ -188,7 +188,7 @@ int CopyTextToClipboard(PWSafeApp &app, WINDOW *win, const std::string &text)
 #endif
 }
 
-AccountsWin::AccountsWin(PWSafeApp &app, WINDOW *win) : m_app(app), m_win(win)
+AccountsWin::AccountsWin(PWSafeApp &app, WINDOW *win) : app_(app), win_(win)
 {
     // clang-format off
     app.GetCommandBar().Register(this, {
@@ -204,31 +204,32 @@ AccountsWin::AccountsWin(PWSafeApp &app, WINDOW *win) : m_app(app), m_win(win)
     // clang-format on
 }
 
-ITEM *AccountsWin::FindItem(const AccountRecord &cid) const
+ITEM *AccountsWin::FindItem(const AccountRecord &record) const
 {
     ITEM *pitem = nullptr;
     auto it = std::find_if(
-        m_menuItems.begin(), m_menuItems.end(), [&cid](const ITEM *pitem) { return item_userptr(pitem) == &cid; });
-    if (it != m_menuItems.end())
+        menu_items_.begin(), menu_items_.end(), [&record](const ITEM *pitem)
+        { return item_userptr(pitem) == &record; });
+    if (it != menu_items_.end())
     {
         pitem = *it;
     }
     return pitem;
 }
 
-void AccountsWin::SetSelection(const AccountRecord &cid) const
+void AccountsWin::SetSelection(const AccountRecord &record) const
 {
-    ITEM *pitem = FindItem(cid);
+    ITEM *pitem = FindItem(record);
     if (pitem != nullptr)
     {
-        set_current_item(m_menu, pitem);
+        set_current_item(menu_, pitem);
     }
 }
 
 const AccountRecord *AccountsWin::GetSelection() const
 {
     AccountRecord *pcid = nullptr;
-    ITEM *item = current_item(m_menu);
+    ITEM *item = current_item(menu_);
     if (item != nullptr)
     {
         pcid = reinterpret_cast<AccountRecord *>(item_userptr(item));
@@ -257,80 +258,79 @@ static bool IsGroupMenuItem(const ITEM *item)
 
 void AccountsWin::CreateMenu()
 {
-    m_menuItems.clear();
+    menu_items_.clear();
 
-    auto &accounts = m_app.GetAccountsCollection();
-    accounts.Refresh();
+    auto &records = app_.GetDb().Records();
     std::string lastGroup;
 
     ITEM *item;
     int itemIndex = 0;
     // Accounts are sorted by group and title
-    for (AccountRecord &cid : accounts)
+    for (const AccountRecord &record : records)
     {
-        std::string group = cid.GetGroup();
+        std::string group = record.GetField(FT_GROUP);
         if (group != lastGroup)
         {
             lastGroup = group;
 
             // Align groups on column 0
-            while ((itemIndex % m_ncols) != 0)
+            while ((itemIndex % NCOLS) != 0)
             {
                 item = CreateBlankMenuItem();
                 ++itemIndex;
-                m_menuItems.push_back(item);
+                menu_items_.push_back(item);
             }
 
             // Insert blank row before group, unless group is first menu item
             if (itemIndex > 0)
             {
-                for (int i = 0; i < m_ncols; ++i)
+                for (int i = 0; i < NCOLS; ++i)
                 {
                     item = CreateBlankMenuItem();
                     ++itemIndex;
-                    m_menuItems.push_back(item);
+                    menu_items_.push_back(item);
                 }
             }
 
             item = new_item(group.c_str(), 0);
             ++itemIndex;
-            m_menuItems.push_back(item);
+            menu_items_.push_back(item);
 
             // Align first account in group on column 0
-            while ((itemIndex % m_ncols) != 0)
+            while ((itemIndex % NCOLS) != 0)
             {
                 item = CreateBlankMenuItem();
                 ++itemIndex;
-                m_menuItems.push_back(item);
+                menu_items_.push_back(item);
             }
         }
 
-        std::string title = cid.GetTitle();
-        std::string user = cid.GetUser();
+        std::string title = record.GetField(FT_TITLE);
+        std::string user = record.GetField(FT_USER);
         item = new_item(title.c_str(), user.c_str());
         ++itemIndex;
-        set_item_userptr(item, &cid);
-        m_menuItems.push_back(item);
+        set_item_userptr(item, const_cast<AccountRecord *>(&record));
+        menu_items_.push_back(item);
     }
-    m_menuItems.push_back(nullptr);
+    menu_items_.push_back(nullptr);
 
-    m_menu = new_menu(m_menuItems.data());
-    set_menu_grey(m_menu, A_NORMAL);
+    menu_ = new_menu(menu_items_.data());
+    set_menu_grey(menu_, A_NORMAL);
 
-    set_menu_win(m_menu, m_win);
+    set_menu_win(menu_, win_);
     int beg_y, beg_x, max_y, max_x;
-    getbegyx(m_win, beg_y, beg_x);
-    getmaxyx(m_win, max_y, max_x);
+    getbegyx(win_, beg_y, beg_x);
+    getmaxyx(win_, max_y, max_x);
     int nlines = max_y - beg_y + 1, ncols = max_x - beg_x;
     int menuWin_nlines = nlines - 1, menuWin_ncols = ncols - 2;
-    m_menuWin = derwin(m_win, menuWin_nlines, menuWin_ncols, /*begin_y*/ 1, /*begin_x*/ 1);
-    set_menu_sub(m_menu, m_menuWin);
+    menu_win_ = derwin(win_, menuWin_nlines, menuWin_ncols, /*begin_y*/ 1, /*begin_x*/ 1);
+    set_menu_sub(menu_, menu_win_);
 
-    menu_opts_off(m_menu, O_SHOWDESC);
-    set_menu_mark(m_menu, nullptr);
-    set_menu_format(m_menu, menuWin_nlines, m_ncols);
+    menu_opts_off(menu_, O_SHOWDESC);
+    set_menu_mark(menu_, nullptr);
+    set_menu_format(menu_, menuWin_nlines, NCOLS);
 
-    post_menu(m_menu);
+    post_menu(menu_);
 
     // TESTING repost with 2 cols to see if it works
     // status = unpost_menu(menu);
@@ -379,25 +379,25 @@ static void DestroyMenu(MENU *menu)
 
 void AccountsWin::InitTUI()
 {
-    m_panel = new_panel(m_win);
+    panel_ = new_panel(win_);
 
     // Enable keypad so curses interprets function keys
-    keypad(m_win, TRUE);
+    keypad(win_, TRUE);
 
-    m_saveCursor = curs_set(0);
+    save_cursor_ = curs_set(0);
 }
 
 void AccountsWin::EndTUI()
 {
-    DestroyMenu(m_menu);
-    m_menu = nullptr;
-    del_panel(m_panel);
-    m_panel = nullptr;
-    delwin(m_menuWin);
-    m_menuWin = nullptr;
-    m_win = nullptr;
+    DestroyMenu(menu_);
+    menu_ = nullptr;
+    del_panel(panel_);
+    panel_ = nullptr;
+    delwin(menu_win_);
+    menu_win_ = nullptr;
+    win_ = nullptr;
 
-    curs_set(m_saveCursor);
+    curs_set(save_cursor_);
 }
 
 static void NavigateUp(MENU *menu, int cols, const std::vector<ITEM *> &items)
@@ -519,29 +519,30 @@ static void NavigatePageDown(MENU *menu, int cols, const std::vector<ITEM *> &it
 
 static bool EqualMenuData(const AccountRecord &a, const AccountRecord &b)
 {
-    return a.GetGroup() == b.GetGroup() && a.GetTitle() == b.GetTitle() && a.GetUser() == b.GetUser();
+    return FieldCompare(FT_GROUP, a, b)
+        && FieldCompare(FT_TITLE, a, b)
+        && FieldCompare(FT_USER, a, b);
 }
 
 /** View or edit an account entry */
-DialogResult AccountsWin::ShowAccountRecord(AccountRecord &itemData)
+DialogResult AccountsWin::ShowAccountRecord(AccountRecord &record)
 {
-    AccountDb &db = m_app.GetDb();
-    bool readOnly = db.ReadOnly();
-    AccountDetailsDlg details(m_app, itemData);
+    auto &db = app_.GetDb();
+    bool read_only = db.ReadOnly();
+    AccountDetailsDlg details(app_, record);
 
-    DialogResult result = details.Show(m_win, readOnly);
-    if (result == DialogResult::OK && !readOnly)
+    DialogResult result = details.Show(win_, read_only);
+    if (result == DialogResult::OK && !read_only)
     {
-        const AccountRecord &newItemData = details.GetItem(), oldItemData = itemData;
-        db.Execute(EditEntryCommand::Create(&db, itemData, newItemData));
-
-        if (!EqualMenuData(oldItemData, newItemData))
+        const AccountRecord &new_record = details.GetItem(), old_record = record;
+        record = new_record;
+        if (!EqualMenuData(old_record, new_record))
         {
-            DestroyMenu(m_menu);
+            DestroyMenu(menu_);
             CreateMenu();
 
             // Reset selection
-            SetSelection(itemData);
+            SetSelection(record);
         }
     }
 
@@ -553,33 +554,29 @@ DialogResult AccountsWin::ShowAccountRecord(AccountRecord &itemData)
 /** Display an account item dialog */
 DialogResult AccountsWin::AddNewEntry()
 {
-    AccountDb &db = m_app.GetDb();
+    AccountDb &db = app_.GetDb();
 
-    AccountRecord itemData;
-    itemData.CreateUUID();
+    AccountRecord record;
+    AccountDetailsDlg details(app_, record);
 
-    AccountDetailsDlg details(m_app, itemData);
-
-    DialogResult result = details.Show(m_win);
+    DialogResult result = details.Show(win_);
     if (result == DialogResult::OK)
     {
-        const AccountRecord &newItemData = details.GetItem();
-        int status = db.Execute(AddEntryCommand::Create(&db, newItemData));
-        if (status == PWScore::SUCCESS)
-        {
-            DestroyMenu(m_menu);
-            CreateMenu();
+        const AccountRecord &new_record = details.GetItem();
+        db.Records().Add(new_record);
 
-            // Reset selection
-            const pws_os::CUUID newUuid = newItemData.GetUUID();
-            auto it = std::find_if(m_menuItems.begin(), m_menuItems.end(), [&newUuid](const ITEM *pitem) {
-                return item_userptr(pitem) && reinterpret_cast<AccountRecord *>(item_userptr(pitem))->GetUUID() == newUuid;
-            });
-            assert(it != m_menuItems.end());
-            if (it != m_menuItems.end())
-            {
-                set_current_item(m_menu, *it);
-            }
+        DestroyMenu(menu_);
+        CreateMenu();
+
+        // Reset selection
+        const std::string &new_uuid = new_record.GetField(FT_UUID);
+        auto it = std::find_if(menu_items_.begin(), menu_items_.end(), [&new_uuid](const ITEM *pitem) { 
+            return item_userptr(pitem) && reinterpret_cast<AccountRecord *>(item_userptr(pitem))->GetField(FT_UUID) == new_uuid; 
+        });
+        assert(it != menu_items_.end());
+        if (it != menu_items_.end())
+        {
+            set_current_item(menu_, *it);
         }
     }
 
@@ -591,30 +588,36 @@ DialogResult AccountsWin::AddNewEntry()
 /** Display an account item dialog */
 DialogResult AccountsWin::DeleteEntry(const ITEM *pitem)
 {
-    AccountDb &db = m_app.GetDb();
+    AccountDb &db = app_.GetDb();
 
-    const AccountRecord *pItemData = reinterpret_cast<AccountRecord *>(item_userptr(pitem));
-    assert(pItemData != nullptr);
-
-    m_app.GetCommandBar().Show(CommandBarWin::YES_NO);
-
-    auto &accounts = m_app.GetAccountsCollection();
-    bool unique = std::all_of(accounts.begin(), accounts.end(),
-        [pItemData](AccountRecord &cid) { return cid.GetTitle() != pItemData->GetTitle() || &cid == pItemData; });
-    std::string msg = std::string("Delete account ").append(pItemData->GetTitle());
-    if (!unique && pItemData->GetUser())
+    const AccountRecord *prec = reinterpret_cast<AccountRecord *>(item_userptr(pitem));
+    assert(prec != nullptr);
+    if (!prec)
     {
-        msg.append(" with user ").append(pItemData->GetUser());
+        return DialogResult::NO;
+    }
+
+    app_.GetCommandBar().Show(CommandBarWin::YES_NO);
+
+    auto &records = db.Records();
+    bool unique = std::all_of(records.begin(), records.end(), [prec](const AccountRecord &record) { 
+        return FieldCompare(FT_TITLE, record, *prec) || &record == prec; 
+    });
+    std::string msg = std::string("Delete account ").append(prec->GetField(FT_TITLE));
+    if (!unique && prec->GetField(FT_USER))
+    {
+        msg.append(" with user ").append(prec->GetField(FT_USER));
     }
     msg.append("?");
 
-    DialogResult result = MessageBox(m_app).Show(m_win, msg.c_str(), &YesNoKeyHandler);
+    DialogResult result = MessageBox(app_).Show(win_, msg.c_str(), &YesNoKeyHandler);
     if (result == DialogResult::YES)
     {
-        int status = db.Execute(DeleteEntryCommand::Create(&db, *pItemData));
-        if (status == PWScore::SUCCESS)
+        AccountRecords &records = db.Records();
+        AccountRecords::iterator it = records.Find(FT_UUID, prec->GetField(FT_UUID));
+        if (it != records.end() && records.Delete(it))
         {
-            DestroyMenu(m_menu);
+            DestroyMenu(menu_);
             CreateMenu();
         }
     }
@@ -648,24 +651,24 @@ static bool YesNoCancelKeyHandler(int ch, DialogResult &result)
 /** Save the database to the current file. */
 bool AccountsWin::Save()
 {
-    m_app.GetCommandBar().Show({Action::YES, Action::NO, {"^X", "Cancel"}});
+    app_.GetCommandBar().Show({Action::YES, Action::NO, {"^X", "Cancel"}});
 
     bool retval = false;
 
-    ResultCode rc = RC_FAILURE;
+    int rc = RC_FAILURE;
     while (rc != RC_SUCCESS && rc != RC_USER_CANCEL)
     {
-        rc = m_app.Save();
+        rc = app_.Save();
         if (rc == RC_SUCCESS)
         {
             retval = true;
         }
         else
         {
-            AccountDb &db = m_app.GetDb();
+            AccountDb &db = app_.GetDb();
             std::string msg("An error occurred writing the database to file\n");
-            msg.append(db.DbPathName()).append(". Retry?");
-            DialogResult dr = MessageBox(m_app).Show(m_win, msg.c_str(), &YesNoCancelKeyHandler);
+            msg.append(db.DbPathname()).append(". Retry?");
+            DialogResult dr = MessageBox(app_).Show(win_, msg.c_str(), &YesNoCancelKeyHandler);
             if (dr == DialogResult::NO)
             {
                 rc = RC_SUCCESS;
@@ -678,7 +681,7 @@ bool AccountsWin::Save()
                 break;
             }
 
-            redrawwin(m_win);
+            redrawwin(win_);
         }
     }
 
@@ -692,14 +695,14 @@ bool AccountsWin::DiscardChanges()
 {
     bool retval = true;
 
-    m_app.GetCommandBar().Show(CommandBarWin::YES_NO);
+    app_.GetCommandBar().Show(CommandBarWin::YES_NO);
 
-    if (m_app.GetDb().HasDBChanged())
+    if (app_.GetDb().IsDirty())
     {
         const char *msg = "The database has changed. Discard changes?";
-        retval = MessageBox(m_app).Show(m_win, msg, &YesNoKeyHandler) == DialogResult::YES;
+        retval = MessageBox(app_).Show(win_, msg, &YesNoKeyHandler) == DialogResult::YES;
 
-        redrawwin(m_win);
+        redrawwin(win_);
     }
 
     SetCommandBar();
@@ -716,7 +719,7 @@ DialogResult AccountsWin::Show()
     // if matching items found, enable display of username
 
     InitTUI();
-    werase(m_win);
+    werase(win_);
 
     CreateMenu();
 
@@ -727,105 +730,113 @@ DialogResult AccountsWin::Show()
 
     EndTUI();
 
-    m_win = nullptr;
+    win_ = nullptr;
 
     return result;
 }
 
 void AccountsWin::SetCommandBar()
 {
-    bool readOnly = m_app.GetDb().ReadOnly();
-    const unsigned char opts = readOnly ? CBOPTS_READONLY : ~CBOPTS_READONLY;
-    m_app.GetCommandBar().Show(this, opts);
+    bool read_only = app_.GetDb().ReadOnly();
+    const unsigned char opts = read_only ? CBOPTS_READONLY : ~CBOPTS_READONLY;
+    app_.GetCommandBar().Show(this, opts);
 }
 
 DialogResult AccountsWin::ProcessInput()
 {
-    bool readOnly = m_app.GetDb().ReadOnly();
+    bool read_only = app_.GetDb().ReadOnly();
     DialogResult result = DialogResult::CANCEL;
     int c;
-    while ((c = wgetch(m_win)) != ERR)
+    while ((c = wgetch(win_)) != ERR)
     {
         switch (c)
         {
-        case KEY_CTRL('A'): {
-            if (!readOnly)
+        case KEY_CTRL('A'):
+        {
+            if (!read_only)
             {
                 AddNewEntry();
             }
             break;
         }
-        case KEY_CTRL('C'): {
-            if (!readOnly)
+        case KEY_CTRL('C'):
+        {
+            if (!read_only)
             {
-                ChangeDbPasswordDlg dialog(m_app);
-                if (dialog.Show(m_win) == DialogResult::OK)
+                ChangeDbPasswordDlg dialog(app_);
+                if (dialog.Show(win_) == DialogResult::OK)
                 {
-                    const std::string &database = m_app.GetDb().DbPathName();
                     const std::string &password = dialog.GetPassword();
-                    const std::string &newPassword = dialog.GetNewPassword();
-                    if (ChangeDbPasswordCommand{m_app, database, password, newPassword}.Execute() != RC_SUCCESS)
+                    const std::string &new_password = dialog.GetNewPassword();
+                    app_.GetDb().Password() = password;
+                    if (ChangeDbPasswordCommand{app_, new_password}.Execute() != RC_SUCCESS)
                     {
-                        MessageBox(m_app).Show(m_win, "An error occurred changing the account database password.");
+                        MessageBox(app_).Show(win_, "An error occurred changing the account database password.");
                     }
                 }
             }
             break;
         }
-        case KEY_CTRL('D'): {
-            if (!readOnly)
+        case KEY_CTRL('D'):
+        {
+            if (!read_only)
             {
-                ITEM *item = current_item(m_menu);
+                ITEM *item = current_item(menu_);
                 DeleteEntry(item);
             }
             break;
         }
-        case KEY_CTRL('S'): {
-            if (!readOnly && Save())
+        case KEY_CTRL('S'):
+        {
+            if (!read_only && Save())
             {
                 result = DialogResult::OK;
                 goto done;
             }
             break;
         }
-        case KEY_CTRL('X'): {
-            if (readOnly || DiscardChanges())
+        case KEY_CTRL('X'):
+        {
+            if (read_only || DiscardChanges())
             {
                 result = DialogResult::CANCEL;
                 goto done;
             }
             break;
         }
-        case KEY_CTRL('U'): {
-            ITEM *item = current_item(m_menu);
+        case KEY_CTRL('U'):
+        {
+            ITEM *item = current_item(menu_);
             if (!IsGroupMenuItem(item))
             {
-                const AccountRecord *cid = reinterpret_cast<AccountRecord *>(item_userptr(item));
-                const std::string &str = cid->GetUser();
-                if (CopyTextToClipboard(m_app, m_win, str) > 0)
+                const AccountRecord *record = reinterpret_cast<AccountRecord *>(item_userptr(item));
+                const std::string &str = record->GetField(FT_USER);
+                if (CopyTextToClipboard(app_, win_, str) > 0)
                 {
-                    m_app.GetCommandBar().Show(this);
+                    app_.GetCommandBar().Show(this);
                 }
             }
             break;
         }
-        case KEY_CTRL('P'): {
-            ITEM *item = current_item(m_menu);
+        case KEY_CTRL('P'):
+        {
+            ITEM *item = current_item(menu_);
             if (!IsGroupMenuItem(item))
             {
-                const AccountRecord *cid = reinterpret_cast<AccountRecord *>(item_userptr(item));
-                const std::string &str = cid->GetPassword();
-                if (CopyTextToClipboard(m_app, m_win, str) > 0)
+                const AccountRecord *record = reinterpret_cast<AccountRecord *>(item_userptr(item));
+                const std::string &str = record->GetField(FT_PASSWORD);
+                if (CopyTextToClipboard(app_, win_, str) > 0)
                 {
-                    m_app.GetCommandBar().Show(this);
+                    app_.GetCommandBar().Show(this);
                 }
             }
             break;
         }
-        case '/': {
+        case '/':
+        {
             using std::placeholders::_1;
-            m_app.DoSearch();
-            m_app.GetCommandBar().Show(this);
+            app_.DoSearch();
+            app_.GetCommandBar().Show(this);
             break;
         }
             // case 'a': {
@@ -844,60 +855,69 @@ DialogResult AccountsWin::ProcessInput()
             //     break;
             // }
 
-        case '\n': {
-            ITEM *item = current_item(m_menu);
+        case '\n':
+        {
+            ITEM *item = current_item(menu_);
             assert(!IsBlankMenuItem(item));
             if (IsGroupMenuItem(item))
             {
-                // DisplayGroup(*cid);
+                // DisplayGroup(*record);
             }
             else
             {
-                AccountRecord *cid = reinterpret_cast<AccountRecord *>(item_userptr(item));
-                assert(cid != nullptr);
-                ShowAccountRecord(*cid);
+                AccountRecord *record = reinterpret_cast<AccountRecord *>(item_userptr(item));
+                assert(record != nullptr);
+                ShowAccountRecord(*record);
             }
 
             break;
         }
 
-        case KEY_HOME: {
-            menu_driver(m_menu, REQ_FIRST_ITEM);
+        case KEY_HOME:
+        {
+            menu_driver(menu_, REQ_FIRST_ITEM);
             break;
         }
 
-        case KEY_END: {
-            menu_driver(m_menu, REQ_LAST_ITEM);
+        case KEY_END:
+        {
+            menu_driver(menu_, REQ_LAST_ITEM);
             break;
         }
 
-        case KEY_UP: {
-            NavigateUp(m_menu, m_ncols, m_menuItems);
+        case KEY_UP:
+        {
+            NavigateUp(menu_, NCOLS, menu_items_);
             break;
         }
 
-        case KEY_DOWN: {
-            NavigateDown(m_menu, m_ncols, m_menuItems);
+        case KEY_DOWN:
+        {
+            NavigateDown(menu_, NCOLS, menu_items_);
             break;
         }
 
-        case KEY_RIGHT: {
-            NavigateRight(m_menu, m_ncols, m_menuItems);
+        case KEY_RIGHT:
+        {
+            NavigateRight(menu_, NCOLS, menu_items_);
             break;
         }
 
-        case KEY_LEFT: {
-            NavigateLeft(m_menu, m_ncols, m_menuItems);
+        case KEY_LEFT:
+        {
+            NavigateLeft(menu_, NCOLS, menu_items_);
             break;
         }
 
-        case KEY_PPAGE: {
-            NavigatePageUp(m_menu, m_ncols, m_menuItems);
+        case KEY_PPAGE:
+        {
+            NavigatePageUp(menu_, NCOLS, menu_items_);
             break;
         }
 
-        case KEY_NPAGE: {
-            NavigatePageDown(m_menu, m_ncols, m_menuItems);
+        case KEY_NPAGE:
+        {
+            NavigatePageDown(menu_, NCOLS, menu_items_);
             break;
         }
 

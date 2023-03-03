@@ -6,13 +6,13 @@
 #include <memory>
 
 #include "AccountDb.h"
-#include "AccountsColl.h"
 #include "AccountsWin.h"
 #include "CommandBarWin.h"
 #include "ProgArgs.h"
 #include "ResultCode.h"
 #include "SearchBarWin.h"
-#include "Utils.h"
+#include "Dialog.h"
+#include "Prefs.h"
 
 class PWSafeApp
 {
@@ -20,13 +20,7 @@ public:
     /** NCPWSAFE_APPNAME " " NCPWSAFE_VERSION */
     static const char *APPNAME_VERSION;
 
-    PWSafeApp() : m_db{}, m_accountsColl{m_db}
-    {
-    }
-    ~PWSafeApp()
-    {
-        Destroy();
-    }
+    PWSafeApp() : prefs_(Prefs::Instance()) { }
 
     // SUPPORT FUNCTIONS
 
@@ -37,31 +31,25 @@ public:
     DialogResult Show();
 
     /** Save database */
-    ResultCode Save();
+    int Save();
+
+    /** Save preferences */
     void SavePrefs();
 
-    /** Backup current account database */
-    ResultCode BackupCurFile();
-
-    /** Release memory held by app, including core */
-    void Destroy();
+    /** Backup the current account database */
+    int BackupDb();
 
     /** Search function */
     void DoSearch();
 
     const ProgArgs &GetArgs() const
     {
-        return m_progArgs;
-    }
-
-    AccountsColl &GetAccountsCollection()
-    {
-        return m_accountsColl;
+        return prog_args_;
     }
 
     AccountDb &GetDb()
     {
-        return m_db;
+        return db_;
     }
 
     WINDOW *GetWindow()
@@ -79,9 +67,9 @@ private:
     void EndTUI();
     void ProcessInput();
 
-    ProgArgs m_progArgs;
-    AccountDb m_db;
-    AccountsColl m_accountsColl;
+    Prefs &prefs_;
+    ProgArgs prog_args_;
+    AccountDb db_;
     std::unique_ptr<AccountsWin> m_accounts;
     std::unique_ptr<CommandBarWin> m_commandBar;
 

@@ -22,12 +22,12 @@ void SearchBarWin::InitTUI()
     FIELD *fields[]{new_field(/*height*/ 1, cols, /*toprow*/ 0, /*leftcol*/ 0, /*offscreen*/ 0, /*nbuffers*/ 0), NULL};
     field_opts_off(fields[0], O_STATIC);
 
-    m_form = new_form(fields);
-    form_opts_off(m_form, O_BS_OVERLOAD);
-    set_form_win(m_form, m_win);
+    form_ = new_form(fields);
+    form_opts_off(form_, O_BS_OVERLOAD);
+    set_form_win(form_, m_win);
     m_formWin = derwin(m_win, /*nlines*/ 1, /*ncols*/ cols, /*begin_y*/ 0, /*begin_x*/ curx);
-    set_form_sub(m_form, m_formWin);
-    post_form(m_form);
+    set_form_sub(form_, m_formWin);
+    post_form(form_);
 
     // Enable keypad so curses interprets function keys
     keypad(m_win, TRUE);
@@ -40,15 +40,15 @@ void SearchBarWin::EndTUI()
     del_panel(m_panel);
     m_panel = nullptr;
 
-    unpost_form(m_form);
-    FIELD **fields = form_fields(m_form);
-    int nfields = field_count(m_form);
+    unpost_form(form_);
+    FIELD **fields = form_fields(form_);
+    int nfields = field_count(form_);
     for (int i = 0; i < nfields; ++i)
     {
         free_field(fields[i]);
     }
-    free_form(m_form);
-    m_form = nullptr;
+    free_form(form_);
+    form_ = nullptr;
     delwin(m_formWin);
     m_formWin = nullptr;
 
@@ -57,20 +57,20 @@ void SearchBarWin::EndTUI()
 
 void SearchBarWin::Show()
 {
-    m_query.clear();
+    query_.clear();
 
-    const AccountRecord *pcid = m_AccountsWin.GetSelection();
-    auto &accounts = m_app.GetAccountsCollection();
-    m_saveMatch = accounts.begin();
-    if (pcid)
+    const AccountRecord *psel = accounts_win_.GetSelection();
+    auto &records = app_.GetDb().Records();
+    save_match_ = records.begin();
+    if (psel)
     {
-        auto it = std::find_if(accounts.begin(), accounts.end(), [pcid](const AccountRecord &cid) {
-            return cid == *pcid;
+        auto it = std::find_if(records.begin(), records.end(), [psel](const AccountRecord &rec) {
+            return rec == *psel;
         });
-        m_saveMatch = it;
+        save_match_ = it;
     }
-    m_lastMatch = m_saveMatch;
-    m_transientMatch = m_saveMatch;
+    last_match_ = save_match_;
+    transient_match_ = save_match_;
 
     InitTUI();
 
@@ -78,20 +78,20 @@ void SearchBarWin::Show()
 }
 
 /** Search title, name, user, notes fields for query */
-static bool Matches(const AccountRecord &cid, const std::string &query)
+static bool Matches(const AccountRecord &account_rec, const std::string &query)
 {
     // clang-format off
     return 
-        cid.Matches(query, FT_TITLE, PWSMatch::MatchRule::MR_CONTAINS)
-        || cid.Matches(query, FT_NAME, PWSMatch::MatchRule::MR_CONTAINS)
-        || cid.Matches(query, FT_USER, PWSMatch::MatchRule::MR_CONTAINS)
-        || cid.Matches(query, FT_NOTES, PWSMatch::MatchRule::MR_CONTAINS);
+        account_rec.FieldContainsCaseInsensitive(FT_TITLE, query)
+        || account_rec.FieldContainsCaseInsensitive(FT_NAME, query)
+        || account_rec.FieldContainsCaseInsensitive(FT_USER, query)
+        || account_rec.FieldContainsCaseInsensitive(FT_NOTES, query);
     // clang-format on
 }
 
-static AccountsColl::iterator FindNext(AccountsColl::iterator begin, AccountsColl::iterator end, const std::string &query)
+static AccountRecords::iterator FindNext(AccountRecords::iterator begin, AccountRecords::iterator end, const std::string &query)
 {
-    AccountsColl::iterator &it = begin;
+    AccountRecords::iterator &it = begin;
     for (; it != end; ++it)
     {
         if (Matches(*it, query))
@@ -104,14 +104,14 @@ static AccountsColl::iterator FindNext(AccountsColl::iterator begin, AccountsCol
  * Find the next match from the current match position.
  * Does not update the current match.
  */
-AccountsColl::iterator SearchBarWin::FindNextImpl(AccountsColl::iterator &startIter)
+AccountRecords::iterator SearchBarWin::FindNextImpl(AccountRecords::iterator &start_iter)
 {
-    auto &accounts = m_app.GetAccountsCollection();
-    AccountsColl::iterator begin = accounts.begin(), end = accounts.end();
+    auto &records = app_.GetDb().Records();
+    AccountRecords::iterator begin = records.begin(), end = records.end();
     if (begin == end)
         return end;
 
-    AccountsColl::iterator it = startIter;
+    AccountRecords::iterator it = start_iter;
     if (it == end)
     {
         it = begin;
@@ -121,54 +121,55 @@ AccountsColl::iterator SearchBarWin::FindNextImpl(AccountsColl::iterator &startI
         ++it;
     }
 
-    it = ::FindNext(it, end, m_query);
-    if (it == end && startIter != begin)
+    it = ::FindNext(it, end, query_);
+    if (it == end && start_iter != begin)
     {
         // Wrap search
-        it = ::FindNext(begin, startIter, m_query);
+        it = ::FindNext(begin, start_iter, query_);
     }
     return it;
 }
 
 bool SearchBarWin::FindNext()
 {
-    AccountsColl::iterator startIter = m_lastMatch;
-    AccountsColl::iterator it = FindNextImpl(startIter), end = m_app.GetAccountsCollection().end();
-    if (it != startIter && it != end)
+    auto start_iter = last_match_;
+    auto it = FindNextImpl(start_iter);
+    auto end = app_.GetDb().Records().end();
+    if (it != start_iter && it != end)
     {
-        m_transientMatch = it;
-        m_AccountsWin.SetSelection(*it);
+        transient_match_ = it;
+        accounts_win_.SetSelection(*it);
         return true;
     }
     return false;
 }
 
-void SearchBarWin::SetSelection(AccountsColl::iterator it)
+void SearchBarWin::SetSelection(AccountRecords::const_iterator it)
 {
-    AccountsColl::iterator end = m_app.GetAccountsCollection().end();
+    AccountRecords::iterator end = app_.GetDb().Records().end();
     if (it != end)
     {
-        m_AccountsWin.SetSelection(*it);
+        accounts_win_.SetSelection(*it);
     }
 }
 
 void SearchBarWin::ResetSavedMatch()
 {
-    SetSelection(m_saveMatch);
+    SetSelection(save_match_);
 }
 
 void SearchBarWin::ResetLastMatch()
 {
-    SetSelection(m_lastMatch);
+    SetSelection(last_match_);
 }
 
 void SearchBarWin::UpdateQueryString()
 {
     // Required to synchronize window to buffer
-    form_driver(m_form, REQ_VALIDATION);
-    FIELD *field = current_field(m_form);
+    form_driver(form_, REQ_VALIDATION);
+    FIELD *field = current_field(form_);
     char *cbuf = field_buffer(field, /*buffer*/ 0);
-    m_query = rtrim(cbuf, cbuf + strlen(cbuf));
+    query_ = rtrim(cbuf, cbuf + strlen(cbuf));
 }
 
 DialogResult SearchBarWin::ProcessInput()
@@ -192,34 +193,34 @@ DialogResult SearchBarWin::ProcessInput()
         }
         case KEY_CTRL('L'): {
             // Next
-            if (m_query.size() > 0)
+            if (query_.size() > 0)
             {
-                m_lastMatch = m_transientMatch;
+                last_match_ = transient_match_;
                 update = FindNext();
             }
             break;
         }
         case KEY_LEFT: {
-            form_driver(m_form, REQ_LEFT_CHAR);
+            form_driver(form_, REQ_LEFT_CHAR);
             break;
         }
         case KEY_RIGHT: {
-            form_driver(m_form, REQ_RIGHT_CHAR);
+            form_driver(form_, REQ_RIGHT_CHAR);
             break;
         }
         case KEY_HOME: {
-            form_driver(m_form, REQ_BEG_LINE);
+            form_driver(form_, REQ_BEG_LINE);
             break;
         }
         case KEY_END: {
-            form_driver(m_form, REQ_END_LINE);
+            form_driver(form_, REQ_END_LINE);
             break;
         }
         case KEY_BACKSPACE: {
-            if (form_driver(m_form, REQ_DEL_PREV) == E_OK)
+            if (form_driver(form_, REQ_DEL_PREV) == E_OK)
             {
                 UpdateQueryString();
-                if (m_query.size() > 0)
+                if (query_.size() > 0)
                 {
                     update = FindNext();
                 }
@@ -232,7 +233,7 @@ DialogResult SearchBarWin::ProcessInput()
             break;
         }
         case KEY_DC: {
-            if (form_driver(m_form, REQ_DEL_CHAR) == E_OK)
+            if (form_driver(form_, REQ_DEL_CHAR) == E_OK)
             {
                 UpdateQueryString();
                 update = FindNext();
@@ -240,7 +241,7 @@ DialogResult SearchBarWin::ProcessInput()
             break;
         }
         default: {
-            if (form_driver(m_form, ch) == E_OK)
+            if (form_driver(form_, ch) == E_OK)
             {
                 UpdateQueryString();
                 update = FindNext();

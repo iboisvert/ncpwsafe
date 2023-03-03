@@ -63,7 +63,7 @@ DialogResult MessageBox::Show(WINDOW *parent, const std::string &msg, KeyHandler
 {
     if (handler == &DefaultMessageBoxKeyHandler)
     {
-        m_app.GetCommandBar().Show({
+        app_.GetCommandBar().Show({
             {"Enter", "Close"}
         });
     }

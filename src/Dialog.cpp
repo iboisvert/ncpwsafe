@@ -97,17 +97,17 @@ void Dialog::InitTUI(const std::string &title)
     Label::WriteJustified(m_win, /*y*/ 0, /*begin_x*/ 2, ncols + 4, title.c_str(), JUSTIFY_CENTER);
 
     int label_begin_x = 2, form_begin_y = 2, form_begin_x = max_label_width + label_begin_x + 1;
-    m_form = new_form(m_fields.data());
+    form_ = new_form(m_fields.data());
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-value"
-    assert(("Unexpected form null", m_form));
+    assert(("Unexpected form null", form_));
 #pragma GCC diagnostic pop
-    form_opts_off(m_form, O_BS_OVERLOAD);
-    set_form_win(m_form, m_win);
-    scale_form(m_form, &nlines, &ncols);
+    form_opts_off(form_, O_BS_OVERLOAD);
+    set_form_win(form_, m_win);
+    scale_form(form_, &nlines, &ncols);
     m_formWin = derwin(m_win, nlines, ncols, form_begin_y, form_begin_x);
-    set_form_sub(m_form, m_formWin);
-    post_form(m_form);
+    set_form_sub(form_, m_formWin);
+    post_form(form_);
 
     int row = 2;
     for (const DialogField &df : m_dialogFields)
@@ -119,10 +119,10 @@ void Dialog::InitTUI(const std::string &title)
 
     if (m_activeField != nullptr)
     {
-        set_current_field(m_form, m_activeField);
+        set_current_field(form_, m_activeField);
     }
 
-    form_driver(m_form, REQ_END_LINE);
+    form_driver(form_, REQ_END_LINE);
 
     // Reset cursor for input fields
     m_saveCursor = curs_set(1);
@@ -130,9 +130,9 @@ void Dialog::InitTUI(const std::string &title)
 
 void Dialog::EndTUI()
 {
-    unpost_form(m_form);
-    free_form(m_form);
-    m_form = nullptr;
+    unpost_form(form_);
+    free_form(form_);
+    form_ = nullptr;
     for (FIELD *field : m_fields)
     {
         free_field(field);
@@ -193,7 +193,7 @@ DialogResult Dialog::ProcessInput()
             if (!m_readOnly)
             {
                 // Required to synchronize window to buffer
-                form_driver(m_form, REQ_VALIDATION);
+                form_driver(form_, REQ_VALIDATION);
                 SaveData();
 
                 if (ValidateForm())
@@ -212,7 +212,7 @@ DialogResult Dialog::ProcessInput()
             else
             {
                 // Required to synchronize window to buffer
-                form_driver(m_form, REQ_VALIDATION);
+                form_driver(form_, REQ_VALIDATION);
                 SaveData();
 
                 if (DiscardChanges())
@@ -226,53 +226,53 @@ DialogResult Dialog::ProcessInput()
         case '\t':
         case KEY_DOWN: {
             /* Go to next field */
-            form_driver(m_form, REQ_NEXT_FIELD);
+            form_driver(form_, REQ_NEXT_FIELD);
             /* Go to the end of the present buffer */
             /* Leaves nicely at the last character */
-            form_driver(m_form, REQ_END_LINE);
+            form_driver(form_, REQ_END_LINE);
             break;
         }
         case KEY_BTAB:
         case KEY_UP: {
             /* Go to previous field */
-            form_driver(m_form, REQ_PREV_FIELD);
-            form_driver(m_form, REQ_END_LINE);
+            form_driver(form_, REQ_PREV_FIELD);
+            form_driver(form_, REQ_END_LINE);
             break;
         }
         case KEY_LEFT: {
-            form_driver(m_form, REQ_LEFT_CHAR);
+            form_driver(form_, REQ_LEFT_CHAR);
             break;
         }
         case KEY_RIGHT: {
-            form_driver(m_form, REQ_RIGHT_CHAR);
+            form_driver(form_, REQ_RIGHT_CHAR);
             break;
         }
         case KEY_HOME: {
-            form_driver(m_form, REQ_BEG_LINE);
+            form_driver(form_, REQ_BEG_LINE);
             break;
         }
         case KEY_END: {
-            form_driver(m_form, REQ_END_LINE);
+            form_driver(form_, REQ_END_LINE);
             break;
         }
         case KEY_BACKSPACE: {
             if (!m_readOnly)
             {
-                form_driver(m_form, REQ_DEL_PREV);
+                form_driver(form_, REQ_DEL_PREV);
             }
             break;
         }
         case KEY_DC: {
             if (!m_readOnly)
             {
-                form_driver(m_form, REQ_DEL_CHAR);
+                form_driver(form_, REQ_DEL_CHAR);
             }
             break;
         }
         default: {
             if (!m_readOnly)
             {
-                form_driver(m_form, ch);
+                form_driver(form_, ch);
             }
             break;
         }

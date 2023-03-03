@@ -9,11 +9,12 @@ class PWSafeApp;
 /** Export account database to plaintext */
 class ExportDbCommand
 {
-    PWSafeApp &m_app;
+    PWSafeApp &app_;
+    std::string &output_pathname_;
 
 public:
-    ExportDbCommand(PWSafeApp &app) : m_app(app) {}
-    ResultCode Execute();
+    ExportDbCommand(PWSafeApp &app, std::string &output_pathname) : app_(app), output_pathname_{output_pathname} {}
+    int Execute();
 };
 
 #endif

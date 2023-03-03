@@ -2,35 +2,37 @@
 #include "ChangeDbPasswordCommand.h"
 
 #include "PWSafeApp.h"
-#include "ProgArgs.h"
 #include "FileUtils.h"
+#include "ProgArgs.h"
+#include "ResultCode.h"
 
-ResultCode ChangeDbPasswordCommand::Execute()
+int ChangeDbPasswordCommand::Execute()
 {
-    if (!FileExists(m_database))
+    if (new_password_.empty())
+    {
+        return RC_ERR_INVALID_ARG;
+    }
+
+    AccountDb &db = app_.GetDb();
+
+    if (!db.Exists())
     {
         return RC_ERR_FILE_DOESNT_EXIST;
     }
 
-    AccountDb &db = m_app.GetDb();
+    app_.BackupDb();
 
-    db.DbPathName() = m_database;
-    db.ReadOnly() = true;
-
-    m_app.BackupCurFile();
-
-    if (!db.CheckPassword(m_database, m_password))
+    int rc;
+    if (!db.CheckPassword(&rc))
     {
-        return RC_ERR_WRONG_PASSWORD;
+        return rc;
     }
 
-    PwsResultCode rc;
-    PwsDbRecord *records;
-    if (AccountDb::ReadDb(m_database, m_password, &records, &rc))
+    if (db.ReadDb(&rc))
     {
-        AccountDb::WriteDb(m_database, m_newPassword, records, &rc);
-        pws_free_db_records(records);
+        db.Password() = new_password_;
+        db.WriteDb(&rc);
     }
 
-    return RC_SUCCESS;
+    return rc;
 }

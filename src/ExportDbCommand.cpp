@@ -6,34 +6,32 @@
 #include "Utils.h"
 
 /** Export account database to plaintext */
-ResultCode ExportDbCommand::Execute()
+int ExportDbCommand::Execute()
 {
-    const ProgArgs &args = m_app.GetArgs();
+    assert(!output_pathname_.empty());
 
-    assert(!args.m_file.empty());
+    AccountDb &db = app_.GetDb();
 
-    AccountDb &db = m_app.GetDb();
-    db.ReadOnly() = true;
-    int rc = db.ReadCurFile(args.m_password);
-    if (rc != PWScore::SUCCESS)
+    int rc;
+    if (!db.ReadDb(&rc))
     {
-        return RC_ERR_WRONG_PASSWORD;
+        return rc;
     }
 
-    FILE *f = fopen(args.m_file.c_str(), "w");
-    if (f == NULL)
+    FILE *f = fopen(output_pathname_.c_str(), "w");
+    if (!f)
     {
         return RC_ERR_CANT_OPEN_FILE;
     }
+    std::unique_ptr<FILE, decltype(&fclose)> pf{f, &fclose};
 
     // Header
     fprintf(f, "UUID, Group, Title, User, Password, Notes\n");
     // Records
-    AccountsColl &accounts = m_app.GetAccountsCollection();
-    accounts.Refresh();
-    for (const AccountRecord &entry : accounts)
+    auto &records = db.Records();
+    for (const AccountRecord &rec : records)
     {
-        const char *uuid = entry.GetUUID();
+        const std::string &uuid = rec.GetField(FT_UUID);
         std::string suuid;
         char buf[3];
         for (size_t i = 0; i < 16; ++i)
@@ -43,14 +41,12 @@ ResultCode ExportDbCommand::Execute()
             sprintf(buf, "%02x", uuid[i]);
             suuid.append(buf);
         }
-        std::string notes = entry.GetNotes();
+        std::string notes = rec.GetField(FT_NOTES);
         notes = std::string{rtrim(notes.begin(), notes.end()), notes.end()};
         fprintf(f, "%s, \"%s\", \"%s\", \"%s\", \"%s\", \"%s\"\n",
-                suuid.c_str(), entry.GetGroup(), entry.GetTitle(),
-                entry.GetUser(), entry.GetPassword(), notes.c_str());
+                suuid.c_str(), rec.GetField(FT_GROUP), rec.GetField(FT_TITLE),
+                rec.GetField(FT_USER), rec.GetField(FT_PASSWORD), notes.c_str());
     }
-
-    fclose(f);
 
     return RC_SUCCESS;
 }

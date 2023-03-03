@@ -25,7 +25,7 @@ public:
     }
 
 private:
-    PWSafeApp &m_app;
+    PWSafeApp &app_;
 
     std::string m_filename;
     std::string m_password;

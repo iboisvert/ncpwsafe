@@ -8,9 +8,9 @@
 static PwsFieldType PASSWORD_CONFIRM = static_cast<PwsFieldType>(FT_END+1);
 
 ChangePasswordDlg::ChangePasswordDlg(PWSafeApp &app)
-    : m_app(app)
+    : app_(app)
 {
-    m_app.GetCommandBar().Register(this, {
+    app_.GetCommandBar().Register(this, {
         {"^S", "Save and close", "Save the new password and close"},
         {"^X", "Cancel", "Cancel changing password"},
         {"^P", "Generate", "Randomly generate a new password"}
@@ -19,7 +19,7 @@ ChangePasswordDlg::ChangePasswordDlg(PWSafeApp &app)
 
 void ChangePasswordDlg::SetCommandBarWin()
 {
-    m_app.GetCommandBar().Show(this);
+    app_.GetCommandBar().Show(this);
 }
 
 /** Validate form field values */
@@ -29,15 +29,15 @@ bool ChangePasswordDlg::ValidateForm(const Dialog &dialog)
     if (!valid)
     {
         const char *msg = "Passwords do not match";
-        MessageBox(m_app).Show(dialog.GetParentWindow(), msg);
+        MessageBox(app_).Show(dialog.GetParentWindow(), msg);
 
         SetCommandBarWin();
     }
     else if (dialog.GetValue(FT_PASSWORD).empty())
     {
-        m_app.GetCommandBar().Show(CommandBarWin::YES_NO);
+        app_.GetCommandBar().Show(CommandBarWin::YES_NO);
         const char *msg = "Password is empty. Are you sure?";
-        valid = MessageBox(m_app).Show(dialog.GetParentWindow(), msg, &YesNoKeyHandler) == DialogResult::YES;
+        valid = MessageBox(app_).Show(dialog.GetParentWindow(), msg, &YesNoKeyHandler) == DialogResult::YES;
 
         SetCommandBarWin();
     }
@@ -51,12 +51,12 @@ bool ChangePasswordDlg::InputHandler(Dialog &dialog, int ch, DialogResult &resul
 
     if (ch == KEY_CTRL('P'))
     {
-        GeneratePasswordDlg GeneratePasswordDlgDlg(m_app);
+        GeneratePasswordDlg dlg(app_);
         WINDOW *win = dialog.GetParentWindow();
-        result = GeneratePasswordDlgDlg.Show(win);
+        result = dlg.Show(win);
         if (result == DialogResult::OK)
         {
-            const std::string &newPassword = GeneratePasswordDlgDlg.GetPassword();
+            const std::string &newPassword = dlg.GetPassword();
             dialog.SetField(FT_PASSWORD, newPassword);
             dialog.SetField(PASSWORD_CONFIRM, newPassword);
             retval = true;
@@ -80,7 +80,7 @@ DialogResult ChangePasswordDlg::Show(WINDOW *parent)
 
     auto f_validate = std::bind(&ChangePasswordDlg::ValidateForm, this, _1);
     auto f_inputHandler = std::bind(&ChangePasswordDlg::InputHandler, this, _1, _2, _3);
-    Dialog dialog(m_app, fields, /*readOnly*/ false, f_validate, nullptr, f_inputHandler);
+    Dialog dialog(app_, fields, /*readOnly*/ false, f_validate, nullptr, f_inputHandler);
     DialogResult result = dialog.Show(parent, "Change Password");
     if (result == DialogResult::OK)
     {

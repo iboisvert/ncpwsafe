@@ -1,5 +1,6 @@
 /* Copyright 2022 Ian Boisvert */
-#pragma once
+#ifndef HAVE_LIBNCURSES_H
+#define HAVE_LIBNCURSES_H
 
 #define NCURSES_WIDECHAR 1
 #include <ncursesw/form.h>
@@ -11,3 +12,5 @@
 #ifdef OK
 #undef OK
 #endif
+
+#endif //#ifndef HAVE_LIBNCURSES_H

@@ -7,15 +7,6 @@
 #include <iterator>
 #include <cassert>
 
-enum class DialogResult
-{
-    OK = 0,
-    CANCEL,
-    CONTINUE,
-    YES,
-    NO,
-};
-
 constexpr char KEY_ESC = 0x1B;
 inline constexpr char KEY_CTRL(char c)
 {
@@ -27,23 +18,6 @@ inline constexpr char KEY_CTRL(char c)
  * @param fields A null-terminated array of curses `FIELD`s
  */
 void ZeroFieldsBuffer(FIELD **fields);
-
-/** Key handler for `MessageBox`. */
-inline bool YesNoKeyHandler(int ch, DialogResult &result)
-{
-    ch = tolower(ch);
-    if (ch == 'y')
-    {
-        result = DialogResult::YES;
-        return true;
-    }
-    else if (ch == 'n')
-    {
-        result = DialogResult::NO;
-        return true;
-    }
-    return false;
-}
 
 constexpr std::array<char, 4> WS{' ', '\n', '\r', '\t'};
 template <typename T> inline T rtrim(T begin, T end)

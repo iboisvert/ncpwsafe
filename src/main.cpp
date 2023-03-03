@@ -483,20 +483,23 @@ int main(int argc, char *argv[])
     int result = static_cast<int>(RC_SUCCESS);
     switch (args.GetCommand())
     {
-    case Operation::OPEN_DB: {
+    case Operation::OPEN_DB: 
+    {
         DialogResult rc = app.Show();
         result = static_cast<int>(rc == DialogResult::OK ? RC_SUCCESS : RC_FAILURE);
         app.SavePrefs();
         break;
     }
-    case Operation::CHANGE_DB_PASSWORD: {
-        ResultCode rc = ChangeDbPasswordCommand{app, *args.m_database, *args.m_password, *args.m_newPassword}.Execute();
-        result = static_cast<int>(rc);
+    case Operation::CHANGE_DB_PASSWORD: 
+    {
+        assert(args.m_newPassword);
+
+        int rc = ChangeDbPasswordCommand{app, *args.m_newPassword}.Execute();
         if (rc == RC_SUCCESS)
         {
             fprintf(stdout, "Account database password changed\n");
         }
-        else if (rc == RC_ERR_WRONG_PASSWORD)
+        else if (rc == RC_ERR_INCORRECT_PASSWORD)
         {
             fprintf(stdout, "Incorrect account database password\n");
         }
@@ -504,16 +507,23 @@ int main(int argc, char *argv[])
         {
             fprintf(stdout, "Changing account database password failed\n");
         }
-        break;
-    }
-    case Operation::GENERATE_TEST_DB: {
-        fprintf(stdout, "Generating test database at %s\n", args.m_database->c_str());
-        ResultCode rc = GenerateTestDbCommand{app}.Execute();
-        result = static_cast<int>(rc);
         fflush(stdout);
         break;
     }
-    case Operation::GENERATE_PASSWORD: {
+    case Operation::GENERATE_TEST_DB:
+    {
+        assert(args.m_generateLanguage);
+        assert(args.m_generateGroupCount);
+        assert(args.m_generateItemCount);
+
+        fprintf(stdout, "Generating test database at %s\n", args.m_database->c_str());
+        [[maybe_unused]] int rc = GenerateTestDbCommand{app, args.m_force,
+            *args.m_generateLanguage, *args.m_generateGroupCount, *args.m_generateItemCount}.Execute();
+        fflush(stdout);
+        break;
+    }
+    case Operation::GENERATE_PASSWORD: 
+    {
         size_t count = *args.m_generatePasswordCount;
         size_t length = *args.m_passwordLength;
         int policyIndex = *args.m_passwordPolicy - 1;
@@ -528,13 +538,16 @@ int main(int argc, char *argv[])
         fflush(stdout);
         break;
     }
-    case Operation::EXPORT_DB: {
+    case Operation::EXPORT_DB: 
+    {
+        assert(args.m_outputFile);
+
         fprintf(stdout,
                 "Exporting account database at %s\n"
                 "Warning! The exported file will contain unencrypted passwords.\n"
                 "You should securely delete the file when it is no longer needed.\n",
                 args.m_outputFile->c_str());
-        ResultCode rc = ExportDbCommand{app}.Execute();
+        int rc = ExportDbCommand{app, *args.m_outputFile}.Execute();
         if (rc != RC_SUCCESS)
         {
             result = static_cast<int>(RC_FAILURE);
@@ -542,7 +555,7 @@ int main(int argc, char *argv[])
             {
                 fprintf(stderr, "Error %d creating export file: %s\n", errno, strerror(errno));
             }
-            else if (rc == RC_ERR_WRONG_PASSWORD)
+            else if (rc == RC_ERR_INCORRECT_PASSWORD)
             {
                 fprintf(stderr, "An error occurred reading database file %s\n", args.m_database->c_str());
             }

@@ -13,32 +13,31 @@ const char *PWSafeApp::APPNAME_VERSION = NCPWSAFE_APPNAME " " NCPWSAFE_VERSION;
 
 void PWSafeApp::Init(ProgArgs args)
 {
-    m_progArgs = args;
+    prog_args_ = args;
 
-    m_db.ReadOnly() = args.m_readOnly;
+    db_.ReadOnly() = args.m_readOnly;
 
     // Get progname
-    std::string progName = args.m_progName;
-    int pos = progName.rfind(L'/');
+    std::string prog_name = args.m_progName;
+    int pos = prog_name.rfind(L'/');
     if (pos > -1)
     {
-        progName = progName.substr(pos + 1);
+        prog_name = prog_name.substr(pos + 1);
     }
 
-    // OK to load prefs now
-    PWSprefs *prefs = PWSprefs::GetInstance();
-
-    std::string filename = args.m_database;
-    // if filename passed in command line, it takes precedence
+    std::string &pathname = args.m_database;
+    // if pathname passed in command line, it takes precedence
     // over that in preference:
-    if (filename.empty())
+    if (pathname.empty())
     {
-        filename = prefs->GetPref(PWSprefs::CurrentFile).c_str();
+        pathname = prefs_.Pref(Prefs::DB_PATHNAME);
     }
-    if (!filename.empty())
+    if (!pathname.empty())
     {
-        m_db.DbPathName() = filename;
+        db_.DbPathname() = pathname;
     }
+
+    db_.Password() = args.m_password;
 }
 
 /** Open and edit an account database */
@@ -55,46 +54,31 @@ DialogResult PWSafeApp::Show()
     // prompt for password, try to Load.
     SafeCombinationPromptDlg pwdprompt(*this);
 
-    DialogResult rc = DialogResult::CONTINUE;
-    while (rc != DialogResult::OK && rc != DialogResult::CANCEL)
+    DialogResult dr = DialogResult::CONTINUE;
+    while (dr != DialogResult::OK && dr != DialogResult::CANCEL)
     {
-        rc = pwdprompt.Show(m_win);
-        if (rc == DialogResult::OK)
+        dr = pwdprompt.Show(m_win);
+        if (dr == DialogResult::OK)
         {
             wrefresh(m_win);
 
-            std::string filename = pwdprompt.GetFilename();
+            std::string db_pathname = pwdprompt.GetFilename();
             std::string password = pwdprompt.GetPassword();
 
-            m_db.DbPathName() = filename;
+            db_.DbPathname() = db_pathname;
+            db_.Password() = password;
 
-            if (m_db.CheckPassword(filename, password))
+            if (db_.CheckPassword())
             {
-                const bool readOnly = m_db.ReadOnly();
-                std::string locker("");
-                const bool locked = m_db.LockFile(filename, locker);
-                if (!readOnly && !locked)
+                if (db_.ReadDb())
                 {
-                    std::string msg("Could not lock file, opening read-only\nLocked by ");
-                    msg.append(locker.c_str());
-                    MessageBox(*this).Show(m_win, msg.c_str());
-                    m_db.ReadOnly() = true;
-                }
-
-                if (m_db.ReadCurFile(password) == PWScore::SUCCESS)
-                {
-                    rc = m_accounts->Show();
+                    dr = m_accounts->Show();
                 }
                 else
                 {
                     std::string msg("An error occurred reading database file ");
-                    msg.append(filename.c_str());
+                    msg.append(db_pathname.c_str());
                     MessageBox(*this).Show(m_win, msg.c_str());
-                }
-
-                if (locked)
-                {
-                    m_db.UnlockFile(filename);
                 }
             }
         }
@@ -102,99 +86,36 @@ DialogResult PWSafeApp::Show()
 
     EndTUI();
 
-    return rc;
+    return dr;
 }
 
-/** 
- * Backup current account database 
- * Rewrite because exiting backup function doesn't
- * actually backup--it just renames current file
- * and hopes that an error does not occur on next save
- */
-ResultCode PWSafeApp::BackupCurFile()
-{
-    PWSprefs *prefs = PWSprefs::GetInstance();
-    if (prefs->GetPref(PWSprefs::BackupBeforeEverySave))
-    {
-        int maxNumIncBackups = prefs->GetPref(PWSprefs::BackupMaxIncremented);
-        int backupSuffix = prefs->GetPref(PWSprefs::BackupSuffix);
-        std::wstring userBackupPrefix = prefs->GetPref(PWSprefs::BackupPrefixValue).c_str();
-        std::wstring userBackupDir = prefs->GetPref(PWSprefs::BackupDir).c_str();
-        std::string bu_fname; // used to undo backup if save failed
-        if (m_db.PreBackupCurFile(maxNumIncBackups, backupSuffix, 
-            userBackupPrefix, userBackupDir, bu_fname))
-        {
-            const std::string &src = m_db.GetDbPathname();
-            if (CopyFile(src.c_str(), bu_fname))
-                return RC_SUCCESS;
-        }
-    }
-    return RC_FAILURE;
-}
+// int PWSafeApp::BackupDb()
+// {
+
+// }
 
 /**
  * Save the database.
  * Backup the database first if enabled in preferences
  */
-ResultCode PWSafeApp::Save()
+int PWSafeApp::Save()
 {
-    ResultCode rc = RC_SUCCESS;
-    const std::string sxCurrFile = m_db.GetDbPathname();
-    std::string bu_fname; // used to undo backup if save failed
-
-    const PWSfile::VERSION current_version = m_db.GetReadFileVersion();
-    switch (current_version)
+    int rc = RC_SUCCESS;
+    if (db_.IsDirty())
     {
-    case PWSfile::V30:
-    case PWSfile::V40: {
-        BackupCurFile();
-        break;
+        if (prefs_.PrefAsBool(Prefs::BACKUP_BEFORE_SAVE))
+        {
+            BackupDb();
+        }
+        db_.WriteDb(&rc);
     }
-
-    // Do NOT code the default case statement - each version value must be specified
-    // Prior versions are always Read-Only and so Save is not appropriate - although
-    // they can export to prior versions (no point if not changed) or SaveAs in the
-    // current version format
-    case PWSfile::V17:
-    case PWSfile::V20:
-    case PWSfile::NEWFILE:
-    case PWSfile::UNKNOWN_VERSION:
-        assert(false);
-        return RC_FAILURE;
-    }
-
-    // We are saving the current DB. Retain current version
-    rc = StatusToRC(m_db.WriteFile(sxCurrFile, current_version));
-    if (rc != RC_SUCCESS)
-    { // Save failed!
-        // Restore backup, if we have one
-        if (!bu_fname.empty() && !sxCurrFile.empty())
-            MoveFile(bu_fname.c_str(), sxCurrFile.c_str());
-        return rc;
-    }
-
     return rc;
 }
 
 /** Save state */
 void PWSafeApp::SavePrefs()
 {
-    PWSprefs *prefs = PWSprefs::GetInstance();
-    if (m_db.IsDbOpen())
-    {
-        prefs->SetPref(PWSprefs::CurrentFile, m_db.GetDbPathname());
-    }
-    prefs->SaveApplicationPreferences();
-    prefs->SaveShortcuts();
-}
-
-/** Release memory held by app, including core */
-void PWSafeApp::Destroy()
-{
-    PWSprefs::DeleteInstance();
-    // IMB 2022-12-13 If I remove the next line
-    //   I get an unresolved external on link, no idea why
-    PWSLog::DeleteLog();
+    prefs_.WritePrefs();
 }
 
 void PWSafeApp::InitTUI()

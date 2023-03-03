@@ -2,16 +2,21 @@
 #pragma once
 
 #include "PWSafeApp.h"
-#include "Utils.h"
+#include "Dialog.h"
 
 typedef bool (*KeyHandler)(int ch, DialogResult &result);
 
+/** 
+ * Key handler for `MessageBox`. 
+ * \param[out] result DialogResult::OK
+ * \return `true` if `ch` is newline. 
+ */
 extern bool DefaultMessageBoxKeyHandler(int ch, DialogResult &result);
 
 class MessageBox
 {
 public:
-    MessageBox(PWSafeApp &app): m_app(app)
+    MessageBox(PWSafeApp &app): app_(app)
     {
     }
 
@@ -28,9 +33,32 @@ private:
     /** Input driver */
     DialogResult ProcessInput(KeyHandler handler);
 
-    PWSafeApp &m_app;
+    PWSafeApp &app_;
     
     WINDOW *m_win = nullptr;
     PANEL *m_panel = nullptr;
     int m_saveCursor = 0;
 };
+
+
+/** 
+ * Key handler for `MessageBox`. 
+ * \param[out] result DialogResult::YES if ch == 'y', DialogResult::NO if ch == 'n', 
+ *                    otherwise unchanged
+ * \return `true` if `ch` is 'y' or 'n', otherwise `false`. 
+ */
+inline bool YesNoKeyHandler(int ch, DialogResult &result)
+{
+    ch = tolower(ch);
+    if (ch == 'y')
+    {
+        result = DialogResult::YES;
+        return true;
+    }
+    else if (ch == 'n')
+    {
+        result = DialogResult::NO;
+        return true;
+    }
+    return false;
+}

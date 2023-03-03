@@ -19,19 +19,19 @@ static const size_t NWORDS_EN_CA = sizeof(WORDS_EN_CA) / sizeof(*WORDS_EN_CA);
 };
 static const size_t NWORDS_RU = sizeof(WORDS_RU) / sizeof(*WORDS_RU);
 
-static void GetWordList(const std::string &lang, const char ***wordList, size_t &wordCount)
+static void GetWordList(const std::string &lang, const char ***wordList, size_t &word_count)
 {
     *wordList = nullptr;
-    wordCount = 0;
+    word_count = 0;
     if (lang.compare("en-CA") == 0)
     {
         *wordList = WORDS_EN_CA;
-        wordCount = NWORDS_EN_CA;
+        word_count = NWORDS_EN_CA;
     }
     else if (lang.compare("ru") == 0)
     {
         *wordList = WORDS_RU;
-        wordCount = NWORDS_RU;
+        word_count = NWORDS_RU;
     }
 }
 
@@ -50,13 +50,15 @@ static std::string GeneratePhrase(const char *words[], unsigned wordsCount, unsi
     return result;
 }
 
-ResultCode GenerateTestDbCommand::Generate(const std::string &db_pathname, const std::string &password, bool force,
-                                           const std::string &language, size_t groupCount, size_t itemCount) const
+int GenerateTestDbCommand::Execute()
 {
-    assert(!db_pathname.empty());
-    assert(!language.empty());
+    if (generate_lang_.empty() || group_count_ < 1 || item_count_ < 1)
+    {
+        return RC_ERR_INVALID_ARG;
+    }
 
-    if (FileExists(db_pathname) && !force)
+    AccountDb &db = app_.GetDb();
+    if (db.Exists() && !force_)
     {
         fprintf(stderr, "Error %d creating account database file: %s\n", errno, strerror(errno));
         return RC_FAILURE;
@@ -65,53 +67,37 @@ ResultCode GenerateTestDbCommand::Generate(const std::string &db_pathname, const
     RandomState rand;
 
     const char **words;
-    size_t wordCount;
-    GetWordList(language, &words, wordCount);
+    size_t word_count;
+    GetWordList(generate_lang_, &words, word_count);
 
-    std::vector<std::string> groups(groupCount);
-    for (unsigned long i = 1; i < groupCount; ++i)
+    std::vector<std::string> groups(group_count_);
+    for (unsigned long i = 1; i < group_count_; ++i)
     {
         int size = rand() % 3 + 1;
-        groups[i] = GeneratePhrase(words, wordCount, size);
+        groups[i] = GeneratePhrase(words, word_count, size);
     }
 
-    std::vector<std::unique_ptr<PwsDbRecord>> records;
-    for (unsigned long i = 0; i < itemCount; ++i)
+    for (unsigned long i = 0; i < item_count_; ++i)
     {
         AccountRecord rec;
 
         int size = rand() % 3 + 1;
-        rec.SetTitle(GeneratePhrase(words, wordCount, size).c_str());
-        int idx = rand() % groupCount;
-        rec.SetGroup(groups[idx].c_str());
-        rec.SetUser(words[rand() % wordCount]);
-        rec.SetPassword(words[rand() % wordCount]);
+        rec.SetField(FT_TITLE, GeneratePhrase(words, word_count, size).c_str());
+        int idx = rand() % group_count_;
+        rec.SetField(FT_GROUP, groups[idx].c_str());
+        rec.SetField(FT_USER, words[rand() % word_count]);
+        rec.SetField(FT_PASSWORD, words[rand() % word_count]);
         if (rand() % 2)
         {
             size = rand() % 50 + 1;
-            rec.SetNotes(GeneratePhrase(words, wordCount, size).c_str());
+            rec.SetField(FT_NOTES, GeneratePhrase(words, word_count, size).c_str());
         }
 
-        auto dbRecord = std::unique_ptr<PwsDbRecord>{rec.ToPwsDbRecord()};
-        if (i > 0)
-        {
-            records[i-1]->next = dbRecord.get();
-        }
-
-        records.push_back(std::move(dbRecord));
+        db.Records().Add(std::move(rec));
     }
 
-    PwsResultCode rc;
-    AccountDb::WriteDb(db_pathname, password, records.front().get(), &rc);
-    ResultCode result = StatusToRC(rc);
+    int rc;
+    db.WriteDb(&rc);
 
-    return result;
-}
-
-ResultCode GenerateTestDbCommand::Execute()
-{
-    const ProgArgs &args = m_app.GetArgs();
-
-    return Generate(args.m_database, args.m_password, args.m_force,
-                    args.m_generateLanguage, args.m_generateGroupCount, args.m_generateItemCount);
+    return rc;
 }

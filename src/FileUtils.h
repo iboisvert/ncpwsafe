@@ -3,7 +3,7 @@
 #define HAVE_FILEUTILS_H
 
 extern bool FileExists(const char *pathname);
-bool FileExists(const std::string &pathname)
+inline bool FileExists(const std::string &pathname)
 {
     return FileExists(pathname.c_str());
 }

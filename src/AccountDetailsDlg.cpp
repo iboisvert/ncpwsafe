@@ -2,18 +2,17 @@
 
 #include <functional>
 #include "libpwsafe.h"
-
-#include "AccountDetailsDlg.h"
 #include "Utils.h"
+#include "AccountDetailsDlg.h"
 #include "ChangePasswordDlg.h"
 #include "MessageBox.h"
 #include "Dialog.h"
 #include "AccountsWin.h"
 
 AccountDetailsDlg::AccountDetailsDlg(PWSafeApp &app, const AccountRecord &item)
-    : m_app(app), m_item(item), m_itemOrig(item)
+    : app_(app), account_rec_(item), m_itemOrig(item)
 {
-    m_app.GetCommandBar().Register(this, {
+    app_.GetCommandBar().Register(this, {
         {~CBOPTS_READONLY, "^S", "Save and close"},
         {CBOPTS_READONLY, "^X", "Exit"},
         {~CBOPTS_READONLY, "^X", "Cancel"},
@@ -32,15 +31,15 @@ bool AccountDetailsDlg::DiscardChanges(const Dialog &dialog)
     bool readOnly = dialog.IsReadOnly();
     if (!readOnly)
     {
-        m_app.GetCommandBar().Show(CommandBarWin::YES_NO);
+        app_.GetCommandBar().Show(CommandBarWin::YES_NO);
 
         SaveData(dialog);
-        if (!(m_item == m_itemOrig))
+        if (!(account_rec_ == m_itemOrig))
         {
             // Ask for confirmation
             const char *msg = "The account entry has changed. Discard changes?";
             WINDOW *win = dialog.GetParentWindow();
-            DialogResult result = MessageBox(m_app).Show(win, msg, &YesNoKeyHandler);
+            DialogResult result = MessageBox(app_).Show(win, msg, &YesNoKeyHandler);
             retval = result == DialogResult::YES;
 
             SetCommandBarWin(readOnly);
@@ -56,7 +55,7 @@ bool AccountDetailsDlg::ValidateForm(const Dialog &dialog)
     if (title.empty())
     {
         WINDOW *win = dialog.GetParentWindow();
-        MessageBox(m_app).Show(win, "Account title is required");
+        MessageBox(app_).Show(win, "Account title is required");
 
         SetCommandBarWin(dialog.IsReadOnly());
     }
@@ -70,7 +69,7 @@ bool AccountDetailsDlg::InputHandler(Dialog &dialog, int ch, DialogResult &/*res
 
     if (!readOnly && ch == KEY_CTRL('C'))
     {
-        ChangePasswordDlg pwprompt(m_app);
+        ChangePasswordDlg pwprompt(app_);
         if (pwprompt.Show(win) == DialogResult::OK)
         {
             const std::string &newPassword = pwprompt.GetPassword();
@@ -87,13 +86,19 @@ bool AccountDetailsDlg::InputHandler(Dialog &dialog, int ch, DialogResult &/*res
     }
     else if (ch == KEY_CTRL('U'))
     {
-        const std::string &str = m_item.GetUser();
-        CopyTextToClipboard(m_app, dialog.GetParentWindow(), str);
+        const char *user = account_rec_.GetField(FT_USER);
+        if (user)
+        {
+            CopyTextToClipboard(app_, dialog.GetParentWindow(), user);
+        }
     }
     else if (ch == KEY_CTRL('P'))
     {
-        const std::string &str = m_item.GetPassword();
-        CopyTextToClipboard(m_app, dialog.GetParentWindow(), str);
+        const char *password = account_rec_.GetField(FT_PASSWORD);
+        if (password)
+        {
+            CopyTextToClipboard(app_, dialog.GetParentWindow(), password);
+        }
     }
     return false;
 }
@@ -101,7 +106,7 @@ bool AccountDetailsDlg::InputHandler(Dialog &dialog, int ch, DialogResult &/*res
 void AccountDetailsDlg::SetCommandBarWin(bool readOnly)
 {
     const unsigned char opts = readOnly ? CBOPTS_READONLY : ~CBOPTS_READONLY;
-    m_app.GetCommandBar().Show(this, opts);
+    app_.GetCommandBar().Show(this, opts);
 }
 
 static void SetRecordValue(AccountRecord &rec, uint8_t field_type, const std::string &value)
@@ -116,13 +121,13 @@ static void SetRecordValue(AccountRecord &rec, uint8_t field_type, const std::st
  */
 void AccountDetailsDlg::SaveData(const Dialog &dialog)
 {
-    SetRecordValue(m_item, FT_GROUP, dialog.GetValue(FT_GROUP));
-    SetRecordValue(m_item, FT_TITLE, dialog.GetValue(FT_TITLE));
-    SetRecordValue(m_item, FT_USER, dialog.GetValue(FT_USER));
-    SetRecordValue(m_item, FT_PASSWORD, dialog.GetValue(FT_PASSWORD));
-    SetRecordValue(m_item, FT_URL, dialog.GetValue(FT_URL));
-    SetRecordValue(m_item, FT_EMAIL, dialog.GetValue(FT_EMAIL));
-    SetRecordValue(m_item, FT_NOTES, dialog.GetValue(FT_NOTES));
+    SetRecordValue(account_rec_, FT_GROUP, dialog.GetValue(FT_GROUP));
+    SetRecordValue(account_rec_, FT_TITLE, dialog.GetValue(FT_TITLE));
+    SetRecordValue(account_rec_, FT_USER, dialog.GetValue(FT_USER));
+    SetRecordValue(account_rec_, FT_PASSWORD, dialog.GetValue(FT_PASSWORD));
+    SetRecordValue(account_rec_, FT_URL, dialog.GetValue(FT_URL));
+    SetRecordValue(account_rec_, FT_EMAIL, dialog.GetValue(FT_EMAIL));
+    SetRecordValue(account_rec_, FT_NOTES, dialog.GetValue(FT_NOTES));
 }
 
 /** Show the account details */
@@ -133,19 +138,19 @@ DialogResult AccountDetailsDlg::Show(WINDOW *parent, bool readOnly)
     SetCommandBarWin(readOnly);
 
     std::vector<DialogField> fields{
-        {FT_GROUP, "Group:", m_item.GetGroup(), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
-        {FT_TITLE, "Title:", m_item.GetTitle(), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
-        {FT_USER, "User:", m_item.GetUser(), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
-        {FT_PASSWORD, "Password:", m_item.GetPassword(), /*m_width*/56, /*m_fieldOptsOn*/0, O_STATIC | O_PUBLIC | O_EDIT | O_ACTIVE},
-        {FT_URL, "URL:", m_item.GetURL(), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
-        {FT_EMAIL, "Email:", m_item.GetEmail(), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
-        {FT_NOTES, "Notes:", m_item.GetNotes(), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC}
+        {FT_GROUP, "Group:", account_rec_.GetField(FT_GROUP), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
+        {FT_TITLE, "Title:", account_rec_.GetField(FT_TITLE), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
+        {FT_USER, "User:", account_rec_.GetField(FT_USER), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
+        {FT_PASSWORD, "Password:", account_rec_.GetField(FT_PASSWORD), /*m_width*/56, /*m_fieldOptsOn*/0, O_STATIC | O_PUBLIC | O_EDIT | O_ACTIVE},
+        {FT_URL, "URL:", account_rec_.GetField(FT_URL), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
+        {FT_EMAIL, "Email:", account_rec_.GetField(FT_EMAIL), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
+        {FT_NOTES, "Notes:", account_rec_.GetField(FT_NOTES), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC}
     };
 
     auto f_validate = std::bind(&AccountDetailsDlg::ValidateForm, this, _1);
     auto f_discardChanges = std::bind(&AccountDetailsDlg::DiscardChanges, this, _1);
     auto f_inputHandler = std::bind(&AccountDetailsDlg::InputHandler, this, _1, _2, _3);
-    Dialog dialog(m_app, fields, readOnly, f_validate, f_discardChanges, f_inputHandler);
+    Dialog dialog(app_, fields, readOnly, f_validate, f_discardChanges, f_inputHandler);
     DialogResult result = dialog.Show(parent, "View Account");
     if (result == DialogResult::OK)
     {
