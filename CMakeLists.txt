@@ -30,11 +30,12 @@ CHECK_INCLUDE_FILE("sys/random.h" HAVE_SYS_RANDOM_H)
 
 set(PWSAFE_BUILD_DOCS OFF CACHE INTERNAL "Disable libpwsafe docs")
 set(PWSAFE_BUILD_TESTS OFF CACHE INTERNAL "Disable libpwsafe tests")
+set(PWSAFE_BUILD_SHARED OFF CACHE INTERNAL "Disable libpwsafe share lib")
 FetchContent_Declare(
     libpwsafe
     # GIT_REPOSITORY https://github.com/iboisvert/libpwsafe.git
     # GIT_TAG HEAD
-    URL /workspaces/ncpwsafe/libpwsafe-0.1.0-Source.tar.gz
+    URL https://github.com/iboisvert/libpwsafe/archive/refs/heads/main.zip
 )
 FetchContent_MakeAvailable(libpwsafe)
 
