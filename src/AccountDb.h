@@ -42,7 +42,10 @@ struct AccountDb
     }
 
     /** Check if file at DbPathname() exists. */
-    bool Exists() const;
+    bool Exists() const
+    {
+        throw std::exception();
+    }
 
     // IMB 2023-02-02 Want to be able to track if database records have changed
     bool IsDirty() const

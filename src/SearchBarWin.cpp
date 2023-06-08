@@ -32,7 +32,7 @@ void SearchBarWin::InitTUI()
     // Enable keypad so curses interprets function keys
     keypad(m_win, TRUE);
 
-    m_saveCursor = curs_set(1);
+    save_cursor_ = curs_set(1);
 }
 
 void SearchBarWin::EndTUI()
@@ -52,7 +52,7 @@ void SearchBarWin::EndTUI()
     delwin(m_formWin);
     m_formWin = nullptr;
 
-    curs_set(m_saveCursor);
+    curs_set(save_cursor_);
 }
 
 void SearchBarWin::Show()

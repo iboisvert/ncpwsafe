@@ -37,7 +37,7 @@ private:
     
     WINDOW *m_win = nullptr;
     PANEL *m_panel = nullptr;
-    int m_saveCursor = 0;
+    int save_cursor_ = 0;
 };
 
 

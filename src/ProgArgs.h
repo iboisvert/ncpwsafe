@@ -33,6 +33,7 @@ struct InputProgArgs
     std::optional<size_t> m_passwordPolicy;            // Policy used when generating passwords
     std::optional<size_t> m_passwordLength;            // Length of generated passwords
     std::optional<std::string> m_outputFile;                     // Target file, used for export database
+    std::optional<std::string> config_file_;                     // Configuration file pathname
 
     Operation GetCommand() const
     {
@@ -80,6 +81,7 @@ struct ProgArgs
     size_t m_passwordPolicy;            // Policy used when generating passwords
     size_t m_passwordLength;            // Length of generated passwords
     std::string m_file;                     // Target file, used for export database
+    std::string config_file_;  // Configuration file pathname
 
     ProgArgs() = default;
 
@@ -100,6 +102,7 @@ struct ProgArgs
         if (src.m_passwordPolicy) m_passwordPolicy = *src.m_passwordPolicy;
         if (src.m_passwordLength) m_passwordLength = *src.m_passwordLength;
         if (src.m_outputFile) m_file = *src.m_outputFile;
+        if (src.config_file_) config_file_ = *src.config_file_;
         // clang-format on
     }
 };

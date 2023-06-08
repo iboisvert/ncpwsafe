@@ -46,5 +46,5 @@ private:
     PANEL *m_panel = nullptr;
     FORM *form_ = nullptr;
     WINDOW *m_formWin = nullptr;
-    int m_saveCursor;
+    int save_cursor_;
 };

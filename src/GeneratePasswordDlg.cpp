@@ -106,7 +106,7 @@ void GeneratePasswordDlg::InitTUI(const std::string &title)
     m_passwordField = Label(m_win, /*y*/ 4, /*x*/ 2, /*width*/ ncols, A_BOLD, JUSTIFY_CENTER);
 
     // Reset cursor for input fields
-    m_saveCursor = curs_set(0);
+    save_cursor_ = curs_set(0);
 }
 
 void GeneratePasswordDlg::EndTUI()
@@ -115,7 +115,7 @@ void GeneratePasswordDlg::EndTUI()
     m_panel = nullptr;
     delwin(m_win);
     m_win = nullptr;
-    curs_set(m_saveCursor);
+    curs_set(save_cursor_);
 }
 
 /** Input driver */

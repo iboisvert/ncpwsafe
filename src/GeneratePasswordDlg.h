@@ -34,7 +34,7 @@ private:
     PWSafeApp &m_app;
     PasswordPolicy m_pwPolicy;
     std::string m_password;
-    int m_saveCursor;
+    int save_cursor_;
     size_t m_pwPolicyFlagsIndex;
     size_t m_pwPolicyLength;
 

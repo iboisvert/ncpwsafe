@@ -138,7 +138,7 @@ private:
     FORM *form_ = nullptr;
     std::vector<FIELD *> m_fields;
     FIELD *m_activeField = nullptr;
-    int m_saveCursor = 0;
+    int save_cursor_ = 0;
 };
 
 #endif  //#ifndef HAVE_DIALOG_H

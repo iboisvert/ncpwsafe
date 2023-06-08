@@ -5,6 +5,9 @@ project(ncpwsafe
     HOMEPAGE_URL "https://github.com/iboisvert/ncpwsafe"
     LANGUAGES C CXX
 )
+option(BUILD_TESTING "Enable unit tests" ON)
+option(NCPWSAFE_STATIC "Link to static dependencies" OFF)
+set(NCPWSAFE_CONFIG_FILE "$HOME/.config/ncpwsafe/ncpwsafe.ini" CACHE FILEPATH "Config file default pathname")
 
 set(NCPWSAFE_APPNAME "${CMAKE_PROJECT_NAME}")
 set(NCPWSAFE_VERSION "${CMAKE_PROJECT_VERSION}")
@@ -12,37 +15,20 @@ set(NCPWSAFE_VERSION "${CMAKE_PROJECT_VERSION}")
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_CXX_STANDARD 17)
 
-include(FetchContent)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 include(CheckLibraryExists)
 include(CheckIncludeFile)
 include(CheckIncludeFileCXX)
+include(ResolveDependencies)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules")
-
-find_package(Ncurses REQUIRED COMPONENTS form menu panel)
-find_package(ICU REQUIRED COMPONENTS uc)
-CHECK_INCLUDE_FILE_CXX("cpptoml.h" HAVE_CPPTOML_H)
-if(NOT HAVE_CPPTOML_H)
-    message(SEND_ERROR "Could not find cpptoml.h")
-endif()
 CHECK_INCLUDE_FILE("sys/prctl.h" HAVE_SYS_PRCTL_H)
 CHECK_INCLUDE_FILE("sys/random.h" HAVE_SYS_RANDOM_H)
 
-set(PWSAFE_BUILD_DOCS OFF CACHE INTERNAL "Disable libpwsafe docs")
-set(PWSAFE_BUILD_TESTS OFF CACHE INTERNAL "Disable libpwsafe tests")
-set(PWSAFE_BUILD_SHARED OFF CACHE INTERNAL "Disable libpwsafe share lib")
-FetchContent_Declare(
-    libpwsafe
-    # GIT_REPOSITORY https://github.com/iboisvert/libpwsafe.git
-    # GIT_TAG HEAD
-    URL https://github.com/iboisvert/libpwsafe/archive/refs/heads/main.zip
-)
-FetchContent_MakeAvailable(libpwsafe)
+resolve_dependencies()
 
 CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/config.h.in" "${CMAKE_CURRENT_BINARY_DIR}/config.h")
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
-
-enable_testing()
 
 # TODO IMB 2023-01-22 Move to preset
 add_compile_definitions(
@@ -50,11 +36,18 @@ add_compile_definitions(
 )
 add_compile_options(
     -fPIC -Wall -Wextra
-    "$<$<CONFIG:DEBUG>:-ggdb;-O0;-fsanitize=address,undefined>"
+    -Wall -Wextra
+    "$<$<CONFIG:DEBUG>:-g;-O0;-fsanitize=address,undefined>"
 )
 add_link_options(
     -fPIC -Wall -Wextra
-    "$<$<CONFIG:DEBUG>:-ggdb;-O0;-fsanitize=address,undefined>"
+    -Wall -Wextra
+    "$<$<CONFIG:DEBUG>:-g;-O0;-fsanitize=address,undefined>"
+    "$<$<BOOL:NCPWSAFE_STATIC>:-static"
 )
 
 add_subdirectory(src)
+if(BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(test)
+endif()

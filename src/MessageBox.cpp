@@ -103,7 +103,7 @@ void MessageBox::InitTUI(WINDOW *parent, const std::string &msg)
     box(m_win, 0, 0);
 
     // Reset cursor for input fields
-    m_saveCursor = curs_set(0);
+    save_cursor_ = curs_set(0);
 }
 
 void MessageBox::EndTUI()
@@ -113,7 +113,7 @@ void MessageBox::EndTUI()
     delwin(m_win);
     m_win = nullptr;
 
-    curs_set(m_saveCursor);
+    curs_set(save_cursor_);
 }
 
 /** Input driver */

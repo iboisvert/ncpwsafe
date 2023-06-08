@@ -31,3 +31,44 @@ void ZeroFieldsBuffer(FIELD **fields)
         ZeroMemory(cbuf, rows * cols);
     }
 }
+
+/** Expand environment variables in the string */
+std::string ExpandEnvVars(const std::string &str)
+{
+    static const size_t npos = std::string::npos;
+
+    std::string expanded;
+    bool found_var = false;
+
+    size_t last_end_pos = 0, start_pos = str.find("${");
+    while (start_pos != npos)
+    {
+        found_var = true;
+
+        size_t end_pos = str.find('}', start_pos+2);
+        if (end_pos != npos)
+        {
+            expanded.append(str, last_end_pos, start_pos-last_end_pos);
+
+            std::string env_var{str, start_pos+2, end_pos-(start_pos+2)};
+            const char *value = getenv(env_var.c_str());
+            if (value)
+            {
+                expanded.append(value);
+            }
+
+            last_end_pos = end_pos+1;
+        }
+        start_pos = str.find("${", end_pos);
+    }
+
+    if (found_var)
+    {
+        expanded.append(str, last_end_pos);
+        return expanded;
+    }
+    else
+    {
+        return str;
+    }
+}

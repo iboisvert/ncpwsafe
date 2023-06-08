@@ -13,7 +13,9 @@ const char *PWSafeApp::APPNAME_VERSION = NCPWSAFE_APPNAME " " NCPWSAFE_VERSION;
 
 void PWSafeApp::Init(ProgArgs args)
 {
-    prog_args_ = args;
+    args_ = args;
+
+    prefs_.ReadPrefs(args_.config_file_);
 
     db_.ReadOnly() = args.m_readOnly;
 
@@ -30,7 +32,7 @@ void PWSafeApp::Init(ProgArgs args)
     // over that in preference:
     if (pathname.empty())
     {
-        pathname = prefs_.Pref(Prefs::DB_PATHNAME);
+        pathname = prefs_.PrefAsString(Prefs::DB_PATHNAME);
     }
     if (!pathname.empty())
     {
@@ -46,10 +48,10 @@ DialogResult PWSafeApp::Show()
     InitTUI();
 
     // Command bar must be constructed first
-    m_commandBar = std::make_unique<CommandBarWin>(*this, m_commandBarWin);
-    m_accounts = std::make_unique<AccountsWin>(*this, m_win);
+    commandbarwin_ = std::make_unique<CommandBarWin>(*this, commandbar_win_);
+    accountswin_ = std::make_unique<AccountsWin>(*this, win_);
 
-    wrefresh(m_rootWin);
+    wrefresh(root_win_);
 
     // prompt for password, try to Load.
     SafeCombinationPromptDlg pwdprompt(*this);
@@ -57,10 +59,10 @@ DialogResult PWSafeApp::Show()
     DialogResult dr = DialogResult::CONTINUE;
     while (dr != DialogResult::OK && dr != DialogResult::CANCEL)
     {
-        dr = pwdprompt.Show(m_win);
+        dr = pwdprompt.Show(win_);
         if (dr == DialogResult::OK)
         {
-            wrefresh(m_win);
+            wrefresh(win_);
 
             std::string db_pathname = pwdprompt.GetFilename();
             std::string password = pwdprompt.GetPassword();
@@ -72,13 +74,13 @@ DialogResult PWSafeApp::Show()
             {
                 if (db_.ReadDb())
                 {
-                    dr = m_accounts->Show();
+                    dr = accountswin_->Show();
                 }
                 else
                 {
                     std::string msg("An error occurred reading database file ");
                     msg.append(db_pathname.c_str());
-                    MessageBox(*this).Show(m_win, msg.c_str());
+                    MessageBox(*this).Show(win_, msg.c_str());
                 }
             }
         }
@@ -115,13 +117,13 @@ int PWSafeApp::Save()
 /** Save state */
 void PWSafeApp::SavePrefs()
 {
-    prefs_.WritePrefs();
+    prefs_.WritePrefs(args_.config_file_);
 }
 
 void PWSafeApp::InitTUI()
 {
     /* Initialize curses */
-    m_rootWin = initscr();
+    root_win_ = initscr();
     // start_color();
     raw();
     noecho();
@@ -134,58 +136,58 @@ void PWSafeApp::InitTUI()
     //   different keys--IDEA uses ^L for example.
     // define_key("\033[14;2~", KEY_F(15));  // Shift-F3
 
-    m_saveCursor = curs_set(/*visibility*/ 1);
+    save_cursor_ = curs_set(/*visibility*/ 1);
 
     // IMB 2022-12-24 ncurses behaves strangely--
     // max_y in this case is the line below the bottom line on the screen
     // This behaviour is probably documented somewhere..
     int max_y, max_x, beg_y, beg_x;
-    getmaxyx(m_rootWin, max_y, max_x);
-    getbegyx(m_rootWin, beg_y, beg_x);
+    getmaxyx(root_win_, max_y, max_x);
+    getbegyx(root_win_, beg_y, beg_x);
     int nlines = max_y - beg_y, ncols = max_x - beg_x;
 
-    m_accountsWin = derwin(m_rootWin, nlines - 1, ncols, /*begin_y*/ 0, /*begin_x*/ 0);
-    box(m_accountsWin, /*verch*/ 0, /*horch*/ 0);
-    Label::WriteJustified(m_accountsWin, beg_y, beg_x, max_x, APPNAME_VERSION, JUSTIFY_CENTER);
+    accounts_win_ = derwin(root_win_, nlines - 1, ncols, /*begin_y*/ 0, /*begin_x*/ 0);
+    box(accounts_win_, /*verch*/ 0, /*horch*/ 0);
+    Label::WriteJustified(accounts_win_, beg_y, beg_x, max_x, APPNAME_VERSION, JUSTIFY_CENTER);
 
-    m_win = newwin(nlines - 3, ncols - 2, /*begin_y*/ beg_y + 1, /*begin_x*/ beg_x + 1);
+    win_ = newwin(nlines - 3, ncols - 2, /*begin_y*/ beg_y + 1, /*begin_x*/ beg_x + 1);
 
-    m_commandBarWin = newwin(/*nlines*/ 1, ncols, /*begin_y*/ nlines - 1, /*begin_x*/ beg_x);
-    m_commandBarPanel = new_panel(m_commandBarWin);
+    commandbar_win_ = newwin(/*nlines*/ 1, ncols, /*begin_y*/ nlines - 1, /*begin_x*/ beg_x);
+    commandbar_panel_ = new_panel(commandbar_win_);
     // Draw command bar
-    wattron(m_commandBarWin, A_REVERSE | A_DIM);
-    mvwhline(m_commandBarWin, /*y*/ 0, beg_x, /*ch*/ ' ', ncols);
-    wattroff(m_commandBarWin, A_REVERSE | A_DIM);
+    wattron(commandbar_win_, A_REVERSE | A_DIM);
+    mvwhline(commandbar_win_, /*y*/ 0, beg_x, /*ch*/ ' ', ncols);
+    wattroff(commandbar_win_, A_REVERSE | A_DIM);
 }
 
 void PWSafeApp::EndTUI()
 {
-    delwin(m_win);
-    m_win = nullptr;
-    del_panel(m_commandBarPanel);
-    m_commandBarPanel = nullptr;
-    delwin(m_commandBarWin);
-    m_commandBar = nullptr;
-    delwin(m_accountsWin);
-    m_accountsWin = nullptr;
+    delwin(win_);
+    win_ = nullptr;
+    del_panel(commandbar_panel_);
+    commandbar_panel_ = nullptr;
+    delwin(commandbar_win_);
+    commandbarwin_ = nullptr;
+    delwin(accounts_win_);
+    accounts_win_ = nullptr;
     endwin();
 
-    curs_set(m_saveCursor);
+    curs_set(save_cursor_);
     echo();
 }
 
 void PWSafeApp::DoSearch()
 {
     update_panels();
-    hide_panel(m_commandBarPanel);
+    hide_panel(commandbar_panel_);
 
-    WINDOW *win = dupwin(m_commandBarWin);
+    WINDOW *win = dupwin(commandbar_win_);
 
-    SearchBarWin{*this, win, *m_accounts}.Show();
+    SearchBarWin{*this, win, *accountswin_}.Show();
 
     delwin(win);
 
-    show_panel(m_commandBarPanel);
+    show_panel(commandbar_panel_);
     update_panels();
     doupdate();
 }

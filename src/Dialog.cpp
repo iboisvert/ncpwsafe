@@ -125,7 +125,7 @@ void Dialog::InitTUI(const std::string &title)
     form_driver(form_, REQ_END_LINE);
 
     // Reset cursor for input fields
-    m_saveCursor = curs_set(1);
+    save_cursor_ = curs_set(1);
 }
 
 void Dialog::EndTUI()
@@ -146,7 +146,7 @@ void Dialog::EndTUI()
     delwin(m_win);
     m_win = nullptr;
 
-    curs_set(m_saveCursor);
+    curs_set(save_cursor_);
 }
 
 static std::string GetFieldValue(const FIELD *field)
@@ -158,7 +158,8 @@ static std::string GetFieldValue(const FIELD *field)
 #pragma GCC diagnostic pop
     int rows, cols, max;
     dynamic_field_info(field, &rows, &cols, &max);
-    std::string buf = rtrim(cbuf, cbuf + (rows*cols));
+    std::string buf{cbuf, static_cast<size_t>(rows*cols)};
+    rtrim(buf.begin(), buf.end());
     return buf;
 }
 

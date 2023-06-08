@@ -1,16 +1,19 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
 {
-	"name": "Ubuntu",
+	"name": "Fedora",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	//"image": "mcr.microsoft.com/devcontainers/base:jammy"
     "build": {
         // Path is relataive to the devcontainer.json file.
         "dockerfile": "Dockerfile"
-    }
+    },
+	"mounts": [
+		"type=bind,src=/home/iboisvert/Projects/github/libpwsafe,dst=/workspaces/libpwsafe"
+	],
 	
 	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
+    // "features": {},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
@@ -22,5 +25,5 @@
 	// "customizations": {},
 
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+	"remoteUser": "vscode"
 }

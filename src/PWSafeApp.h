@@ -37,14 +37,17 @@ public:
     void SavePrefs();
 
     /** Backup the current account database */
-    int BackupDb();
+    int BackupDb()
+    {
+        throw std::exception();
+    }
 
     /** Search function */
     void DoSearch();
 
     const ProgArgs &GetArgs() const
     {
-        return prog_args_;
+        return args_;
     }
 
     AccountDb &GetDb()
@@ -54,12 +57,12 @@ public:
 
     WINDOW *GetWindow()
     {
-        return m_win;
+        return win_;
     }
 
     CommandBarWin &GetCommandBar()
     {
-        return *m_commandBar;
+        return *commandbarwin_;
     }
 
 private:
@@ -68,15 +71,15 @@ private:
     void ProcessInput();
 
     Prefs &prefs_;
-    ProgArgs prog_args_;
+    ProgArgs args_;
     AccountDb db_;
-    std::unique_ptr<AccountsWin> m_accounts;
-    std::unique_ptr<CommandBarWin> m_commandBar;
+    std::unique_ptr<AccountsWin> accountswin_;
+    std::unique_ptr<CommandBarWin> commandbarwin_;
 
-    WINDOW *m_rootWin = nullptr;        // stdscr
-    WINDOW *m_accountsWin = nullptr;    // Accounts list
-    WINDOW *m_commandBarWin = nullptr;  // Command bar
-    PANEL *m_commandBarPanel = nullptr; // Command bar panel
-    WINDOW *m_win = nullptr;            // Content of accounts list window
-    int m_saveCursor = 0;
+    WINDOW *root_win_ = nullptr;        // stdscr
+    WINDOW *accounts_win_ = nullptr;    // Accounts list
+    WINDOW *commandbar_win_ = nullptr;  // Command bar
+    PANEL *commandbar_panel_ = nullptr; // Command bar panel
+    WINDOW *win_ = nullptr;            // Content of accounts list window
+    int save_cursor_ = 0;
 };

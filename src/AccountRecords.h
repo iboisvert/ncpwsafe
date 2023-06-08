@@ -56,7 +56,10 @@ struct AccountRecords
     }
 
     /** Returns `true` if the collection or elements of the collection have been modified */
-    bool IsDirty() const;
+    bool IsDirty() const
+    {
+        throw std::exception();
+    }
 
 private:
     std::vector<AccountRecord> records_;

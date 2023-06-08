@@ -7,8 +7,10 @@
 #include "GenerateTestDbCommand.h"
 #include "ProgArgs.h"
 #include "Utils.h"
-#include "libpwsafe.h"
 #include "FileUtils.h"
+
+#include "libpwsafe.h"
+#include "libglog.h"
 
 #include <climits>
 #include <cstdarg>
@@ -18,6 +20,7 @@
 #include <cwctype>
 #include <getopt.h>
 #include <wchar.h>
+#include <libgen.h>
 #ifdef HAVE_SYS_PRCTL_H
 #include <sys/prctl.h>
 #endif
@@ -31,6 +34,8 @@ static constexpr size_t DEFAULT_NITEM = 50;
 static constexpr size_t DEFAULT_NPASS = 1;
 static constexpr size_t DEFAULT_PASS_LEN = 20;
 static constexpr unsigned char DEFAULT_PASS_POLICY = 2;
+static constexpr const char *DEFAULT_CONFIG_FILE = "${HOME}/.ncpwsafe.conf";
+
 
 static bool DisableCoreDump()
 {
@@ -49,6 +54,9 @@ static bool DisableCoreDump()
 static void Usage(const char *progName)
 {
     using namespace std;
+
+    std::string cfgfile = ExpandEnvVars(DEFAULT_CONFIG_FILE);
+
     // clang-format off
     fprintf(stdout,
             "Usage: %s [COMMAND] [OPTIONS] [DATABASE_FILE]\n"
@@ -63,6 +71,8 @@ static void Usage(const char *progName)
             "  --change-password    Change the account databasse password\n"
             "\n"
             "Common options:\n"
+            "  -c,--config=PATHNAME Specify the configuration file\n"
+            "                       Default is %s\n"
             "  DATABASE_FILE        The account database file\n"
             "  -P,--password=STR    Account database password\n"
             "  -f,--force           Force overwrite output file\n"
@@ -95,11 +105,12 @@ static void Usage(const char *progName)
             "                       Default CHOICE=%s\n"
             "\n"
             "Export account database options:\n"
-            "  -o,--out=FILEPATH   Output file\n"
+            "  -o,--out=PATHNAME   Output file\n"
             "\n"
             "Help options:\n"
             "  -h,--help            Display this help text and exit\n",
             progName, 
+            cfgfile.c_str(),
             DEFAULT_LANG, DEFAULT_NGROUP, DEFAULT_NITEM,
             DEFAULT_NPASS,
             DEFAULT_PASS_LEN,
@@ -129,6 +140,10 @@ static bool ValidateArgs(InputProgArgs &args)
     if (ncmds > 1)
     {
         result = Error("Only one command may be specified\n");
+    }
+    if (args.config_file_ && !FileExists(*args.config_file_))
+    {
+        LOG(WARNING) << "Configuration file \"" << ExpandEnvVars(args.config_file_.value_or("")) << "\" does not exist";
     }
     Operation cmd = args.GetCommand();
     if (args.m_database)
@@ -295,6 +310,7 @@ void Normalize(InputProgArgs &args)
     if (!args.m_generatePasswordCount) args.m_generatePasswordCount = DEFAULT_NPASS;
     if (!args.m_passwordPolicy) args.m_passwordPolicy = DEFAULT_PASS_POLICY;
     if (!args.m_passwordLength) args.m_passwordLength = DEFAULT_PASS_LEN;
+    if (!args.config_file_) args.config_file_ = ExpandEnvVars(DEFAULT_CONFIG_FILE);
     // clang-format on
 }
 
@@ -331,6 +347,7 @@ static constexpr struct option options[] {
     {"change-password", no_argument, nullptr, O_CHANGE_PASSWORD},
     {"new-password", required_argument, nullptr, O_NEW_PASSWORD},
     {"force", no_argument, nullptr, 'f'},
+    {"config", required_argument, nullptr, 'c'},
     {nullptr, 0, nullptr, 0},
 };
 // clang-format on
@@ -344,10 +361,15 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
 
     int option_index = 0;
     int c;
-    while ((c = getopt_long(argc, argv, "fo:P:r", options, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "c:fo:P:r", options, &option_index)) != -1)
     {
         switch (c)
         {
+        case 'c': {
+            assert(optarg);
+            args.config_file_ = optarg;
+            break;
+        }
         case 'f': {
             args.m_force = true;
             break;
@@ -464,6 +486,9 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
 
 int main(int argc, char *argv[])
 {
+    // Initialize Google’s logging library.
+    google::InitGoogleLogging(argv[0]);
+    
     // Don't allow ptrace or gdump on release build
     if (!DisableCoreDump())
         return false;
