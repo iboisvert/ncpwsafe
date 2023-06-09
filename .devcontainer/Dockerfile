@@ -5,7 +5,7 @@
 # ENV DEBUGINFOD_URLS=https://debuginfod.ubuntu.com/
 # FROM mcr.microsoft.com/devcontainers/base:alpine
 # RUN apk update \
-#     && apk add cmake gcc g++ gdb ncurses-dev ncurses-static icu-dev icu-static nettle-dev nettle-static
+#     && apk add cmake gcc g++ gdb ncurses-dev icu-dev nettle-dev
 FROM fedora:38
 RUN dnf makecache \
     && dnf install -y git cmake gcc gcc-c++ libasan libubsan gdb ncurses-devel libicu-devel nettle-devel glog-devel cpptoml-devel gtest-devel \

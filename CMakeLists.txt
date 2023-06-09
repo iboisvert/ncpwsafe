@@ -6,7 +6,6 @@ project(ncpwsafe
     LANGUAGES C CXX
 )
 option(BUILD_TESTING "Enable unit tests" ON)
-option(NCPWSAFE_STATIC "Link to static dependencies" OFF)
 set(NCPWSAFE_CONFIG_FILE "$HOME/.config/ncpwsafe/ncpwsafe.ini" CACHE FILEPATH "Config file default pathname")
 
 set(NCPWSAFE_APPNAME "${CMAKE_PROJECT_NAME}")
@@ -43,7 +42,6 @@ add_link_options(
     -fPIC -Wall -Wextra
     -Wall -Wextra
     "$<$<CONFIG:DEBUG>:-g;-O0;-fsanitize=address,undefined>"
-    "$<$<BOOL:NCPWSAFE_STATIC>:-static"
 )
 
 add_subdirectory(src)
