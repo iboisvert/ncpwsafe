@@ -8,7 +8,7 @@
 #     && apk add cmake gcc g++ gdb ncurses-dev icu-dev nettle-dev
 FROM fedora:38
 RUN dnf makecache \
-    && dnf install -y git cmake gcc gcc-c++ libasan libubsan gdb ncurses-devel libicu-devel nettle-devel glog-devel cpptoml-devel gtest-devel \
+    && dnf install -y git cmake rpm-build gcc gcc-c++ libasan libubsan gdb ncurses-devel libicu-devel nettle-devel glog-devel cpptoml-devel gtest-devel \
     && dnf clean -y all \
     && groupadd --gid 1000 vscode \
     && useradd --uid 1000 --gid 1000 -G wheel -s /bin/bash -m vscode \

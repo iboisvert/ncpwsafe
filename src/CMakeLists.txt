@@ -50,3 +50,7 @@ install (TARGETS ncpwsafe RUNTIME)
 add_compile_definitions(
     "$<$<CONFIG:RELEASE>:NDEBUG>"
 )
+
+set(CPACK_PACKAGE_VENDOR "Ian Boisvert" PARENT_SCOPE)
+set(CPACK_RPM_PACKAGE_LICENSE "GPL-3.0-only" PARENT_SCOPE)
+set(CPACK_RPM_PACKAGE_REQUIRES "libicu >= 72" PARENT_SCOPE)
