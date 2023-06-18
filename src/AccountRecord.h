@@ -42,7 +42,7 @@ public:
         return m_fields == other.m_fields;
     }
 
-    const char *GetField(uint8_t field_type) const
+    const char *GetField(uint8_t field_type, const char *default_value = nullptr) const
     {
         auto it = m_fields.find(field_type);
         const char *value = nullptr;
@@ -50,12 +50,13 @@ public:
         {
             value = it->second.c_str();
         }
+        if (!value) value = default_value;
         return value;
     }
 
     void SetField(uint8_t field_type, const char *value)
     {
-        if (value)
+        if (value && *value)
         {
             m_fields[field_type] = value;
             dirty_ = true;

@@ -159,7 +159,7 @@ static std::string GetFieldValue(const FIELD *field)
     int rows, cols, max;
     dynamic_field_info(field, &rows, &cols, &max);
     std::string buf{cbuf, static_cast<size_t>(rows*cols)};
-    rtrim(buf.begin(), buf.end());
+    rtrim(buf);
     return buf;
 }
 

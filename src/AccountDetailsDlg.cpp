@@ -137,14 +137,16 @@ DialogResult AccountDetailsDlg::Show(WINDOW *parent, bool readOnly)
 
     SetCommandBarWin(readOnly);
 
+    constexpr const char * EMPTY_STR = "";
+
     std::vector<DialogField> fields{
-        {FT_GROUP, "Group:", account_rec_.GetField(FT_GROUP), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
-        {FT_TITLE, "Title:", account_rec_.GetField(FT_TITLE), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
-        {FT_USER, "User:", account_rec_.GetField(FT_USER), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
-        {FT_PASSWORD, "Password:", account_rec_.GetField(FT_PASSWORD), /*m_width*/56, /*m_fieldOptsOn*/0, O_STATIC | O_PUBLIC | O_EDIT | O_ACTIVE},
-        {FT_URL, "URL:", account_rec_.GetField(FT_URL), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
-        {FT_EMAIL, "Email:", account_rec_.GetField(FT_EMAIL), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
-        {FT_NOTES, "Notes:", account_rec_.GetField(FT_NOTES), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC}
+        {FT_GROUP, "Group:", account_rec_.GetField(FT_GROUP, EMPTY_STR), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
+        {FT_TITLE, "Title:", account_rec_.GetField(FT_TITLE, EMPTY_STR), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
+        {FT_USER, "User:", account_rec_.GetField(FT_USER, EMPTY_STR), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
+        {FT_PASSWORD, "Password:", account_rec_.GetField(FT_PASSWORD, EMPTY_STR), /*m_width*/56, /*m_fieldOptsOn*/0, O_STATIC | O_PUBLIC | O_EDIT | O_ACTIVE},
+        {FT_URL, "URL:", account_rec_.GetField(FT_URL, EMPTY_STR), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
+        {FT_EMAIL, "Email:", account_rec_.GetField(FT_EMAIL, EMPTY_STR), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
+        {FT_NOTES, "Notes:", account_rec_.GetField(FT_NOTES, EMPTY_STR), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC}
     };
 
     auto f_validate = std::bind(&AccountDetailsDlg::ValidateForm, this, _1);

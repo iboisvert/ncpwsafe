@@ -13,7 +13,7 @@ bool AccountDb::ReadDb(int *rc)
         while (prec)
         {
             records_.Add(AccountRecord::FromPwsDbRecord(prec));
-            prec = records->next;
+            prec = prec->next;
         }
     }
     return status;

@@ -268,7 +268,7 @@ void AccountsWin::CreateMenu()
     // Accounts are sorted by group and title
     for (const AccountRecord &record : records)
     {
-        std::string group = record.GetField(FT_GROUP);
+        std::string group = record.GetField(FT_GROUP, "");
         if (group != lastGroup)
         {
             lastGroup = group;
@@ -305,9 +305,9 @@ void AccountsWin::CreateMenu()
             }
         }
 
-        std::string title = record.GetField(FT_TITLE);
-        std::string user = record.GetField(FT_USER);
-        item = new_item(title.c_str(), user.c_str());
+        const char *title = record.GetField(FT_TITLE, EMPTY_STR);
+        const char *user = record.GetField(FT_USER, EMPTY_STR);
+        item = new_item(title, user);
         ++itemIndex;
         set_item_userptr(item, const_cast<AccountRecord *>(&record));
         menu_items_.push_back(item);
