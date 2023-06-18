@@ -30,12 +30,32 @@ TEST(UtilTest, TestRtrim)
     }
     {
         char buf[] = "  ";
-        char *result = rtrim(buf, buf+strlen(buf));
+        char *result = rtrim(buf, buf+sizeof(buf));
         ASSERT_STREQ("", result);
     }
     {
         char buf[] = "abc  ";
-        char *result = rtrim(buf, buf+strlen(buf));
+        char *result = rtrim(buf, buf+sizeof(buf));
         ASSERT_STREQ("abc", result);
+    }
+    {
+        std::string buf{"/workspaces/libpwsafe/test/data/test-v1.dat                "};
+        rtrim(buf.begin(), buf.end());
+        ASSERT_STREQ("/workspaces/libpwsafe/test/data/test-v1.dat", buf.c_str());
+        ASSERT_EQ(43, strlen(buf.c_str()));
+        // std::string length is not correct if rtrim is used on iterators
+        ASSERT_NE(43, buf.length());
+    }
+    {
+        std::string buf{"/workspaces/libpwsafe/test/data/test-v1.dat                "};
+        rtrim(buf);
+        ASSERT_STREQ("/workspaces/libpwsafe/test/data/test-v1.dat", buf.c_str());
+        ASSERT_EQ(43, strlen(buf.c_str()));
+        ASSERT_EQ(43, buf.length());
+    }
+    {
+        char buf[] = " two words \t\n  ";
+        char *result = rtrim(buf, buf+sizeof(buf));
+        ASSERT_STREQ(" two words", result);
     }
 }

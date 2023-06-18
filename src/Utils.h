@@ -21,20 +21,36 @@ void ZeroFieldsBuffer(FIELD **fields);
 
 void ZeroMemory(void *p, size_t len);
 
-constexpr std::array<char, 4> WS{' ', '\n', '\r', '\t'};
-template <typename T> inline T rtrim(T begin, T end)
+constexpr std::array<char, 5> WS{'\0', ' ', '\n', '\r', '\t'};
+template <typename It>
+inline It rtrim(It begin, It end)
 {
-    typedef typename std::iterator_traits<T>::value_type value_type;
+    typedef typename std::iterator_traits<It>::value_type value_type;
     value_type c;
-    while (end > begin && (c = *--end))
+    while (end > begin)
     {
-        if (std::any_of(WS.begin(), WS.end(), [c](typename decltype(WS)::value_type ws) { return (int)c == (int)ws; }))
+        c = *--end;
+        if (c)
         {
+            if (std::none_of(WS.begin(), WS.end(), [c](typename decltype(WS)::value_type ws)
+                             { return (int)c == (int)ws; }))
+            {
+                break;
+            }
             *end = 0;
         }
     }
-        
+
     return begin;
+}
+
+inline void rtrim(std::string &str)
+{
+    str.erase(std::find_if(str.rbegin(), str.rend(), [](char ch) {
+        return std::none_of(WS.begin(), WS.end(), [&ch](char ws) { 
+            return (int)ch == (int)ws; 
+        });
+    }).base(), str.end());
 }
 
 /** Expand environment variables in the string */
