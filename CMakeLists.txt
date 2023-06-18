@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 project(ncpwsafe 
-    VERSION 0.1.0 
+    VERSION 0.1 
     DESCRIPTION "An ncurses terminal program that manages encrypted password databases"
     HOMEPAGE_URL "https://github.com/iboisvert/ncpwsafe"
     LANGUAGES C CXX
@@ -49,3 +49,5 @@ if(BUILD_TESTING)
     enable_testing()
     add_subdirectory(test)
 endif()
+
+include(CPack)
