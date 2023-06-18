@@ -21,7 +21,7 @@
 // TODO IMB 2022-11-21 Display page "x/y" bottom right corner
 
 // item_new rejects an empty string for the item name
-static constexpr const char *EMPTY_STR = " ";
+static constexpr const char *EMPTY_MENU_ITEM = " ";
 
 #ifndef _WINDOWS
 static const char *XCLIP = "/usr/bin/xclip";
@@ -239,7 +239,7 @@ const AccountRecord *AccountsWin::GetSelection() const
 
 static ITEM *CreateBlankMenuItem()
 {
-    ITEM *item = new_item(EMPTY_STR, 0);
+    ITEM *item = new_item(EMPTY_MENU_ITEM, 0);
     item_opts_off(item, O_SELECTABLE);
     return item;
 }
@@ -247,13 +247,13 @@ static ITEM *CreateBlankMenuItem()
 static bool IsBlankMenuItem(const ITEM *item)
 {
     assert(item);
-    return item_userptr(item) == nullptr && item_name(item) == EMPTY_STR;
+    return item_userptr(item) == nullptr && item_name(item) == EMPTY_MENU_ITEM;
 }
 
 static bool IsGroupMenuItem(const ITEM *item)
 {
     assert(item);
-    return item_userptr(item) == nullptr && item_name(item) != EMPTY_STR;
+    return item_userptr(item) == nullptr && item_name(item) != EMPTY_MENU_ITEM;
 }
 
 void AccountsWin::CreateMenu()
@@ -305,8 +305,8 @@ void AccountsWin::CreateMenu()
             }
         }
 
-        const char *title = record.GetField(FT_TITLE, EMPTY_STR);
-        const char *user = record.GetField(FT_USER, EMPTY_STR);
+        const char *title = record.GetField(FT_TITLE, EMPTY_MENU_ITEM);
+        const char *user = record.GetField(FT_USER, EMPTY_MENU_ITEM);
         item = new_item(title, user);
         ++itemIndex;
         set_item_userptr(item, const_cast<AccountRecord *>(&record));
