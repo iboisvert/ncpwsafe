@@ -261,15 +261,15 @@ void AccountsWin::CreateMenu()
     menu_items_.clear();
 
     auto &records = app_.GetDb().Records();
-    std::string lastGroup;
+    const char *lastGroup = "";
 
     ITEM *item;
     int itemIndex = 0;
     // Accounts are sorted by group and title
     for (const AccountRecord &record : records)
     {
-        std::string group = record.GetField(FT_GROUP, "");
-        if (group != lastGroup)
+        const char *group = record.GetField(FT_GROUP, "");
+        if (strcmp(lastGroup, group) != 0)
         {
             lastGroup = group;
 
@@ -292,7 +292,7 @@ void AccountsWin::CreateMenu()
                 }
             }
 
-            item = new_item(group.c_str(), 0);
+            item = new_item(group, 0);
             ++itemIndex;
             menu_items_.push_back(item);
 
