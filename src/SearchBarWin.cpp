@@ -19,10 +19,10 @@ void SearchBarWin::InitTUI()
     waddstr(m_win, "Search: ");
 
     int curx = getcurx(m_win), cols = getmaxx(m_win) - curx;
-    FIELD *fields[]{new_field(/*height*/ 1, cols, /*toprow*/ 0, /*leftcol*/ 0, /*offscreen*/ 0, /*nbuffers*/ 0), NULL};
-    field_opts_off(fields[0], O_STATIC);
+    fields_[0] = new_field(/*height*/ 1, cols, /*toprow*/ 0, /*leftcol*/ 0, /*offscreen*/ 0, /*nbuffers*/ 0);
+    field_opts_off(fields_[0], O_STATIC);
 
-    form_ = new_form(fields);
+    form_ = new_form(fields_);
     form_opts_off(form_, O_BS_OVERLOAD);
     set_form_win(form_, m_win);
     m_formWin = derwin(m_win, /*nlines*/ 1, /*ncols*/ cols, /*begin_y*/ 0, /*begin_x*/ curx);
@@ -41,14 +41,12 @@ void SearchBarWin::EndTUI()
     m_panel = nullptr;
 
     unpost_form(form_);
-    FIELD **fields = form_fields(form_);
-    int nfields = field_count(form_);
-    for (int i = 0; i < nfields; ++i)
-    {
-        free_field(fields[i]);
-    }
     free_form(form_);
     form_ = nullptr;
+
+    free_field(fields_[0]);
+    fields_[0] = nullptr;
+    
     delwin(m_formWin);
     m_formWin = nullptr;
 
@@ -75,6 +73,8 @@ void SearchBarWin::Show()
     InitTUI();
 
     ProcessInput();
+
+    EndTUI();
 }
 
 /** Search title, name, user, notes fields for query */

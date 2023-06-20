@@ -13,7 +13,7 @@ class SearchBarWin
 {
 public:
     SearchBarWin(PWSafeApp &app, WINDOW *win, AccountsWin &accounts_win)
-        : app_(app), accounts_win_(accounts_win), m_win(win)
+        : app_(app), accounts_win_(accounts_win), m_win(win), fields_{nullptr, nullptr}
     {
     }
 
@@ -46,5 +46,6 @@ private:
     PANEL *m_panel = nullptr;
     FORM *form_ = nullptr;
     WINDOW *m_formWin = nullptr;
+    FIELD *fields_[2];
     int save_cursor_;
 };
