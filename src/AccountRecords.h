@@ -2,16 +2,27 @@
 #ifndef HAVE_ACCOUNTRECORDS_H
 #define HAVE_ACCOUNTRECORDS_H
 
-#include <vector>
+#include <set>
 #include <string>
 #include <algorithm>
 #include "libicu.h"
 #include "AccountRecord.h"
 
-struct AccountRecords
+class AccountRecords
 {
-    typedef std::vector<AccountRecord>::iterator iterator;
-    typedef std::vector<AccountRecord>::const_iterator const_iterator;
+    static bool CompareRecords(const AccountRecord &a, const AccountRecord &b);
+
+    std::set<AccountRecord, bool (*)(const AccountRecord &, const AccountRecord &)> records_;
+    bool dirty_;
+
+public:
+    typedef decltype(records_)::iterator iterator;
+    typedef decltype(records_)::const_iterator const_iterator;
+
+    AccountRecords() : records_(CompareRecords)
+    { 
+        /* empty */
+    }
 
     iterator begin()
     {
@@ -39,31 +50,31 @@ struct AccountRecords
         });
     }
 
-    void Add(AccountRecord rec)
+    bool Add(AccountRecord rec)
     {
-        records_.push_back(std::move(rec));
+        bool result = false;
+        std::tie(std::ignore, result) = records_.insert(std::move(rec));
         dirty_ = true;
+        return result;
+    }
+
+    bool Delete(const AccountRecord &rec)
+    {
+        bool result = records_.erase(rec) > 0;
+        if (result) dirty_ = true;
+        return result;
     }
 
     bool Delete(iterator it)
     {
-        if (it != records_.end())
-        {
-            records_.erase(it);
-            return true;
-        }
-        return false;
+        return Delete(*it);
     }
 
     /** Returns `true` if the collection or elements of the collection have been modified */
     bool IsDirty() const
     {
-        throw std::exception();
+        return dirty_;
     }
-
-private:
-    std::vector<AccountRecord> records_;
-    bool dirty_;
 };
 
 #endif  //#define HAVE_ACCOUNTRECORDS_H

@@ -28,7 +28,7 @@ public:
      * Allocate and construct a PwsDbRecord struct from this.
      * Caller must `delete`.
     */
-    PwsDbRecord *ToPwsDbRecord();
+    PwsDbRecord *ToPwsDbRecord() const;
 
     AccountRecord &operator =(AccountRecord src)
     {

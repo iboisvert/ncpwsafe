@@ -25,12 +25,20 @@ private:
     /** Number of columns in which accounts will be displayed */
     static constexpr int NCOLS = 2;
 
+    /** Get an AccountRecord from a menu ITEM. */
+    static const AccountRecord *GetAccountRecordFromMenuItem(const ITEM *pitem)
+    {
+        return  reinterpret_cast<AccountRecord *>(item_userptr(pitem));
+    }
+
     /** Save changes to database */
     bool Save();
     /** Ask for confirmation to discard changes */
     bool DiscardChanges();
     /** View or edit an account entry */
     DialogResult ShowAccountRecord(AccountRecord &itemData);
+    /** Replace a menu entry */
+    void UpdateMenu(const AccountRecord &old_record, const AccountRecord &new_record);
     /** Add a new account entry */
     DialogResult AddNewEntry();
     /** Delete an account entry */

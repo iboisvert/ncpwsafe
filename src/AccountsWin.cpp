@@ -524,26 +524,35 @@ static bool EqualMenuData(const AccountRecord &a, const AccountRecord &b)
         && FieldCompare(FT_USER, a, b);
 }
 
+void AccountsWin::UpdateMenu(const AccountRecord &old_record, const AccountRecord &new_record)
+{
+    if (!EqualMenuData(old_record, new_record))
+    {
+        AccountRecords &records = app_.GetDb().Records();
+        if (records.Add(new_record))
+        {
+            records.Delete(old_record);
+
+            DestroyMenu(menu_);
+            CreateMenu();
+
+            // Reset selection
+            SetSelection(new_record);
+        }
+    }
+}
+
 /** View or edit an account entry */
 DialogResult AccountsWin::ShowAccountRecord(AccountRecord &record)
 {
     auto &db = app_.GetDb();
     bool read_only = db.ReadOnly();
-    AccountDetailsDlg details(app_, record);
+    AccountDetailsDlg details{app_, record};
 
     DialogResult result = details.Show(win_, read_only);
-    if (result == DialogResult::OK && !read_only)
+    if (result == DialogResult::OK)
     {
-        const AccountRecord &new_record = details.GetItem(), old_record = record;
-        record = new_record;
-        if (!EqualMenuData(old_record, new_record))
-        {
-            DestroyMenu(menu_);
-            CreateMenu();
-
-            // Reset selection
-            SetSelection(record);
-        }
+        record = details.GetItem();
     }
 
     SetCommandBar();
@@ -809,7 +818,7 @@ DialogResult AccountsWin::ProcessInput()
             ITEM *item = current_item(menu_);
             if (!IsGroupMenuItem(item))
             {
-                const AccountRecord *record = reinterpret_cast<AccountRecord *>(item_userptr(item));
+                const AccountRecord *record = GetAccountRecordFromMenuItem(item);
                 const std::string &str = record->GetField(FT_USER);
                 if (CopyTextToClipboard(app_, win_, str) > 0)
                 {
@@ -823,7 +832,7 @@ DialogResult AccountsWin::ProcessInput()
             ITEM *item = current_item(menu_);
             if (!IsGroupMenuItem(item))
             {
-                const AccountRecord *record = reinterpret_cast<AccountRecord *>(item_userptr(item));
+                const AccountRecord *record = GetAccountRecordFromMenuItem(item);
                 const std::string &str = record->GetField(FT_PASSWORD);
                 if (CopyTextToClipboard(app_, win_, str) > 0)
                 {
@@ -865,9 +874,13 @@ DialogResult AccountsWin::ProcessInput()
             }
             else
             {
-                AccountRecord *record = reinterpret_cast<AccountRecord *>(item_userptr(item));
+                const AccountRecord *record = GetAccountRecordFromMenuItem(item);
                 assert(record != nullptr);
-                ShowAccountRecord(*record);
+                AccountRecord copy{*record};
+                if (ShowAccountRecord(copy) == DialogResult::OK && !read_only)
+                {
+                    UpdateMenu(*record, copy);
+                }
             }
 
             break;

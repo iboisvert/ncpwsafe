@@ -19,13 +19,13 @@ AccountRecord AccountRecord::FromPwsDbRecord(const PwsDbRecord *prec)
     return rec;
 }
 
-static void CopyValueIntoFieldLinkedList(PwsDbField *phead, uint8_t field_type, std::string &value)
+static void CopyValueIntoFieldLinkedList(PwsDbField *phead, uint8_t field_type, const std::string &value)
 {
     if (!value.empty())
     {
         PwsDbField *pfield = new PwsDbField();
         pfield->type = field_type;
-        pfield->value = value.data();
+        pfield->value = const_cast<char *>(value.data());
         pfield->next = phead;
         phead = pfield;
     }
@@ -35,7 +35,7 @@ static void CopyValueIntoFieldLinkedList(PwsDbField *phead, uint8_t field_type, 
  * Allocate and construct a PwsDbRecord struct from this.
  * Caller must `delete`.
  */
-PwsDbRecord *AccountRecord::ToPwsDbRecord()
+PwsDbRecord *AccountRecord::ToPwsDbRecord() const
 {
     PwsDbRecord *prec = new PwsDbRecord();
     prec->next = nullptr;
