@@ -346,16 +346,6 @@ static void DestroyMenu(MENU *menu)
         for (ITEM **ppitem = menuItems; *ppitem != nullptr; ++ppitem)
         {
             ITEM *pitem = *ppitem;
-            const char *name = item_name(pitem);
-            if (name && name != EMPTY_STR)
-            {
-                delete[] name;
-            }
-            const char *description = item_description(pitem);
-            if (description)
-            {
-                delete[] description;
-            }
             free_item(pitem);
         }
     }
@@ -760,6 +750,21 @@ DialogResult AccountsWin::ProcessInput()
     {
         switch (c)
         {
+        // case 'a': {
+        //     // Check for Group/Username/Title uniqueness
+        //     // if (m_db.Find(m_Item.GetGroup(), m_Item.GetTitle(), m_Item.GetUser()) !=
+        //     //     m_Core.GetEntryEndIter())
+        //     // {
+        //     //   wxMessageDialog msg(
+        //     //       this,
+        //     //       _("An entry or shortcut with the same Group, Title and Username already exists."),
+        //     //       _("Error"),
+        //     //       wxOK | wxICON_ERROR);
+        //     //   msg.ShowModal();
+        //     //   return;
+        //     // }
+        //     break;
+        // }
         case KEY_CTRL('A'):
         {
             if (!read_only)
@@ -848,22 +853,6 @@ DialogResult AccountsWin::ProcessInput()
             app_.GetCommandBar().Show(this);
             break;
         }
-            // case 'a': {
-            //     // Check for Group/Username/Title uniqueness
-            //     // if (m_db.Find(m_Item.GetGroup(), m_Item.GetTitle(), m_Item.GetUser()) !=
-            //     //     m_Core.GetEntryEndIter())
-            //     // {
-            //     //   wxMessageDialog msg(
-            //     //       this,
-            //     //       _("An entry or shortcut with the same Group, Title and Username already exists."),
-            //     //       _("Error"),
-            //     //       wxOK | wxICON_ERROR);
-            //     //   msg.ShowModal();
-            //     //   return;
-            //     // }
-            //     break;
-            // }
-
         case '\n':
         {
             ITEM *item = current_item(menu_);
