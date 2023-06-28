@@ -25,7 +25,11 @@ private:
     /** Number of columns in which accounts will be displayed */
     static constexpr int NCOLS = 2;
 
-    /** Get an AccountRecord from a menu ITEM. */
+    /** 
+     * Get an AccountRecord ptr from the user pointer of a menu ITEM.
+     * The AccountRecord must be const because `set` doesn't allow 
+     * modifying keys
+     */
     static const AccountRecord *GetAccountRecordFromMenuItem(const ITEM *pitem)
     {
         return  reinterpret_cast<AccountRecord *>(item_userptr(pitem));
