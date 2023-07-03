@@ -13,7 +13,8 @@ enum ResultCode
     RC_USER_CANCEL = 1024,
     RC_ERR_FILE_DOESNT_EXIST,
     RC_ERR_CANT_OPEN_FILE,
-    RC_ERR_READONLY
+    RC_ERR_READONLY,
+    RC_ERR_BACKUP
 };
 
 inline void SetResultCode(int *prc, int rc)

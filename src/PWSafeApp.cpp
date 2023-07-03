@@ -1,4 +1,6 @@
 /* Copyright 2020 Ian Boisvert */
+#include <time.h>
+
 #include "AccountsWin.h"
 #include "Dialog.h"
 #include "Label.h"
@@ -7,7 +9,6 @@
 #include "SafeCombinationPromptDlg.h"
 #include "Utils.h"
 #include "ResultCode.h"
-#include "FileUtils.h"
 
 const char *PWSafeApp::APPNAME_VERSION = NCPWSAFE_APPNAME " " NCPWSAFE_VERSION;
 
@@ -190,4 +191,58 @@ void PWSafeApp::DoSearch()
     show_panel(commandbar_panel_);
     update_panels();
     doupdate();
+}
+
+/** Backup the current account database */
+ResultCode PWSafeApp::BackupDb()
+{
+    namespace fs = std::filesystem;
+
+    const std::string &db = GetArgs().m_database;
+    if (db.empty()) return RC_ERR_BACKUP;  // Sanity check
+
+    ResultCode status = RC_SUCCESS;
+
+    fs::path db_path(filesystem_.Canonical(db));
+    fs::path filename = db_path.filename();
+
+    time_t now = time(nullptr);
+    struct tm tm;
+    localtime_r(&now, &tm);
+
+    constexpr size_t buflen = 128;
+    char buf[buflen];
+    snprintf(buf, buflen, "-%04d%02d%02d_%02d%02d%02d", 
+        tm.tm_year+1900, tm.tm_mon+1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);  // -YYYYMMdd_HHmmss.bak
+
+    std::string backup_filename = db_path.stem().string() + buf + db_path.extension().string();
+    fs::path backup = db_path.parent_path() / backup_filename;
+    
+    if (filesystem_.Exists(backup))
+    {
+        // Backup backup
+        fs::path backup2(backup);
+        backup2 += ".2";
+        try
+        {
+            filesystem_.Copy(backup, backup2);
+        }
+        catch (fs::filesystem_error &cause)
+        {
+            // TODO IMB 2023-07-01 log error copying backup file
+        }
+        backup += ".1";
+    }
+
+    try
+    {
+        filesystem_.Copy(db_path, backup);
+    }
+    catch (fs::filesystem_error &fs)
+    {
+        // TODO IMB 2023-07-01 log error copying account database file
+        status = RC_ERR_BACKUP;
+    }
+
+    return status;
 }

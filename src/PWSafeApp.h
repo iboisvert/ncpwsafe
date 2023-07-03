@@ -13,6 +13,7 @@
 #include "SearchBarWin.h"
 #include "Dialog.h"
 #include "Prefs.h"
+#include "Filesystem.h"
 
 class PWSafeApp
 {
@@ -20,7 +21,10 @@ public:
     /** NCPWSAFE_APPNAME " " NCPWSAFE_VERSION */
     static const char *APPNAME_VERSION;
 
-    PWSafeApp() : prefs_(Prefs::Instance()) { }
+    PWSafeApp(Filesystem &filesystem = Filesystem::instance) : 
+        prefs_(Prefs::Instance()),
+        filesystem_(filesystem)
+    { }
 
     // SUPPORT FUNCTIONS
 
@@ -37,10 +41,7 @@ public:
     void SavePrefs();
 
     /** Backup the current account database */
-    int BackupDb()
-    {
-        throw std::exception();
-    }
+    ResultCode BackupDb();
 
     /** Search function */
     void DoSearch();
@@ -73,6 +74,7 @@ private:
     Prefs &prefs_;
     ProgArgs args_;
     AccountDb db_;
+    Filesystem &filesystem_;
     std::unique_ptr<AccountsWin> accountswin_;
     std::unique_ptr<CommandBarWin> commandbarwin_;
 
@@ -82,4 +84,9 @@ private:
     PANEL *commandbar_panel_ = nullptr; // Command bar panel
     WINDOW *win_ = nullptr;            // Content of accounts list window
     int save_cursor_ = 0;
+
+#ifdef FRIEND_TEST
+    FRIEND_TEST(AppTest, TestBackupDb_DstDoesntExist);
+    FRIEND_TEST(AppTest, TestBackupDb_DstDoesExist);
+#endif
 };
