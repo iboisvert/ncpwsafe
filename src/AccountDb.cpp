@@ -1,5 +1,12 @@
 /* Copyright 2023 Ian Boisvert */
 #include "AccountDb.h"
+#include "Filesystem.h"
+
+/** Check if file at DbPathname() exists. */
+bool AccountDb::Exists() const
+{
+    return fs::Exists(db_pathname_);
+}
 
 bool AccountDb::ReadDb(int *rc)
 {

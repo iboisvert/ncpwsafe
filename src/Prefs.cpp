@@ -1,10 +1,12 @@
 /* Copyright 2023 Ian Boisvert */
-#include "Prefs.h"
 #include <cstdlib>
+
 #include "libcpptoml.h"
 #include "libglog.h"
-#include "FileUtils.h"
+
+#include "Prefs.h"
 #include "Utils.h"
+#include "Filesystem.h"
 
 std::map<const char *, std::string> Prefs::DEFAULTS_{
     {Prefs::DB_PATHNAME, "${HOME}/.pwsafe.dat"},
@@ -100,7 +102,7 @@ bool Prefs::PrefAsBool(const std::string &key)
 bool Prefs::ReadPrefs(const std::string &pathname)
 {
     bool retval = false;
-    if (!FileExists(pathname))
+    if (!fs::Exists(pathname))
     {
         LOG(INFO) << "Preferences file \"" << pathname << "\" does not exist";
         goto done;
@@ -126,7 +128,7 @@ done:
     return retval;
 }
 
-bool Prefs::WritePrefs(const std::string &pathname)
+bool Prefs::WritePrefs(const std::string &/*pathname*/)
 {
     // TODO
     return false;

@@ -2,7 +2,6 @@
 #include "ChangeDbPasswordCommand.h"
 
 #include "PWSafeApp.h"
-#include "FileUtils.h"
 #include "ProgArgs.h"
 #include "ResultCode.h"
 

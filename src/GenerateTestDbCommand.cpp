@@ -6,7 +6,6 @@
 #include "ProgArgs.h"
 #include "GenerateTestDbCommand.h"
 #include "Utils.h"
-#include "FileUtils.h"
 #include "RandUtils.h"
 
 [[gnu::unused]] static const char *WORDS_EN_CA[] = {

@@ -4,8 +4,8 @@
 #include "SafeCombinationPromptDlg.h"
 #include "Dialog.h"
 #include "MessageBox.h"
+#include "Filesystem.h"
 #include "PWSafeApp.h"
-#include "FileUtils.h"
 
 SafeCombinationPromptDlg::SafeCombinationPromptDlg(PWSafeApp &app) : app_(app)
 {
@@ -29,10 +29,10 @@ bool SafeCombinationPromptDlg::ValidateForm(const Dialog &dialog)
     }
     else
     {
-        bool exists = FileExists(db_pathname.c_str());
+        bool exists = fs::Exists(db_pathname);
         if (exists)
         {
-            size_t len = FileLength(db_pathname.c_str());
+            uintmax_t len = fs::FileSize(db_pathname);
             if (len == 0)
             {
                 std::string msg("An error occurred opening file ");

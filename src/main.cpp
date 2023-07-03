@@ -7,7 +7,6 @@
 #include "GenerateTestDbCommand.h"
 #include "ProgArgs.h"
 #include "Utils.h"
-#include "FileUtils.h"
 
 #include "libpwsafe.h"
 #include "libglog.h"
@@ -141,7 +140,7 @@ static bool ValidateArgs(InputProgArgs &args)
     {
         result = Error("Only one command may be specified\n");
     }
-    if (args.config_file_ && !FileExists(*args.config_file_))
+    if (args.config_file_ && !fs::Exists(*args.config_file_))
     {
         LOG(WARNING) << "Configuration file \"" << ExpandEnvVars(args.config_file_.value_or("")) << "\" does not exist";
     }
@@ -244,7 +243,7 @@ static bool ValidateArgs(InputProgArgs &args)
         {
             result = Error("Account database file is required\n");
         }
-        else if (!args.m_force && FileExists(args.m_database->c_str()))
+        else if (!args.m_force && fs::Exists(*args.m_database))
         {
             result = Error("File %s already exists\n", args.m_database->c_str());
         }
@@ -260,7 +259,7 @@ static bool ValidateArgs(InputProgArgs &args)
         {
             result = Error("Account database file is required\n");
         }
-        else if (!FileExists(args.m_database->c_str()))
+        else if (!fs::Exists(*args.m_database))
         {
             result = Error("Account database file %s does not exist\n", args.m_database->c_str());
         }
@@ -272,7 +271,7 @@ static bool ValidateArgs(InputProgArgs &args)
         {
             result = Error("Output file is required\n");
         }
-        if (!args.m_force && FileExists(args.m_outputFile->c_str()))
+        if (!args.m_force && fs::Exists(*args.m_outputFile))
         {
             result = Error("Output file %s already exists\n", args.m_outputFile->c_str());
         }
@@ -284,7 +283,7 @@ static bool ValidateArgs(InputProgArgs &args)
         {
             result = Error("Account database file is required\n");
         }
-        else if (!FileExists(args.m_database->c_str()))
+        else if (!fs::Exists(*args.m_database))
         {
             result = Error("Account database file %s does not exist\n", args.m_database->c_str());
         }

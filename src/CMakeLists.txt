@@ -10,7 +10,7 @@ list(APPEND SRC
     CommandBarWin.cpp
     Dialog.cpp
     ExportDbCommand.cpp
-    FileUtils.cpp
+    Filesystem.cpp
     GeneratePasswordDlg.cpp
     GeneratePasswordCommand.cpp
     GenerateTestDbCommand.cpp
