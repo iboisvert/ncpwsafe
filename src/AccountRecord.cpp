@@ -42,6 +42,8 @@ static void CopyValueIntoFieldLinkedList(PwsDbField *&phead, uint8_t field_type,
 PwsDbRecord *AccountRecord::ToPwsDbRecord() const
 {
     PwsDbRecord *prec = new PwsDbRecord();
+    if (prec)
+    {
         prec->next = nullptr;
 
         PwsDbField *&phead = prec->fields;
@@ -49,6 +51,7 @@ PwsDbRecord *AccountRecord::ToPwsDbRecord() const
         {
             CopyValueIntoFieldLinkedList(phead, entry.first, entry.second);
         }
+    }
     return prec;
 }
 
