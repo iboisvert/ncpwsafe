@@ -1,8 +1,9 @@
 resolve_test_dependencies()
 
 add_executable(unittests
-    Utils-tests.cpp
+    AccountDb-tests.cpp
     PWSafeApp-tests.cpp
+    Utils-tests.cpp
 )
 target_link_libraries(unittests 
     libncpwsafe

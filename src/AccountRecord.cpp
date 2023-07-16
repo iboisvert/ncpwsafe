@@ -19,7 +19,11 @@ AccountRecord AccountRecord::FromPwsDbRecord(const PwsDbRecord *prec)
     return rec;
 }
 
-static void CopyValueIntoFieldLinkedList(PwsDbField *phead, uint8_t field_type, const std::string &value)
+/** 
+ * Allocate field and add to linked list 
+ * @param[in,out] phead Pointer to head of linked list of db fields
+ */
+static void CopyValueIntoFieldLinkedList(PwsDbField *&phead, uint8_t field_type, const std::string &value)
 {
     if (!value.empty())
     {
@@ -38,13 +42,13 @@ static void CopyValueIntoFieldLinkedList(PwsDbField *phead, uint8_t field_type, 
 PwsDbRecord *AccountRecord::ToPwsDbRecord() const
 {
     PwsDbRecord *prec = new PwsDbRecord();
-    prec->next = nullptr;
+        prec->next = nullptr;
 
-    PwsDbField *&phead = prec->fields;
-    for (auto &entry : m_fields)
-    {
-        CopyValueIntoFieldLinkedList(phead, entry.first, entry.second);
-    }
+        PwsDbField *&phead = prec->fields;
+        for (auto &entry : m_fields)
+        {
+            CopyValueIntoFieldLinkedList(phead, entry.first, entry.second);
+        }
     return prec;
 }
 

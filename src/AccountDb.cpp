@@ -27,6 +27,24 @@ bool AccountDb::ReadDb(int *rc)
     return status;
 }
 
+PwsDbRecord *AccountDb::ConvertToPwsafeRecords()
+{
+    PwsDbRecord *phead = nullptr;
+    for (const AccountRecord &ar : records_)
+    {
+        PwsDbRecord *prec = ar.ToPwsDbRecord();
+        if (!prec)
+        {
+            pws_free_db_records(phead);
+            phead = nullptr;
+            break;
+        }
+        prec->next = phead;
+        phead = prec;
+    }
+    return phead;
+}
+
 bool AccountDb::WriteDb(int *rc)
 {
     if (readonly_)
@@ -34,20 +52,7 @@ bool AccountDb::WriteDb(int *rc)
         SetResultCode(rc, RC_ERR_READONLY);
         return false;
     }
-    std::vector<std::unique_ptr<PwsDbRecord>> records;
-    PwsDbRecord *phead = nullptr;
-    for (const AccountRecord &ar : records_)
-    {
-        PwsDbRecord *prec = ar.ToPwsDbRecord();
-        if (!prec)
-        {
-            SetResultCode(rc, PRC_ERR_ALLOC);
-            return false;
-        }
-        prec->next = phead;
-        phead = prec;
-        records.push_back(std::unique_ptr<PwsDbRecord>{prec});
-    }
+    std::unique_ptr<PwsDbRecord, decltype(&pws_free_db_records)> precords(ConvertToPwsafeRecords(), &pws_free_db_records);
     const char *pn = db_pathname_.c_str(), *pw = password_.c_str();
-    return pws_db_write(pn, pw, phead, rc);
+    return pws_db_write(pn, pw, precords.get(), rc);
 }

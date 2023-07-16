@@ -24,6 +24,12 @@ public:
         /* empty */
     }
 
+    AccountRecords(std::initializer_list<AccountRecord> records):
+        records_(records, CompareRecords)
+    {
+        // empty
+    }
+
     iterator begin()
     {
         return records_.begin();

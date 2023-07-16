@@ -92,6 +92,16 @@ private:
     bool readonly_ = false;
     bool dirty_ = false;
     AccountRecords records_;
+
+    /** 
+     * Convert the database records to pwsafe records 
+     * Caller is responsible to free records.
+     */
+    PwsDbRecord *ConvertToPwsafeRecords();
+
+#ifdef FRIEND_TEST
+    FRIEND_TEST(AccountDbTest, TestConvertToPwsafeSucceeds);
+#endif
 };
 
 #endif

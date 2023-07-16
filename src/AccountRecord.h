@@ -15,11 +15,19 @@ class AccountRecord
     bool dirty_ = false;
 
 public:
+    typedef std::map<uint8_t, std::string>::value_type value_type;
+
     AccountRecord() = default;
 
     AccountRecord(const AccountRecord &src)
     {
         this->m_fields = src.m_fields;
+    }
+
+    AccountRecord(std::initializer_list<value_type> fields):
+        m_fields(fields)
+    {
+        // empty
     }
 
     static AccountRecord FromPwsDbRecord(const PwsDbRecord *pdb_rec);
