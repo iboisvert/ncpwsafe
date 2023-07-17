@@ -30,13 +30,20 @@ public:
         // empty
     }
 
-    static AccountRecord FromPwsDbRecord(const PwsDbRecord *pdb_rec);
+    static AccountRecord FromPwsDbRecord(const PwsDbRecord *prec);
 
-    /** 
-     * Allocate and construct a PwsDbRecord struct from this.
-     * Caller must `delete`.
-    */
-    PwsDbRecord *ToPwsDbRecord() const;
+    /**
+     * \brief Allocate and construct a PwsDbRecord struct from this.
+     * 
+     * If `phead` is not `NULL`, the allocated record is inserted
+     * at the head of the linked list of account records.
+     * 
+     * \param[in] phead Pointer to head of linked list of account records
+     * \returns Pointer to allocated account record.
+     * \note
+     * Caller must call `pws_free_db_records()` on returned pointer.
+     */
+    PwsDbRecord *ToPwsDbRecord(PwsDbRecord *phead) const;
 
     AccountRecord &operator =(AccountRecord src)
     {

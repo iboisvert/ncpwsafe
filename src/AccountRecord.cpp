@@ -19,37 +19,16 @@ AccountRecord AccountRecord::FromPwsDbRecord(const PwsDbRecord *prec)
     return rec;
 }
 
-/** 
- * Allocate field and add to linked list 
- * @param[in,out] phead Pointer to head of linked list of db fields
- */
-static void CopyValueIntoFieldLinkedList(PwsDbField *&phead, uint8_t field_type, const std::string &value)
+PwsDbRecord *AccountRecord::ToPwsDbRecord(PwsDbRecord *phead) const
 {
-    if (!value.empty())
-    {
-        PwsDbField *pfield = new PwsDbField();
-        pfield->type = field_type;
-        pfield->value = const_cast<char *>(value.data());
-        pfield->next = phead;
-        phead = pfield;
-    }
-}
-
-/**
- * Allocate and construct a PwsDbRecord struct from this.
- * Caller must `delete`.
- */
-PwsDbRecord *AccountRecord::ToPwsDbRecord() const
-{
-    PwsDbRecord *prec = new PwsDbRecord();
+    PwsDbRecord *prec = pws_add_record(phead);
     if (prec)
     {
-        prec->next = nullptr;
-
-        PwsDbField *&phead = prec->fields;
         for (auto &entry : m_fields)
         {
-            CopyValueIntoFieldLinkedList(phead, entry.first, entry.second);
+            const PwsFieldType field_type = (PwsFieldType)entry.first;
+            const char *value = entry.second.c_str();
+            pws_add_field(prec, field_type, value);
         }
     }
     return prec;

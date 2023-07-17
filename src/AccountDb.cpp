@@ -32,14 +32,13 @@ PwsDbRecord *AccountDb::ConvertToPwsafeRecords()
     PwsDbRecord *phead = nullptr;
     for (const AccountRecord &ar : records_)
     {
-        PwsDbRecord *prec = ar.ToPwsDbRecord();
+        PwsDbRecord *prec = ar.ToPwsDbRecord(phead);
         if (!prec)
         {
             pws_free_db_records(phead);
             phead = nullptr;
             break;
         }
-        prec->next = phead;
         phead = prec;
     }
     return phead;
