@@ -57,6 +57,7 @@ private:
      */
     void CreateMenuDataItems();
     void CreateMenu();
+    void DestroyMenu();
     void SetCommandBar();
     DialogResult ProcessInput();
 

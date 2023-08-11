@@ -338,18 +338,14 @@ void AccountsWin::CreateMenu()
     // status = post_menu(menu);
 }
 
-static void DestroyMenu(MENU *menu)
+void AccountsWin::DestroyMenu()
 {
-    ITEM **menuItems = menu_items(menu);
-    if (menuItems)
+    [[maybe_unused]] int status = unpost_menu(menu_);
+    status = free_menu(menu_);
+    for (ITEM *pitem : menu_items_)
     {
-        for (ITEM **ppitem = menuItems; *ppitem != nullptr; ++ppitem)
-        {
-            ITEM *pitem = *ppitem;
-            free_item(pitem);
-        }
+        if (pitem) status = free_item(pitem);
     }
-    free_menu(menu);
 }
 
 // Copied from ui/wxWidgets/MenuEditHandlers.cpp
@@ -379,7 +375,7 @@ void AccountsWin::InitTUI()
 
 void AccountsWin::EndTUI()
 {
-    DestroyMenu(menu_);
+    DestroyMenu();
     menu_ = nullptr;
     del_panel(panel_);
     panel_ = nullptr;
@@ -523,7 +519,7 @@ void AccountsWin::UpdateMenu(const AccountRecord &old_record, const AccountRecor
         {
             records.Delete(old_record);
 
-            DestroyMenu(menu_);
+            DestroyMenu();
             CreateMenu();
 
             // Reset selection
@@ -564,7 +560,7 @@ DialogResult AccountsWin::AddNewEntry()
         const AccountRecord &new_record = details.GetItem();
         db.Records().Add(new_record);
 
-        DestroyMenu(menu_);
+        DestroyMenu();
         CreateMenu();
 
         // Reset selection
@@ -616,7 +612,7 @@ DialogResult AccountsWin::DeleteEntry(const ITEM *pitem)
         AccountRecords::iterator it = records.Find(FT_UUID, prec->GetField(FT_UUID));
         if (it != records.end() && records.Delete(it))
         {
-            DestroyMenu(menu_);
+            DestroyMenu();
             CreateMenu();
         }
     }
