@@ -14,7 +14,7 @@ void SearchBarWin::InitTUI()
         {"Enter", "Exit"},
         {"Esc", "Cancel"},
     };
-    CommandBarWin::ShowActions(m_win, actions);
+    CommandBarWin::ShowActions(app_, m_win, actions);
 
     waddstr(m_win, "Search: ");
 

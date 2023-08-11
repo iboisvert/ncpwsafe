@@ -66,12 +66,11 @@ public:
     // Generate help screen from list of actions
     // void ShowHelp()
 
-    static void ShowActions(WINDOW *win, const std::vector<Action> &actions, int opts = -1);
+    static void ShowActions(const PWSafeApp &app, WINDOW *win, const std::vector<Action> &actions, int opts = -1);
 
 private:
-    PWSafeApp &m_app;
     std::map<void *, std::vector<Action>> m_actions;
-
+    PWSafeApp &m_app;
     WINDOW *m_win = nullptr;
 };
 

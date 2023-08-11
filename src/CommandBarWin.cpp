@@ -9,20 +9,24 @@ const std::vector<Action> CommandBarWin::YES_NO{Action::YES, Action::NO};
 
 void CommandBarWin::Show(void *p, int opts)
 {
-    CommandBarWin::ShowActions(m_win, m_actions.at(p), opts);
+    CommandBarWin::ShowActions(m_app, m_win, m_actions.at(p), opts);
 }
 
 /** Update the command bar with the give actions */
 void CommandBarWin::Show(std::vector<Action> actions)
 {
-    CommandBarWin::ShowActions(m_win, actions, /*opts*/ (int)-1);
+    CommandBarWin::ShowActions(m_app, m_win, actions, /*opts*/ (int)-1);
 }
 
-void CommandBarWin::ShowActions(WINDOW *win, const std::vector<Action> &actions, int opts)
+static const char *STATUS_READ_ONLY = "RO";
+
+void CommandBarWin::ShowActions(const PWSafeApp &app, WINDOW *win, const std::vector<Action> &actions, int opts)
 {
     wattron(win, A_REVERSE/* | A_DIM*/);
 
-    int beg_x = getbegx(win), max_x = getmaxx(win);
+    const bool read_only = app.GetDb().ReadOnly();
+    int status_len = read_only ? 2 : 0;
+    int beg_x = getbegx(win), max_x = getmaxx(win) - status_len;
 
     wmove(win, /*y*/ 0, beg_x);
 
@@ -53,6 +57,10 @@ void CommandBarWin::ShowActions(WINDOW *win, const std::vector<Action> &actions,
         waddch(win, ' ');
 
     whline(win, ' ', max_x-col);
+    if (read_only)
+    {
+        mvwaddstr(win, /*y*/0, max_x, STATUS_READ_ONLY);
+    }
 
     wrefresh(win);
 }
