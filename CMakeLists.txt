@@ -6,6 +6,7 @@ project(ncpwsafe
     LANGUAGES C CXX
 )
 option(BUILD_TESTING "Enable unit tests" ON)
+option(NCPWSAFE_DEBUG_SANITIZE "Enable AddressSanitizer and UBSan, requires full recompile" OFF)
 set(NCPWSAFE_CONFIG_FILE "$HOME/.config/ncpwsafe/ncpwsafe.ini" CACHE FILEPATH "Config file default pathname")
 
 set(NCPWSAFE_APPNAME "${CMAKE_PROJECT_NAME}")
@@ -36,12 +37,14 @@ add_compile_definitions(
 add_compile_options(
     -fPIC -Wall -Wextra
     -Wall -Wextra
-    "$<$<CONFIG:DEBUG>:-g;-O0;-fsanitize=address,undefined>"
+    "$<$<CONFIG:DEBUG>:-g;-O0>"
+    "$<$<AND:$<CONFIG:DEBUG>,$<BOOL:${NCPWSAFE_DEBUG_SANITIZE}>>:-fsanitize=address,undefined>"
 )
 add_link_options(
     -fPIC -Wall -Wextra
     -Wall -Wextra
-    "$<$<CONFIG:DEBUG>:-g;-O0;-fsanitize=address,undefined>"
+    "$<$<CONFIG:DEBUG>:-g;-O0>"
+    "$<$<AND:$<CONFIG:DEBUG>,$<BOOL:${NCPWSAFE_DEBUG_SANITIZE}>>:-fsanitize=address,undefined>"
 )
 
 add_subdirectory(src)
