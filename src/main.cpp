@@ -27,15 +27,6 @@
 using std::fprintf;
 using std::srand;
 
-static constexpr const char *DEFAULT_LANG = "en-CA";
-static constexpr size_t DEFAULT_NGROUP = 10;
-static constexpr size_t DEFAULT_NITEM = 50;
-static constexpr size_t DEFAULT_NPASS = 1;
-static constexpr size_t DEFAULT_PASS_LEN = 20;
-static constexpr unsigned char DEFAULT_PASS_POLICY = 2;
-static constexpr const char *DEFAULT_CONFIG_FILE = "${HOME}/.ncpwsafe.conf";
-
-
 static bool DisableCoreDump()
 {
 #ifndef NDEBUG
@@ -110,11 +101,11 @@ static void Usage(const char *progName)
             "  -h,--help            Display this help text and exit\n",
             progName, 
             cfgfile.c_str(),
-            DEFAULT_LANG, DEFAULT_NGROUP, DEFAULT_NITEM,
-            DEFAULT_NPASS,
-            DEFAULT_PASS_LEN,
+            DEFAULT_GENERATE_LANGUAGE, DEFAULT_GENERATE_GROUP_COUNT, DEFAULT_GENERATE_ITEM_COUNT,
+            DEFAULT_GENERATE_PASSWORD_COUNT,
+            DEFAULT_PASSWORD_LENGTH,
             PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(0)), PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(1)), PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(2)), PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(3)), PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(4)),
-            PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(DEFAULT_PASS_POLICY-1))
+            PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(DEFAULT_PASSWORD_POLICY-1))
     );
     // clang-format on
 }
@@ -299,20 +290,6 @@ static bool ValidateArgs(InputProgArgs &args)
     return result;
 }
 
-void Normalize(InputProgArgs &args)
-{
-    // clang-format off
-    if (!args.m_readOnly) args.m_readOnly = false;
-    if (!args.m_generateLanguage) args.m_generateLanguage = DEFAULT_LANG;
-    if (!args.m_generateGroupCount) args.m_generateGroupCount = DEFAULT_NGROUP;
-    if (!args.m_generateItemCount) args.m_generateItemCount = DEFAULT_NITEM;
-    if (!args.m_generatePasswordCount) args.m_generatePasswordCount = DEFAULT_NPASS;
-    if (!args.m_passwordPolicy) args.m_passwordPolicy = DEFAULT_PASS_POLICY;
-    if (!args.m_passwordLength) args.m_passwordLength = DEFAULT_PASS_LEN;
-    if (!args.config_file_) args.config_file_ = ExpandEnvVars(DEFAULT_CONFIG_FILE);
-    // clang-format on
-}
-
 enum
 {
     O_GENERATE_TEST_DB = 1024,
@@ -475,12 +452,8 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
         return false;
     }
 
-    if (ValidateArgs(args))
-    {
-        Normalize(args);
-        return true;
-    }
-    return false;
+    bool status = ValidateArgs(args);
+    return status;
 }
 
 int main(int argc, char *argv[])
@@ -541,7 +514,7 @@ int main(int argc, char *argv[])
         assert(args.m_generateItemCount);
 
         fprintf(stdout, "Generating test database at %s\n", args.m_database->c_str());
-        [[maybe_unused]] int rc = GenerateTestDbCommand{app, args.m_force,
+        [[maybe_unused]] int rc = GenerateTestDbCommand{app, *args.m_force,
             *args.m_generateLanguage, *args.m_generateGroupCount, *args.m_generateItemCount}.Execute();
         fflush(stdout);
         break;

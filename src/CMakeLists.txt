@@ -17,6 +17,7 @@ list(APPEND SRC
     MessageBox.cpp
     Policy.cpp
     Prefs.cpp
+    ProgArgs.cpp
     PWSafeApp.cpp
     SafeCombinationPromptDlg.cpp
     SearchBarWin.cpp
