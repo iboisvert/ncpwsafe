@@ -51,7 +51,14 @@ public:
         return args_;
     }
 
+    /** Get reference to account database */
     AccountDb &GetDb()
+    {
+        return db_;
+    }
+
+    /** Get reference to account database */
+    const AccountDb &GetDb() const
     {
         return db_;
     }
