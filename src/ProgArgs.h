@@ -106,7 +106,8 @@ struct ProgArgs
         // Empty
     }
 
-    ProgArgs(const InputProgArgs &src)
+    ProgArgs(const InputProgArgs &src) :
+        ProgArgs()
     {
         m_progName = src.m_progName;
         m_command = src.GetCommand();
