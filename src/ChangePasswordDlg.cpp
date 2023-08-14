@@ -84,7 +84,7 @@ DialogResult ChangePasswordDlg::Show(WINDOW *parent)
     DialogResult result = dialog.Show(parent, "Change Password");
     if (result == DialogResult::OK)
     {
-        m_password = dialog.GetValue(FT_PASSWORD);
+        password_ = dialog.GetValue(FT_PASSWORD);
     }
 
     return result;

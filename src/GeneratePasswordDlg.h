@@ -16,7 +16,7 @@ public:
 
     const std::string &GetPassword() const
     {
-        return m_password;
+        return password_;
     }
 
 private:
@@ -33,7 +33,7 @@ private:
 
     PWSafeApp &m_app;
     PasswordPolicy m_pwPolicy;
-    std::string m_password;
+    std::string password_;
     int save_cursor_;
     size_t m_pwPolicyFlagsIndex;
     size_t m_pwPolicyLength;

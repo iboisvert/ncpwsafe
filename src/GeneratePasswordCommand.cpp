@@ -9,9 +9,9 @@ std::vector<std::string> GeneratePasswordCommand::Execute()
 {
     const ProgArgs &args = m_app.GetArgs();
 
-    size_t count = args.m_generatePasswordCount;
-    size_t length = args.m_passwordLength;
-    int policyIndex = args.m_passwordPolicy - 1;
+    size_t count = args.generate_password_count_;
+    size_t length = args.password_length_;
+    int policyIndex = args.password_policy_ - 1;
     PasswordPolicy policy = 
         PasswordPolicy{static_cast<PasswordPolicy::Composition>(policyIndex), length};
 

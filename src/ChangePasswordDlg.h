@@ -15,7 +15,7 @@ public:
 
     const std::string &GetPassword() const
     {
-        return m_password;
+        return password_;
     }
 
 private:
@@ -25,5 +25,5 @@ private:
     bool InputHandler(Dialog &dialog, int ch, DialogResult &result);
 
     PWSafeApp &app_;
-    std::string m_password;
+    std::string password_;
 };

@@ -44,7 +44,7 @@ TEST(AppTest, TestBackupDb_DstDoesntExist)
     std::string db_file("/foo/pwsafe.dat");
 
     PWSafeApp app(fs_mock);
-    app.args_.m_database = db_file;
+    app.args_.database_ = db_file;
 
     fs_mock.canonical_retval = db_file;
     fs_mock.exists_retval = false;
@@ -62,7 +62,7 @@ TEST(AppTest, TestBackupDb_DstDoesExist)
     std::string db_file("/foo/pwsafe.dat");
 
     PWSafeApp app(fs_mock);
-    app.args_.m_database = db_file;
+    app.args_.database_ = db_file;
 
     fs_mock.canonical_retval = db_file;
     fs_mock.exists_retval = true;

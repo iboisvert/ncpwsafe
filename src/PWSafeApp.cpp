@@ -18,17 +18,17 @@ void PWSafeApp::Init(ProgArgs args)
 
     prefs_.ReadPrefs(args_.config_file_);
 
-    db_.ReadOnly() = args.m_readOnly;
+    db_.ReadOnly() = args.read_only_;
 
     // Get progname
-    std::string prog_name = args.m_progName;
+    std::string prog_name = args.prog_name_;
     int pos = prog_name.rfind(L'/');
     if (pos > -1)
     {
         prog_name = prog_name.substr(pos + 1);
     }
 
-    std::string &pathname = args.m_database;
+    std::string &pathname = args.database_;
     // if pathname passed in command line, it takes precedence
     // over that in preference:
     if (pathname.empty())
@@ -40,7 +40,7 @@ void PWSafeApp::Init(ProgArgs args)
         db_.DbPathname() = pathname;
     }
 
-    db_.Password() = args.m_password;
+    db_.Password() = args.password_;
 }
 
 /** Open and edit an account database */
@@ -198,7 +198,7 @@ ResultCode PWSafeApp::BackupDb()
 {
     namespace fs = std::filesystem;
 
-    const std::string &db = GetArgs().m_database;
+    const std::string &db = GetArgs().database_;
     if (db.empty()) return RC_ERR_BACKUP;  // Sanity check
 
     ResultCode status = RC_SUCCESS;

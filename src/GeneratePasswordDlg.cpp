@@ -48,8 +48,8 @@ void GeneratePasswordDlg::UpdatePWLength()
 
 void GeneratePasswordDlg::UpdatePassword()
 {
-    m_password = m_pwPolicy.MakePassword();
-    m_passwordField.Rewrite(m_password.c_str());
+    password_ = m_pwPolicy.MakePassword();
+    m_passwordField.Rewrite(password_.c_str());
 }
 
 DialogResult GeneratePasswordDlg::Show(WINDOW *parent)

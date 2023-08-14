@@ -123,10 +123,10 @@ static bool ValidateArgs(InputProgArgs &args)
 {
     bool result = true;
 
-    size_t ncmds = args.m_cmdGeneratePassword ? 1 : 0 
-            + args.m_cmdExportDb ? 1 : 0 
-            + args.m_cmdGenerateTestDb ? 1 : 0 
-            + args.m_cmdChangeDbPassword ? 1 : 0;
+    size_t ncmds = args.cmd_generate_password_ ? 1 : 0 
+            + args.cmd_export_db_ ? 1 : 0 
+            + args.cmd_generate_test_db_ ? 1 : 0 
+            + args.cmd_change_db_password_ ? 1 : 0;
     if (ncmds > 1)
     {
         result = Error("Only one command may be specified\n");
@@ -136,7 +136,7 @@ static bool ValidateArgs(InputProgArgs &args)
         LOG(WARNING) << "Configuration file \"" << ExpandEnvVars(args.config_file_.value_or("")) << "\" does not exist";
     }
     Operation cmd = args.GetCommand();
-    if (args.m_database)
+    if (args.database_)
     {
         if (cmd != Operation::OPEN_DB 
             && cmd != Operation::GENERATE_TEST_DB 
@@ -144,7 +144,7 @@ static bool ValidateArgs(InputProgArgs &args)
             && cmd != Operation::CHANGE_DB_PASSWORD)
             result = false;
     }
-    if (args.m_password)
+    if (args.password_)
     {
         if (cmd != Operation::OPEN_DB 
             && cmd != Operation::GENERATE_TEST_DB 
@@ -152,76 +152,76 @@ static bool ValidateArgs(InputProgArgs &args)
             && cmd != Operation::CHANGE_DB_PASSWORD)
             result = false;
     }
-    if (args.m_readOnly)
+    if (args.read_only_)
     {
         if (cmd != Operation::OPEN_DB && cmd != Operation::GENERATE_TEST_DB)
             result = false;
     }
-    if (args.m_generateLanguage)
+    if (args.generate_language_)
     {
         if (cmd != Operation::GENERATE_TEST_DB)
             result = false;
         else
         {
-            if (args.m_generateLanguage->compare("en-CA") != 0 && args.m_generateLanguage->compare("ru") != 0)
+            if (args.generate_language_->compare("en-CA") != 0 && args.generate_language_->compare("ru") != 0)
                 result = Error("Valid languages for test database are: en-CA, ru\n");
         }
     }
-    if (args.m_generateGroupCount)
+    if (args.generate_group_count_)
     {
         if (cmd != Operation::GENERATE_TEST_DB)
             result = false;
         else
         {
-            if (*args.m_generateGroupCount < 1)
+            if (*args.generate_group_count_ < 1)
             {
                 result = Error("Test account database group count must be > 0\n");
             }
         }
     }
-    if (args.m_generateItemCount)
+    if (args.generate_item_count_)
     {
         if (cmd != Operation::GENERATE_TEST_DB)
             result = false;
         else
         {
-            if (*args.m_generateItemCount < 1)
+            if (*args.generate_item_count_ < 1)
             {
                 result = Error("Test account database item count must be > 0\n");
             }
         }
     }
-    if (args.m_generatePasswordCount)
+    if (args.generate_password_count_)
     {
         if (cmd != Operation::GENERATE_PASSWORD)
             result = false;
         else
         {
-            if (*args.m_generatePasswordCount < 1)
+            if (*args.generate_password_count_ < 1)
             {
                 result = Error("Generated password count must be > 0\n");
             }
         }
     }
-    if (args.m_passwordPolicy)
+    if (args.password_policy_)
     {
         if (cmd != Operation::GENERATE_PASSWORD)
             result = false;
         else
         {
-            if (*args.m_passwordPolicy > PasswordPolicy::Composition::COUNT)
+            if (*args.password_policy_ > PasswordPolicy::Composition::COUNT)
             {
                 result = Error("Invalid policy for generated passwords\n");
             }
         }
     }
-    if (args.m_passwordLength)
+    if (args.password_length_)
     {
         if (cmd != Operation::GENERATE_PASSWORD)
             result = false;
         else
         {
-            if (*args.m_passwordLength < 1)
+            if (*args.password_length_ < 1)
             {
                 result = Error("Generated password length must be > 0\n");
             }
@@ -230,15 +230,15 @@ static bool ValidateArgs(InputProgArgs &args)
 
     if (cmd == Operation::GENERATE_TEST_DB)
     {
-        if (!args.m_database || args.m_database->empty())
+        if (!args.database_ || args.database_->empty())
         {
             result = Error("Account database file is required\n");
         }
-        else if (!args.m_force && fs::Exists(*args.m_database))
+        else if (!args.force_ && fs::Exists(*args.database_))
         {
-            result = Error("File %s already exists\n", args.m_database->c_str());
+            result = Error("File %s already exists\n", args.database_->c_str());
         }
-        if (!args.m_password || args.m_password->empty())
+        if (!args.password_ || args.password_->empty())
         {
             result = Error("Account database password is required\n");
         }
@@ -246,43 +246,43 @@ static bool ValidateArgs(InputProgArgs &args)
 
     if (cmd == Operation::EXPORT_DB)
     {
-        if (!args.m_database || args.m_database->empty())
+        if (!args.database_ || args.database_->empty())
         {
             result = Error("Account database file is required\n");
         }
-        else if (!fs::Exists(*args.m_database))
+        else if (!fs::Exists(*args.database_))
         {
-            result = Error("Account database file %s does not exist\n", args.m_database->c_str());
+            result = Error("Account database file %s does not exist\n", args.database_->c_str());
         }
-        if (!args.m_password || args.m_password->empty())
+        if (!args.password_ || args.password_->empty())
         {
             result = Error("Account database password is required\n");
         }
-        if (!args.m_outputFile || args.m_outputFile->empty())
+        if (!args.output_file_ || args.output_file_->empty())
         {
             result = Error("Output file is required\n");
         }
-        if (!args.m_force && fs::Exists(*args.m_outputFile))
+        if (!args.force_ && fs::Exists(*args.output_file_))
         {
-            result = Error("Output file %s already exists\n", args.m_outputFile->c_str());
+            result = Error("Output file %s already exists\n", args.output_file_->c_str());
         }
     }
 
     if (cmd == Operation::CHANGE_DB_PASSWORD)
     {
-        if (!args.m_database || args.m_database->empty())
+        if (!args.database_ || args.database_->empty())
         {
             result = Error("Account database file is required\n");
         }
-        else if (!fs::Exists(*args.m_database))
+        else if (!fs::Exists(*args.database_))
         {
-            result = Error("Account database file %s does not exist\n", args.m_database->c_str());
+            result = Error("Account database file %s does not exist\n", args.database_->c_str());
         }
-        if (!args.m_password || args.m_password->empty())
+        if (!args.password_ || args.password_->empty())
         {
             result = Error("Account database password is required\n");
         }
-        if (!args.m_newPassword || args.m_newPassword->empty())
+        if (!args.new_password_ || args.new_password_->empty())
         {
             result = Error("New account database password is required\n");
         }
@@ -330,7 +330,7 @@ static constexpr struct option options[] {
 
 static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
 {
-    args.m_progName = argv[0];
+    args.prog_name_ = argv[0];
 
     if (argc < 2)
         return true;
@@ -347,17 +347,17 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
             break;
         }
         case 'f': {
-            args.m_force = true;
+            args.force_ = true;
             break;
         }
         case O_GENERATE_PASSWORD: {
-            args.m_cmdGeneratePassword = true;
+            args.cmd_generate_password_ = true;
             break;
         }
         case O_PASSWORD_COUNT: {
             assert(optarg);
             char *pstr = optarg, *pend;
-            args.m_generatePasswordCount = strtoul(pstr, &pend, 10);
+            args.generate_password_count_ = strtoul(pstr, &pend, 10);
             break;
         }
         case O_PASSWORD_POLICY: {
@@ -377,58 +377,58 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
                     }
                 }
             }
-            args.m_passwordPolicy = policy;
+            args.password_policy_ = policy;
             break;
         }
         case O_PASSWORD_LENGTH: {
             assert(optarg);
-            args.m_passwordLength = strtoul(optarg, nullptr, 10);
+            args.password_length_ = strtoul(optarg, nullptr, 10);
             break;
         }
         case O_EXPORT_DB: {
-            args.m_cmdExportDb = true;
+            args.cmd_export_db_ = true;
             break;
         }
         case 'o': {
             assert(optarg);
-            args.m_outputFile = optarg;
+            args.output_file_ = optarg;
             break;
         }
         case O_CHANGE_PASSWORD: {
-            args.m_cmdChangeDbPassword = true;
+            args.cmd_change_db_password_ = true;
             break;
         }
         case O_NEW_PASSWORD: {
             assert(optarg);
-            args.m_newPassword = optarg;
+            args.new_password_ = optarg;
             break;
         }
         case O_GENERATE_TEST_DB: {
-            args.m_cmdGenerateTestDb = true;
+            args.cmd_generate_test_db_ = true;
             break;
         }
         case O_TEST_DB_LANG: {
             assert(optarg);
-            args.m_generateLanguage = optarg;
+            args.generate_language_ = optarg;
             break;
         }
         case O_TEST_DB_GROUPS: {
             assert(optarg);
-            args.m_generateGroupCount = strtoul(optarg, nullptr, 10);
+            args.generate_group_count_ = strtoul(optarg, nullptr, 10);
             break;
         }
         case O_TEST_DB_ITEMS: {
             assert(optarg);
-            args.m_generateItemCount = strtoul(optarg, nullptr, 10);
+            args.generate_item_count_ = strtoul(optarg, nullptr, 10);
             break;
         }
         case 'P': {
             assert(optarg);
-            args.m_password = optarg;
+            args.password_ = optarg;
             break;
         }
         case 'r': {
-            args.m_readOnly = true;
+            args.read_only_ = true;
             break;
         }
         case 'h': {
@@ -445,7 +445,7 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
     if (count == 1)
     {
         const char *filename = argv[optind];
-        args.m_database = filename;
+        args.database_ = filename;
     }
     else if (count > 1)
     {
@@ -489,9 +489,9 @@ int main(int argc, char *argv[])
     }
     case Operation::CHANGE_DB_PASSWORD: 
     {
-        assert(args.m_newPassword);
+        assert(args.new_password_);
 
-        int rc = ChangeDbPasswordCommand{app, *args.m_newPassword}.Execute();
+        int rc = ChangeDbPasswordCommand{app, *args.new_password_}.Execute();
         if (rc == RC_SUCCESS)
         {
             fprintf(stdout, "Account database password changed\n");
@@ -509,21 +509,21 @@ int main(int argc, char *argv[])
     }
     case Operation::GENERATE_TEST_DB:
     {
-        assert(args.m_generateLanguage);
-        assert(args.m_generateGroupCount);
-        assert(args.m_generateItemCount);
+        assert(args.generate_language_);
+        assert(args.generate_group_count_);
+        assert(args.generate_item_count_);
 
-        fprintf(stdout, "Generating test database at %s\n", args.m_database->c_str());
-        [[maybe_unused]] int rc = GenerateTestDbCommand{app, *args.m_force,
-            *args.m_generateLanguage, *args.m_generateGroupCount, *args.m_generateItemCount}.Execute();
+        fprintf(stdout, "Generating test database at %s\n", args.database_->c_str());
+        [[maybe_unused]] int rc = GenerateTestDbCommand{app, *args.force_,
+            *args.generate_language_, *args.generate_group_count_, *args.generate_item_count_}.Execute();
         fflush(stdout);
         break;
     }
     case Operation::GENERATE_PASSWORD: 
     {
-        size_t count = *args.m_generatePasswordCount;
-        size_t length = *args.m_passwordLength;
-        int policyIndex = *args.m_passwordPolicy - 1;
+        size_t count = *args.generate_password_count_;
+        size_t length = *args.password_length_;
+        int policyIndex = *args.password_policy_ - 1;
         const char *policyName = PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(policyIndex));
         fprintf(stdout, "Generating %zd password%s of length %zd using policy %s\n", count, count == 1 ? "" : "s",
                 length, policyName);
@@ -537,14 +537,14 @@ int main(int argc, char *argv[])
     }
     case Operation::EXPORT_DB: 
     {
-        assert(args.m_outputFile);
+        assert(args.output_file_);
 
         fprintf(stdout,
                 "Exporting account database at %s\n"
                 "Warning! The exported file will contain unencrypted passwords.\n"
                 "You should securely delete the file when it is no longer needed.\n",
-                args.m_outputFile->c_str());
-        int rc = ExportDbCommand{app, *args.m_outputFile}.Execute();
+                args.output_file_->c_str());
+        int rc = ExportDbCommand{app, *args.output_file_}.Execute();
         if (rc != RC_SUCCESS)
         {
             result = static_cast<int>(RC_FAILURE);
@@ -554,7 +554,7 @@ int main(int argc, char *argv[])
             }
             else if (rc == RC_ERR_INCORRECT_PASSWORD)
             {
-                fprintf(stderr, "An error occurred reading database file %s\n", args.m_database->c_str());
+                fprintf(stderr, "An error occurred reading database file %s\n", args.database_->c_str());
             }
             else
             {

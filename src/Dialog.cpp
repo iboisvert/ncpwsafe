@@ -191,7 +191,7 @@ DialogResult Dialog::ProcessInput()
         {
         // Possibly add "apply" command ^A to apply changes and continue editing
         case KEY_CTRL('S'): {
-            if (!m_readOnly)
+            if (!read_only_)
             {
                 // Required to synchronize window to buffer
                 form_driver(form_, REQ_VALIDATION);
@@ -206,7 +206,7 @@ DialogResult Dialog::ProcessInput()
             break;
         }
         case KEY_CTRL('X'): {
-            if (m_readOnly)
+            if (read_only_)
             {
                 goto done;
             }
@@ -257,21 +257,21 @@ DialogResult Dialog::ProcessInput()
             break;
         }
         case KEY_BACKSPACE: {
-            if (!m_readOnly)
+            if (!read_only_)
             {
                 form_driver(form_, REQ_DEL_PREV);
             }
             break;
         }
         case KEY_DC: {
-            if (!m_readOnly)
+            if (!read_only_)
             {
                 form_driver(form_, REQ_DEL_CHAR);
             }
             break;
         }
         default: {
-            if (!m_readOnly)
+            if (!read_only_)
             {
                 form_driver(form_, ch);
             }

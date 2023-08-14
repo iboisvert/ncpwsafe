@@ -66,7 +66,7 @@ public:
     Dialog(PWSafeApp &app, const std::vector<DialogField> &fields, bool readOnly = false,
         Callback validateCallback = &DefaultFormValidate, Callback discardChangesCallback = &DefaultDiscardChanges,
         InputHandler inputDelegate = &DefaultInputDelegate)
-        : m_app(app), m_dialogFields(fields), m_readOnly(readOnly), m_inputDelegate(inputDelegate),
+        : m_app(app), m_dialogFields(fields), read_only_(readOnly), m_inputDelegate(inputDelegate),
           m_validateCallback(validateCallback), m_discardChangesCallback(discardChangesCallback)
     {
         ConstructFields();
@@ -94,7 +94,7 @@ public:
 
     bool IsReadOnly() const
     {
-        return m_readOnly;
+        return read_only_;
     }
 
     /** Gets the curses `FIELD` for the given `FieldType` */
@@ -124,7 +124,7 @@ private:
     PWSafeApp &m_app;
 
     const std::vector<DialogField> &m_dialogFields;
-    bool m_readOnly = false;
+    bool read_only_ = false;
     InputHandler m_inputDelegate;
     Callback m_validateCallback;
     Callback m_discardChangesCallback;

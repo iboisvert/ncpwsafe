@@ -104,7 +104,7 @@ DialogResult SafeCombinationPromptDlg::Show(WINDOW *parent)
     {
         // Retrieve values from dialog fields
         m_filename = dialog.GetValue(FT_FILEPATH);
-        m_password = dialog.GetValue(FT_PASSWORD);
+        password_ = dialog.GetValue(FT_PASSWORD);
     }
     return result;
 }

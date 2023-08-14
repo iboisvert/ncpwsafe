@@ -21,14 +21,14 @@ public:
 
     std::string GetPassword()
     {
-        return m_password;
+        return password_;
     }
 
 private:
     PWSafeApp &app_;
 
     std::string m_filename;
-    std::string m_password;
+    std::string password_;
 
     WINDOW *m_parentWin = nullptr;
 
