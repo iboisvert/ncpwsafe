@@ -36,12 +36,12 @@ struct AccountDb
     /** Database read-only flag, default `false` */
     bool &ReadOnly()
     {
-        return readonly_;
+        return read_only_;
     }
     /** Database read-only flag, default `false` */
     const bool &ReadOnly() const
     {
-        return readonly_;
+        return read_only_;
     }
 
     /** Check if file at DbPathname() exists. */
@@ -89,7 +89,7 @@ struct AccountDb
 private:
     std::string db_pathname_;
     std::string password_;
-    bool readonly_ = false;
+    bool read_only_ = false;
     bool dirty_ = false;
     AccountRecords records_;
 

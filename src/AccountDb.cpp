@@ -46,7 +46,7 @@ PwsDbRecord *AccountDb::ConvertToPwsafeRecords()
 
 bool AccountDb::WriteDb(int *rc)
 {
-    if (readonly_)
+    if (read_only_)
     {
         SetResultCode(rc, RC_ERR_READONLY);
         return false;
