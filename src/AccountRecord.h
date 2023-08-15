@@ -63,7 +63,7 @@ public:
         const char *value = nullptr;
         if (it != fields_.end())
         {
-            value = it->second.c_str();
+            value = fields_.at(field_type).c_str();
         }
         if (!value) value = default_value;
         return value;
