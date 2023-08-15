@@ -131,10 +131,10 @@ static bool ValidateArgs(InputProgArgs &args)
     {
         result = Error("Only one command may be specified\n");
     }
-    if (args.config_file_ && !fs::Exists(*args.config_file_))
-    {
-        LOG(WARNING) << "Configuration file \"" << ExpandEnvVars(args.config_file_.value_or("")) << "\" does not exist";
-    }
+
+    LOG_IF(INFO, args.config_file_ && !fs::Exists(*args.config_file_)) 
+        << "Configuration file \"" << ExpandEnvVars(args.config_file_.value_or("")) << "\" does not exist";
+
     Operation cmd = args.GetCommand();
     if (args.database_)
     {
