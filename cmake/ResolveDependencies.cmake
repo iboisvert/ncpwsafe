@@ -4,10 +4,10 @@ macro(resolve_dependencies)
 
     FetchContent_Declare(
         libpwsafe
-        # GIT_REPOSITORY https://github.com/iboisvert/libpwsafe.git
-        # GIT_TAG HEAD
+        GIT_REPOSITORY https://github.com/iboisvert/libpwsafe.git
+        GIT_TAG HEAD
         # URL https://github.com/iboisvert/libpwsafe/archive/refs/heads/main.zip
-        SOURCE_DIR /workspaces/libpwsafe
+        # SOURCE_DIR /workspaces/libpwsafe
         )
     set(LIBPWSAFE_BUILD_DOCS OFF CACHE INTERNAL "Disable libpwsafe docs")
     set(LIBPWSAFE_BUILD_TESTS OFF CACHE INTERNAL "Disable libpwsafe tests")
