@@ -75,6 +75,7 @@ DialogResult PWSafeApp::Show()
             {
                 if (db_.ReadDb())
                 {
+                    db_.ClearDirty();
                     dr = accountswin_->Show();
                 }
                 else

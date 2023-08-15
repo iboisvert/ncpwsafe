@@ -47,10 +47,15 @@ struct AccountDb
     /** Check if file at DbPathname() exists. */
     bool Exists() const;
 
-    // IMB 2023-02-02 Want to be able to track if database records have changed
+    /** Returns `true` if the collection or elements of the collection have been modified */
     bool IsDirty() const
     {
         return records_.IsDirty();
+    }
+    /** Resets the dirty state to `false` */
+    void ClearDirty() const
+    {
+        records_.ClearDirty();
     }
     
     /** Database account records collection. */
@@ -90,7 +95,6 @@ private:
     std::string db_pathname_;
     std::string password_;
     bool read_only_ = false;
-    bool dirty_ = false;
     AccountRecords records_;
 
     /** 

@@ -13,7 +13,7 @@ class AccountRecords
     static bool CompareRecords(const AccountRecord &a, const AccountRecord &b);
 
     std::set<AccountRecord, bool (*)(const AccountRecord &, const AccountRecord &)> records_;
-    bool dirty_;
+    mutable bool dirty_ = false;
 
 public:
     typedef decltype(records_)::iterator iterator;
@@ -80,6 +80,11 @@ public:
     bool IsDirty() const
     {
         return dirty_;
+    }
+    /** Resets the dirty state to `false` */
+    void ClearDirty() const
+    {
+        dirty_ = false;
     }
 };
 
