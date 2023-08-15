@@ -24,7 +24,7 @@ PwsDbRecord *AccountRecord::ToPwsDbRecord(PwsDbRecord *phead) const
     PwsDbRecord *prec = pws_add_record(phead);
     if (prec)
     {
-        for (auto &entry : m_fields)
+        for (auto &entry : fields_)
         {
             const PwsFieldType field_type = (PwsFieldType)entry.first;
             const char *value = entry.second.c_str();

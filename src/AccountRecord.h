@@ -11,7 +11,7 @@
 
 class AccountRecord
 {
-    std::map<uint8_t, std::string> m_fields;
+    std::map<uint8_t, std::string> fields_;
     bool dirty_ = false;
 
 public:
@@ -21,11 +21,11 @@ public:
 
     AccountRecord(const AccountRecord &src)
     {
-        this->m_fields = src.m_fields;
+        this->fields_ = src.fields_;
     }
 
     AccountRecord(std::initializer_list<value_type> fields):
-        m_fields(fields)
+        fields_(fields)
     {
         // empty
     }
@@ -54,14 +54,14 @@ public:
 
     bool operator==(const AccountRecord &other) const
     {
-        return m_fields == other.m_fields;
+        return fields_ == other.fields_;
     }
 
     const char *GetField(uint8_t field_type, const char *default_value = nullptr) const
     {
-        auto it = m_fields.find(field_type);
+        auto it = fields_.find(field_type);
         const char *value = nullptr;
-        if (it != m_fields.end())
+        if (it != fields_.end())
         {
             value = it->second.c_str();
         }
@@ -73,12 +73,12 @@ public:
     {
         if (value && *value)
         {
-            m_fields[field_type] = value;
+            fields_[field_type] = value;
             dirty_ = true;
         }
         else
         {
-            m_fields.erase(field_type);
+            fields_.erase(field_type);
         }
     }
 
@@ -92,7 +92,7 @@ public:
     friend void swap(AccountRecord &src, AccountRecord &dst)
     {
         using std::swap;
-        swap(src.m_fields, dst.m_fields);
+        swap(src.fields_, dst.fields_);
     }
 };
 

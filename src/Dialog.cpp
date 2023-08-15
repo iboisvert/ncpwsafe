@@ -18,7 +18,7 @@ Dialog &Dialog::SetActiveField(PwsFieldType ft)
 
 void Dialog::ConstructFields()
 {
-    m_fields.clear();
+    fields_.clear();
     m_maxFieldWidth = 0;
     // Fields are contained by a subwindow that is
     // moved to align with labels
@@ -37,10 +37,10 @@ void Dialog::ConstructFields()
         field_opts_off(field, df.m_fieldOptsOff);
         set_field_back(field, A_UNDERLINE);
         set_field_buffer(field, /*buf*/ 0, df.m_value.c_str());
-        m_fields.push_back(field);
+        fields_.push_back(field);
     }
     // End of fields marker
-    m_fields.push_back(NULL);
+    fields_.push_back(NULL);
 }
 
 DialogResult Dialog::Show(WINDOW *parent, const std::string &title)
@@ -80,7 +80,7 @@ void Dialog::InitTUI(const std::string &title)
     int max_y, max_x, beg_x, beg_y;
     getmaxyx(m_parentWin, max_y, max_x);
     getbegyx(m_parentWin, beg_y, beg_x);
-    int nlines = m_fields.size();
+    int nlines = fields_.size();
     int ncols = m_maxFieldWidth + max_label_width + 1;
     int begin_y = (max_y - nlines + beg_y) / 2;
     int begin_x = (max_x - ncols + beg_x) / 2;
@@ -97,7 +97,7 @@ void Dialog::InitTUI(const std::string &title)
     Label::WriteJustified(m_win, /*y*/ 0, /*begin_x*/ 2, ncols + 4, title.c_str(), JUSTIFY_CENTER);
 
     int label_begin_x = 2, form_begin_y = 2, form_begin_x = max_label_width + label_begin_x + 1;
-    form_ = new_form(m_fields.data());
+    form_ = new_form(fields_.data());
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-value"
     assert(("Unexpected form null", form_));
@@ -133,11 +133,11 @@ void Dialog::EndTUI()
     unpost_form(form_);
     free_form(form_);
     form_ = nullptr;
-    for (FIELD *field : m_fields)
+    for (FIELD *field : fields_)
     {
         free_field(field);
     }
-    m_fields.clear();
+    fields_.clear();
 
     del_panel(m_panel);
     m_panel = nullptr;
@@ -167,9 +167,9 @@ static std::string GetFieldValue(const FIELD *field)
 void Dialog::SaveData()
 {
     // Ignore the null terminator field at the end of the field vector
-    for (size_t i = 0; i < m_fields.size() - 1; ++i)
+    for (size_t i = 0; i < fields_.size() - 1; ++i)
     {
-        const FIELD *field = m_fields[i];
+        const FIELD *field = fields_[i];
         const PwsFieldType ft = reinterpret_cast<const DialogField*>(field_userptr(field))->m_fieldType;
         m_values[ft] = GetFieldValue(field);
     }
@@ -296,16 +296,16 @@ bool Dialog::DiscardChanges()
 
 void Dialog::RandomizeBuffers()
 {
-    ZeroFieldsBuffer(m_fields.data());
+    ZeroFieldsBuffer(fields_.data());
 }
 
 FIELD *Dialog::GetField(PwsFieldType ft) const
 {
     FIELD *retval = nullptr;
-    auto it = std::find_if(m_fields.begin(), m_fields.end(), [ft](FIELD *field){
+    auto it = std::find_if(fields_.begin(), fields_.end(), [ft](FIELD *field){
         return reinterpret_cast<const DialogField *>(field_userptr(field))->m_fieldType == ft;
     });
-    if (it != m_fields.end())
+    if (it != fields_.end())
     {
         retval = *it;
     }

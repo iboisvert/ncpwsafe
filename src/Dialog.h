@@ -136,7 +136,7 @@ private:
     PANEL *m_panel = nullptr;
     WINDOW *m_formWin = nullptr;
     FORM *form_ = nullptr;
-    std::vector<FIELD *> m_fields;
+    std::vector<FIELD *> fields_;
     FIELD *m_activeField = nullptr;
     int save_cursor_ = 0;
 };
