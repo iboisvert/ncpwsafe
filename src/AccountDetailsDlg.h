@@ -47,6 +47,6 @@ private:
     PWSafeApp &app_;
 
     AccountRecord account_rec_;
-    const AccountRecord &m_itemOrig;
+    const AccountRecord &save_account_rec_;
     std::string m_confirmPassword;
 };

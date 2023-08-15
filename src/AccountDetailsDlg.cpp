@@ -10,7 +10,7 @@
 #include "AccountsWin.h"
 
 AccountDetailsDlg::AccountDetailsDlg(PWSafeApp &app, const AccountRecord &item)
-    : app_(app), account_rec_(item), m_itemOrig(item)
+    : app_(app), account_rec_(item), save_account_rec_(item)
 {
     app_.GetCommandBar().Register(this, {
         {~CBOPTS_READONLY, "^S", "Save and close"},
@@ -28,21 +28,21 @@ bool AccountDetailsDlg::DiscardChanges(const Dialog &dialog)
 {
     bool retval = true;
 
-    bool readOnly = dialog.IsReadOnly();
-    if (!readOnly)
+    bool read_only = dialog.IsReadOnly();
+    if (!read_only)
     {
-        app_.GetCommandBar().Show(CommandBarWin::YES_NO);
-
         SaveData(dialog);
-        if (!(account_rec_ == m_itemOrig))
+        if (!(account_rec_ == save_account_rec_))
         {
+            app_.GetCommandBar().Show(CommandBarWin::YES_NO);
+
             // Ask for confirmation
             const char *msg = "The account entry has changed. Discard changes?";
             WINDOW *win = dialog.GetParentWindow();
             DialogResult result = MessageBox(app_).Show(win, msg, &YesNoKeyHandler);
             retval = result == DialogResult::YES;
 
-            SetCommandBarWin(readOnly);
+            SetCommandBarWin(read_only);
         }
     }
     return retval;
@@ -65,9 +65,9 @@ bool AccountDetailsDlg::ValidateForm(const Dialog &dialog)
 bool AccountDetailsDlg::InputHandler(Dialog &dialog, int ch, DialogResult &/*result*/)
 {
     WINDOW *win = dialog.GetParentWindow();
-    const bool readOnly = dialog.IsReadOnly();
+    const bool read_only = dialog.IsReadOnly();
 
-    if (!readOnly && ch == KEY_CTRL('C'))
+    if (!read_only && ch == KEY_CTRL('C'))
     {
         ChangePasswordDlg pwprompt(app_);
         if (pwprompt.Show(win) == DialogResult::OK)
@@ -77,7 +77,7 @@ bool AccountDetailsDlg::InputHandler(Dialog &dialog, int ch, DialogResult &/*res
             set_field_buffer(field, /*buf*/ 0, newPassword.c_str());
         }
 
-        SetCommandBarWin(readOnly);
+        SetCommandBarWin(read_only);
     }
     else if (ch == KEY_CTRL('V'))
     {
@@ -103,9 +103,9 @@ bool AccountDetailsDlg::InputHandler(Dialog &dialog, int ch, DialogResult &/*res
     return false;
 }
 
-void AccountDetailsDlg::SetCommandBarWin(bool readOnly)
+void AccountDetailsDlg::SetCommandBarWin(bool read_only)
 {
-    const unsigned char opts = readOnly ? CBOPTS_READONLY : ~CBOPTS_READONLY;
+    const unsigned char opts = read_only ? CBOPTS_READONLY : ~CBOPTS_READONLY;
     app_.GetCommandBar().Show(this, opts);
 }
 
@@ -131,11 +131,11 @@ void AccountDetailsDlg::SaveData(const Dialog &dialog)
 }
 
 /** Show the account details */
-DialogResult AccountDetailsDlg::Show(WINDOW *parent, bool readOnly)
+DialogResult AccountDetailsDlg::Show(WINDOW *parent, bool read_only)
 {
     using std::placeholders::_1, std::placeholders::_2, std::placeholders::_3;
 
-    SetCommandBarWin(readOnly);
+    SetCommandBarWin(read_only);
 
     constexpr const char * EMPTY_STR = "";
 
@@ -152,7 +152,7 @@ DialogResult AccountDetailsDlg::Show(WINDOW *parent, bool readOnly)
     auto f_validate = std::bind(&AccountDetailsDlg::ValidateForm, this, _1);
     auto f_discardChanges = std::bind(&AccountDetailsDlg::DiscardChanges, this, _1);
     auto f_inputHandler = std::bind(&AccountDetailsDlg::InputHandler, this, _1, _2, _3);
-    Dialog dialog(app_, fields, readOnly, f_validate, f_discardChanges, f_inputHandler);
+    Dialog dialog(app_, fields, read_only, f_validate, f_discardChanges, f_inputHandler);
     DialogResult result = dialog.Show(parent, "View Account");
     if (result == DialogResult::OK)
     {
