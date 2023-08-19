@@ -10,10 +10,10 @@ class PWSafeApp;
 class ExportDbCommand
 {
     PWSafeApp &app_;
-    std::string &output_pathname_;
+    const std::string &output_pathname_;
 
 public:
-    ExportDbCommand(PWSafeApp &app, std::string &output_pathname) : app_(app), output_pathname_{output_pathname} {}
+    ExportDbCommand(PWSafeApp &app, const std::string &output_pathname) : app_(app), output_pathname_{output_pathname} {}
     int Execute();
 };
 

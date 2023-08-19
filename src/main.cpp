@@ -466,8 +466,8 @@ int main(int argc, char *argv[])
     if (!DisableCoreDump())
         return false;
 
-    InputProgArgs args;
-    if (!ParseArgs(argc, argv, args))
+    InputProgArgs input_args;
+    if (!ParseArgs(argc, argv, input_args))
     {
         Usage(basename(argv[0]));
         return PRC_ERR_FAIL;
@@ -476,10 +476,11 @@ int main(int argc, char *argv[])
     srand(time(0));
 
     PWSafeApp app;
-    app.Init(args);
+    app.Init(input_args);
+    const ProgArgs &args = app.GetArgs();
 
     int result = static_cast<int>(RC_SUCCESS);
-    switch (args.GetCommand())
+    switch (args.command_)
     {
     case Operation::OPEN_DB: 
     {
@@ -490,9 +491,7 @@ int main(int argc, char *argv[])
     }
     case Operation::CHANGE_DB_PASSWORD: 
     {
-        assert(args.new_password_);
-
-        int rc = ChangeDbPasswordCommand{app, *args.new_password_}.Execute();
+        int rc = ChangeDbPasswordCommand{app, args.new_password_}.Execute();
         if (rc == RC_SUCCESS)
         {
             fprintf(stdout, "Account database password changed\n");
@@ -510,21 +509,17 @@ int main(int argc, char *argv[])
     }
     case Operation::GENERATE_TEST_DB:
     {
-        assert(args.generate_language_);
-        assert(args.generate_group_count_);
-        assert(args.generate_item_count_);
-
-        fprintf(stdout, "Generating test database at %s\n", args.database_->c_str());
-        [[maybe_unused]] int rc = GenerateTestDbCommand{app, *args.force_,
-            *args.generate_language_, *args.generate_group_count_, *args.generate_item_count_}.Execute();
+        fprintf(stdout, "Generating test database at %s\n", args.database_.c_str());
+        [[maybe_unused]] int rc = GenerateTestDbCommand{app, args.force_,
+            args.generate_language_, args.generate_group_count_, args.generate_item_count_}.Execute();
         fflush(stdout);
         break;
     }
     case Operation::GENERATE_PASSWORD: 
     {
-        size_t count = *args.generate_password_count_;
-        size_t length = *args.password_length_;
-        int policyIndex = *args.password_policy_ - 1;
+        size_t count = args.generate_password_count_;
+        size_t length = args.password_length_;
+        int policyIndex = args.password_policy_ - 1;
         const char *policyName = PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(policyIndex));
         fprintf(stdout, "Generating %zd password%s of length %zd using policy %s\n", count, count == 1 ? "" : "s",
                 length, policyName);
@@ -538,14 +533,12 @@ int main(int argc, char *argv[])
     }
     case Operation::EXPORT_DB: 
     {
-        assert(args.output_file_);
-
         fprintf(stdout,
                 "Exporting account database at %s\n"
                 "Warning! The exported file will contain unencrypted passwords.\n"
                 "You should securely delete the file when it is no longer needed.\n",
-                args.output_file_->c_str());
-        int rc = ExportDbCommand{app, *args.output_file_}.Execute();
+                args.output_file_.c_str());
+        int rc = ExportDbCommand{app, args.output_file_}.Execute();
         if (rc != RC_SUCCESS)
         {
             result = static_cast<int>(RC_FAILURE);
@@ -555,7 +548,7 @@ int main(int argc, char *argv[])
             }
             else if (rc == RC_ERR_INCORRECT_PASSWORD)
             {
-                fprintf(stderr, "An error occurred reading database file %s\n", args.database_->c_str());
+                fprintf(stderr, "An error occurred reading database file %s\n", args.database_.c_str());
             }
             else
             {
