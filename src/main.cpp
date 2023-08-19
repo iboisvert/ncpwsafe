@@ -65,7 +65,7 @@ static void Usage(const char *progName)
             "                       Default is %s\n"
             "  DATABASE_FILE        The account database file\n"
             "  -P,--password=STR    Account database password\n"
-            "  -f,--force           Force overwrite output file\n"
+            "  --force              Force overwrite output file\n"
             "\n"
             "Open database options:\n"
             "  -r,--read-only       Open database as read-only\n"
@@ -302,7 +302,8 @@ enum
     O_PASSWORD_LENGTH,
     O_EXPORT_DB,
     O_CHANGE_PASSWORD,
-    O_NEW_PASSWORD
+    O_NEW_PASSWORD,
+    OPT_FORCE
 };
 
 // clang-format off
@@ -322,7 +323,7 @@ static constexpr struct option options[] {
     {"out", required_argument, nullptr, 'o'},
     {"change-password", no_argument, nullptr, O_CHANGE_PASSWORD},
     {"new-password", required_argument, nullptr, O_NEW_PASSWORD},
-    {"force", no_argument, nullptr, 'f'},
+    {"force", no_argument, nullptr, OPT_FORCE},
     {"config", required_argument, nullptr, 'c'},
     {nullptr, 0, nullptr, 0},
 };
@@ -337,7 +338,7 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
 
     int option_index = 0;
     int c;
-    while ((c = getopt_long(argc, argv, "c:fo:P:r", options, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "c:o:P:r", options, &option_index)) != -1)
     {
         switch (c)
         {
@@ -346,7 +347,7 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
             args.config_file_ = optarg;
             break;
         }
-        case 'f': {
+        case OPT_FORCE: {
             args.force_ = true;
             break;
         }
