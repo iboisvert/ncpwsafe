@@ -13,8 +13,19 @@ namespace cpptoml
 
 struct Prefs
 {
+    /** Account database file pathname, string */
     static constexpr const char *DB_PATHNAME = "db-pathname";
+    /** 
+     * Backup account database file before saving, boolean.
+     * If `true`, backup of account database will be created before saving.
+     * If `false`, no backup will be created, existing backups will not be removed.
+     */
     static constexpr const char *BACKUP_BEFORE_SAVE = "backup-before-save";
+    /** 
+     * Count of backup database files to maintain, integer.
+     * Backup database files older than count will be removed 
+     * when a new backup is saved.
+     */
     static constexpr const char *BACKUP_COUNT = "backup-count";
 
     /**
