@@ -55,9 +55,12 @@ bool AccountRecord::FieldContainsCaseInsensitive(uint8_t field_type, const std::
 }
 
 /**
- * Compare a field in two `AccountRecord`s, return `true` if fields 
- * are equal.
- * If either field does not contain field `field_type`, returns `false`
+ * Compare a field in two account records.
+ * 
+ * \returns
+ *   If either record does not contain field `field_type`, returns `false`.
+ *   If both records contain field `field_type` and values are equal, return `true`,
+ *     otherwise returns `false`.
 */
 bool FieldCompare(uint8_t field_type, const AccountRecord &a, const AccountRecord &b)
 {
