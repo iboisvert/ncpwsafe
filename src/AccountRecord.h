@@ -12,7 +12,7 @@
 class AccountRecord
 {
     std::map<uint8_t, std::string> fields_;
-    bool dirty_ = false;
+    mutable bool dirty_ = false;
 
 public:
     typedef std::map<uint8_t, std::string>::value_type value_type;
@@ -28,6 +28,17 @@ public:
         fields_(fields)
     {
         // empty
+    }
+
+    /** Returns `true` if any field has been modified */
+    bool IsDirty() const
+    {
+        return dirty_;
+    }
+    /** Resets the dirty state to `false` */
+    void ClearDirty() const
+    {
+        dirty_ = false;
     }
 
     static AccountRecord FromPwsDbRecord(const PwsDbRecord *prec);
@@ -47,8 +58,11 @@ public:
 
     AccountRecord &operator =(AccountRecord src)
     {
-        swap(*this, src);
-        dirty_ = true;
+        if (fields_ != src.fields_)
+        {
+            swap(*this, src);
+            dirty_ = true;
+        }
         return *this;
     }
 

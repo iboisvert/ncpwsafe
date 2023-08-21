@@ -100,12 +100,17 @@ public:
     /** Returns `true` if the collection or elements of the collection have been modified */
     bool IsDirty() const
     {
-        return dirty_;
+        return dirty_ || std::any_of(records_.begin(), records_.end(), [](const AccountRecord &rec) {
+            return rec.IsDirty();
+        });
     }
     /** Resets the dirty state to `false` */
     void ClearDirty() const
     {
         dirty_ = false;
+        std::for_each(records_.begin(), records_.end(), [](const AccountRecord &rec) {
+            rec.ClearDirty();
+        });
     }
 };
 
