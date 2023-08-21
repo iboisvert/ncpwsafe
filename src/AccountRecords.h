@@ -2,30 +2,41 @@
 #ifndef HAVE_ACCOUNTRECORDS_H
 #define HAVE_ACCOUNTRECORDS_H
 
-#include <set>
+#include <vector>
 #include <string>
 #include <algorithm>
+
 #include "libicu.h"
 #include "AccountRecord.h"
 
 class AccountRecords
 {
+public:
+    typedef std::vector<AccountRecord> AccountRecordCollection;
+    typedef AccountRecordCollection::iterator iterator;
+    typedef AccountRecordCollection::const_iterator const_iterator;
+
+private:
     static bool CompareRecords(const AccountRecord &a, const AccountRecord &b);
 
-    std::set<AccountRecord, bool (*)(const AccountRecord &, const AccountRecord &)> records_;
+    AccountRecordCollection records_;
     mutable bool dirty_ = false;
 
-public:
-    typedef decltype(records_)::iterator iterator;
-    typedef decltype(records_)::const_iterator const_iterator;
+    iterator FindRecordByUuid(const char *uuid);
 
-    AccountRecords() : records_(CompareRecords)
-    { 
-        /* empty */
-    }
+    /** Insert record without sorting, to be used when reading db */
+    iterator InsertRecord(const AccountRecord &rec);
+    /** Update an existing record without sorting, to be used when reading db */
+    iterator UpdateRecord(const AccountRecord &rec);
+    /** Sort all records, to be used after reading db */
+    void SortRecords();
+
+public:
+
+    AccountRecords() = default;
 
     AccountRecords(std::initializer_list<AccountRecord> records):
-        records_(records, CompareRecords)
+        records_(records)
     {
         // empty
     }
@@ -48,6 +59,7 @@ public:
         return records_.end();
     }
 
+    /** Find an account record having the given field value */
     iterator Find(PwsFieldType field_type, const std::string &value)
     {
         icu::UnicodeString ustr{value.c_str()};
@@ -56,19 +68,28 @@ public:
         });
     }
 
-    bool Add(AccountRecord rec)
-    {
-        bool result = false;
-        std::tie(std::ignore, result) = records_.insert(std::move(rec));
-        dirty_ = true;
-        return result;
-    }
-
+    /** 
+     * Insert a new record or update an existing record that has the same value
+     * of the FT_UUID field.
+     * 
+     * If the record does not have a UUID field or the value is null or empty,
+     * a unique UUID will be assigned to the record
+     * \returns A reference to the account record
+     * \remark
+     * If record has `null` or empty value of `FT_UUID` field, 
+     * a unique UUID will be generated and stored.
+     */
+    iterator Save(const AccountRecord &rec);
+    
     bool Delete(const AccountRecord &rec)
     {
-        bool result = records_.erase(rec) > 0;
-        if (result) dirty_ = true;
-        return result;
+        if (iterator it = FindRecordByUuid(rec.GetField(FT_UUID)); it != records_.end())
+        {
+            records_.erase(it);
+            dirty_ = true;
+            return true;
+        }
+        return false;
     }
 
     bool Delete(iterator it)

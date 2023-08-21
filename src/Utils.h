@@ -44,13 +44,14 @@ inline It rtrim(It begin, It end)
     return begin;
 }
 
-inline void rtrim(std::string &str)
+inline std::string &rtrim(std::string &str)
 {
     str.erase(std::find_if(str.rbegin(), str.rend(), [](char ch) {
         return std::none_of(WS.begin(), WS.end(), [&ch](char ws) { 
             return (int)ch == (int)ws; 
         });
     }).base(), str.end());
+    return str;
 }
 
 /** Expand environment variables in the string */

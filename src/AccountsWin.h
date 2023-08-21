@@ -30,9 +30,14 @@ private:
      * The AccountRecord must be const because `set` doesn't allow 
      * modifying keys
      */
-    static const AccountRecord *GetAccountRecordFromMenuItem(const ITEM *pitem)
+    static AccountRecord *GetAccountRecordFromMenuItem(const ITEM *menu_item)
     {
-        return  reinterpret_cast<AccountRecord *>(item_userptr(pitem));
+        return reinterpret_cast<AccountRecord *>(item_userptr(menu_item));
+    }
+
+    static void AssignAccountRecord(ITEM *menu_item, AccountRecord &record)
+    {
+        set_item_userptr(menu_item, reinterpret_cast<void *>(&record));
     }
 
     /** Save changes to database */
@@ -42,7 +47,7 @@ private:
     /** View or edit an account entry */
     DialogResult ShowAccountRecord(AccountRecord &itemData);
     /** Replace a menu entry */
-    void UpdateMenu(const AccountRecord &old_record, const AccountRecord &new_record);
+    void UpdateMenu(ITEM *menu_item, const AccountRecord &old_record, const AccountRecord &new_record);
     /** Add a new account entry */
     DialogResult AddNewEntry();
     /** Delete an account entry */

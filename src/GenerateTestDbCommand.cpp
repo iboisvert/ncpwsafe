@@ -92,7 +92,7 @@ int GenerateTestDbCommand::Execute()
             rec.SetField(FT_NOTES, GeneratePhrase(words, word_count, size).c_str());
         }
 
-        db.Records().Add(std::move(rec));
+        db.Records().Save(rec);
     }
 
     int rc;

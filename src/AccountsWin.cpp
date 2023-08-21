@@ -266,7 +266,7 @@ void AccountsWin::CreateMenu()
     ITEM *item;
     int itemIndex = 0;
     // Accounts are sorted by group and title
-    for (const AccountRecord &record : records)
+    for (AccountRecord &record : records)
     {
         const char *group = record.GetField(FT_GROUP, "");
         if (strcmp(lastGroup, group) != 0)
@@ -309,7 +309,7 @@ void AccountsWin::CreateMenu()
         const char *user = record.GetField(FT_USER, EMPTY_MENU_ITEM);
         item = new_item(title, user);
         ++itemIndex;
-        set_item_userptr(item, const_cast<AccountRecord *>(&record));
+        AssignAccountRecord(item, record);
         menu_items_.push_back(item);
     }
     menu_items_.push_back(nullptr);
@@ -510,22 +510,23 @@ static bool EqualMenuData(const AccountRecord &a, const AccountRecord &b)
         && FieldCompare(FT_USER, a, b);
 }
 
-void AccountsWin::UpdateMenu(const AccountRecord &old_record, const AccountRecord &new_record)
+void AccountsWin::UpdateMenu(ITEM *menu_item, const AccountRecord &old_record, const AccountRecord &new_record)
 {
+    AccountRecords &records = app_.GetDb().Records();
+    AccountRecords::iterator it = records.Save(new_record);
+    if (!FieldCompare(FT_UUID, *it, old_record))
+    {
+        AssignAccountRecord(menu_item, *it);
+        records.Delete(old_record);
+    }
     if (!EqualMenuData(old_record, new_record))
     {
-        AccountRecords &records = app_.GetDb().Records();
-        if (records.Add(new_record))
-        {
-            records.Delete(old_record);
-
-            DestroyMenu();
-            CreateMenu();
-
-            // Reset selection
-            SetSelection(new_record);
-        }
+        DestroyMenu();
+        CreateMenu();
     }
+
+    // Reset selection
+    SetSelection(*it);
 }
 
 /** View or edit an account entry */
@@ -558,7 +559,7 @@ DialogResult AccountsWin::AddNewEntry()
     if (result == DialogResult::OK)
     {
         const AccountRecord &new_record = details.GetItem();
-        db.Records().Add(new_record);
+        db.Records().Save(new_record);
 
         DestroyMenu();
         CreateMenu();
@@ -864,7 +865,7 @@ DialogResult AccountsWin::ProcessInput()
                 AccountRecord copy{*record};
                 if (ShowAccountRecord(copy) == DialogResult::OK && !read_only)
                 {
-                    UpdateMenu(*record, copy);
+                    UpdateMenu(item, *record, copy);
                 }
             }
 

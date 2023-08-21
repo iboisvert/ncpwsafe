@@ -20,7 +20,7 @@ bool AccountDb::ReadDb(int *rc)
         PwsDbRecord *prec = records;
         while (prec)
         {
-            records_.Add(AccountRecord::FromPwsDbRecord(prec));
+            records_.Save(AccountRecord::FromPwsDbRecord(prec));
             prec = prec->next;
         }
     }
