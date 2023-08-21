@@ -99,7 +99,8 @@ private:
 
     /** 
      * Convert the database records to pwsafe records 
-     * Caller is responsible to free records.
+     * Caller is responsible to free records by calling
+     * `pws_free_db_records()`
      */
     PwsDbRecord *ConvertToPwsafeRecords();
 
