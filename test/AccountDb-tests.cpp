@@ -1,6 +1,8 @@
 /* Copyright 2023 Ian Boisvert */
 #include <string>
+#include <memory>
 #include <gtest/gtest.h>
+#include "libpwsafe.h"
 #include "AccountDb.h"
 
 TEST(AccountDbTest, TestConvertToPwsafeSucceeds)
@@ -15,10 +17,10 @@ TEST(AccountDbTest, TestConvertToPwsafeSucceeds)
     AccountDb db;
     db.records_ = records;
 
-    PwsDbRecord *precords_pwsafe = db.ConvertToPwsafeRecords();
+    std::unique_ptr<PwsDbRecord, decltype(&pws_free_db_records)> precords_pwsafe(db.ConvertToPwsafeRecords(), &pws_free_db_records);
     // Count records and fields
     size_t nrec = 0, nfields = 0;
-    PwsDbRecord *prec = precords_pwsafe;
+    PwsDbRecord *prec = precords_pwsafe.get();
     while (prec)
     {
         ++nrec;
