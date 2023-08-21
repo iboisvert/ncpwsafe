@@ -10,7 +10,7 @@ target_link_libraries(unittests
     GTest::gtest_main
 )
 
-# include(GoogleTest)
-# gtest_discover_tests(unittests WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/../test")
+include(GoogleTest)
+gtest_discover_tests(unittests WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/../test")
 
-add_test(NAME "unit tests" COMMAND unittests WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/test")
+# add_test(NAME "unit tests" COMMAND unittests WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/test")
