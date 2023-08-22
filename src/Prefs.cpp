@@ -1,5 +1,6 @@
 /* Copyright 2023 Ian Boisvert */
 #include <cstdlib>
+#include <filesystem>
 
 #include "libcpptoml.h"
 #include "libglog.h"
@@ -34,15 +35,31 @@ bool Prefs::HasPref(const std::string &key)
     return prefs_->contains(key);
 }
 
-std::string Prefs::PrefAsString(const std::string &key)
+template <class R>
+R Prefs::GetPrefValue(const std::string &key)
 {
-    std::string retval;
+    assert(prefs_->get_qualified(key)->is_value());
+    return prefs_->get_qualified(key)->as<R>()->get();
+}
+
+template <>
+std::string Prefs::GetPrefValue<std::string>(const std::string &key)
+{
+    assert(prefs_->get_qualified(key)->is_value());
+    std::string value = prefs_->get_qualified(key)->as<std::string>()->get();
+    value = ExpandEnvVars(value);
+    return value;
+}
+
+template <class R>
+R Prefs::Get(const std::string &key, const R &default_value)
+{
+    R retval = default_value;
     try
     {
         if (HasPref(key))
         {
-            std::string str = prefs_->get_qualified(key)->as<std::string>()->get();
-            str = ExpandEnvVars(str);
+            retval = GetPrefValue<R>(key);
         }
         else
         {
@@ -57,47 +74,19 @@ std::string Prefs::PrefAsString(const std::string &key)
     return retval;
 }
 
-long Prefs::PrefAsInt(const std::string &key)
+// Template instantiation
+template std::string Prefs::Get<std::string>(const std::string &, const std::string &);
+template bool Prefs::Get<bool>(const std::string &, const bool &);
+
+template <class R>
+void Prefs::Set(const std::string &key, R value)
 {
-    long retval = 0;
-    try
-    {
-        if (HasPref(key))
-        {
-            retval = prefs_->get_qualified(key)->as<long>()->get();
-        }
-        else
-        {
-            LOG(WARNING) << "No value in preferences for key \"" << key << "\"";
-        }
-    }
-    catch(const std::exception& e)
-    {
-        LOG(INFO) << "Exception retrieving preference value for key \"" << key << "\":" << e.what();
-    }
-    return retval;
+    assert(prefs_->get_qualified(key)->is_value());
+    prefs_->insert(key, value);
 }
 
-bool Prefs::PrefAsBool(const std::string &key)
-{
-    bool retval = false;
-    try
-    {
-        if (HasPref(key))
-        {
-            retval = prefs_->get_qualified(key)->as<bool>()->get();
-        }
-        else
-        {
-            LOG(WARNING) << "No value in preferences for key \"" << key << "\"";
-        }
-    }
-    catch(const std::exception& e)
-    {
-        LOG(INFO) << "Exception retrieving preference value for key \"" << key << "\":" << e.what();
-    }
-    return retval;
-}
+// Template instantiation
+template void Prefs::Set<std::string>(const std::string &, std::string);
 
 bool Prefs::ReadPrefs(const std::string &pathname)
 {
@@ -128,8 +117,17 @@ done:
     return retval;
 }
 
-bool Prefs::WritePrefs(const std::string &/*pathname*/)
+bool Prefs::WritePrefs(const std::string &pathname)
 {
-    // TODO
-    return false;
+    namespace fs = std::filesystem;
+    fs::path config(pathname);
+    std::error_code err;
+    fs::create_directories(config.parent_path(), err);
+    if (err.value() != 0) return false;
+
+    std::ofstream ofs(config);
+    ofs << (*prefs_);
+    ofs.close();
+
+    return true;
 }

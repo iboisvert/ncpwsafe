@@ -11,8 +11,12 @@ namespace cpptoml
     class table;
 }
 
-struct Prefs
+class Prefs
 {
+    template <class R>
+    R GetPrefValue(const std::string &key);
+
+public:
     /** Account database file pathname, string */
     static constexpr const char *DB_PATHNAME = "db-pathname";
     /** 
@@ -62,21 +66,12 @@ struct Prefs
      * If value for key does not exist, return empty string.
      * \see HasPref()
      */
-    std::string PrefAsString(const std::string &key);
-    /** 
-     * Returns the value of the preference. 
-     * 
-     * If value for key does not exist, return `0`
-     * \see HasPref()
-     */
-    long PrefAsInt(const std::string &key);
-    /** 
-     * Returns the value of the preference. 
-     * 
-     * If value for key does not exist, return `false`
-     * \see HasPref()
-     */
-    bool PrefAsBool(const std::string &key);
+    template <class R>
+    R Get(const std::string &key, const R &default_value);
+
+    /** Set the value of a preference */
+    template <class R>
+    void Set(const std::string &key, R value);
 
 private:
     static std::map<const char *, std::string> DEFAULTS_;

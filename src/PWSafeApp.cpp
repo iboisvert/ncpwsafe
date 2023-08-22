@@ -33,7 +33,7 @@ void PWSafeApp::Init(ProgArgs args)
     // over that in preference:
     if (pathname.empty())
     {
-        pathname = prefs_.PrefAsString(Prefs::DB_PATHNAME);
+        pathname = prefs_.Get<std::string>(Prefs::DB_PATHNAME, "");
     }
     if (!pathname.empty())
     {
@@ -75,6 +75,9 @@ DialogResult PWSafeApp::Show()
             {
                 if (db_.ReadDb())
                 {
+                    // Save the database file that was opened
+                    prefs_.Set(Prefs::DB_PATHNAME, db_pathname);
+
                     db_.ClearDirty();
                     dr = accountswin_->Show();
                 }
@@ -107,7 +110,7 @@ int PWSafeApp::Save()
     int rc = RC_SUCCESS;
     if (db_.IsDirty())
     {
-        if (prefs_.PrefAsBool(Prefs::BACKUP_BEFORE_SAVE))
+        if (prefs_.Get<bool>(Prefs::BACKUP_BEFORE_SAVE, true))
         {
             BackupDb();
         }
