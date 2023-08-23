@@ -125,10 +125,10 @@ static bool ValidateArgs(InputProgArgs &args)
 {
     bool result = true;
 
-    size_t ncmds = args.cmd_generate_password_ ? 1 : 0 
-            + args.cmd_export_db_ ? 1 : 0 
-            + args.cmd_generate_test_db_ ? 1 : 0 
-            + args.cmd_change_db_password_ ? 1 : 0;
+    size_t ncmds = (args.cmd_generate_password_ ? 1 : 0)
+            + (args.cmd_export_db_ ? 1 : 0) 
+            + (args.cmd_generate_test_db_ ? 1 : 0) 
+            + (args.cmd_change_db_password_ ? 1 : 0);
     if (ncmds > 1)
     {
         result = Error("Only one command may be specified\n");
@@ -470,7 +470,7 @@ int main(int argc, char *argv[])
     
     // Don't allow ptrace or gdump on release build
     if (!DisableCoreDump())
-        return false;
+        return 0;
 
     InputProgArgs input_args;
     if (!ParseArgs(argc, argv, input_args))

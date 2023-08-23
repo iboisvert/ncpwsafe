@@ -36,8 +36,6 @@ public:
 
     PasswordPolicy() : PasswordPolicy(Composition::ALPHA_DIGIT_SYMBOL, /*length*/20) {}
 
-    PasswordPolicy(const PasswordPolicy &) = default;
-
     PasswordPolicy &operator=(const PasswordPolicy &src)
     {
         this->composition = src.composition;

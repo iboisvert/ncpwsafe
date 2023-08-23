@@ -31,19 +31,19 @@ struct Filesystem
 
     virtual std::filesystem::path Canonical(const std::filesystem::path &pathname) const
     {
-        return Canonical(pathname);
+        return fs::Canonical(pathname);
     }
     virtual void Copy(const std::filesystem::path &src, const std::filesystem::path &dst) const
     {
-        Copy(src, dst);
+        fs::Copy(src, dst);
     }
     virtual bool Exists(const std::filesystem::path &pathname) const
     {
-        return Exists(pathname);
+        return fs::Exists(pathname);
     }
     virtual uintmax_t FileSize(const std::filesystem::path &pathname) const
     {
-        return FileSize(pathname);
+        return fs::FileSize(pathname);
     }
 };
 

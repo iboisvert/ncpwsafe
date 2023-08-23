@@ -19,7 +19,7 @@ void ZeroFieldsBuffer(FIELD **fields)
 
     for (FIELD *field = *fields; field != nullptr; ++fields, field = *fields)
     {
-        if (field_opts(field) && O_STATIC)
+        if (field_opts(field) & O_STATIC)
         {
             field_info(field, &rows, &cols, nullptr, nullptr, nullptr, nullptr);
         }
