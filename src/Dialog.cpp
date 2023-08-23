@@ -13,6 +13,16 @@ Dialog &Dialog::SetActiveField(PwsFieldType ft)
     return *this;
 }
 
+const DialogField *Dialog::GetActiveField() const
+{
+    FIELD *field = current_field(form_);
+    if (field)
+    {
+        return reinterpret_cast<DialogField *>(field_userptr(field));
+    }
+    return nullptr;
+}
+
 // FIXME IMB 2022-11-15 Either calculate dialog size from width of fields
 //   or calculate field width from dialog size
 

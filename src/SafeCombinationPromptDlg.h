@@ -33,5 +33,6 @@ private:
     WINDOW *m_parentWin = nullptr;
 
     void SetCommandBarWin();
+    bool InputHandler(Dialog &dialog, int &ch, DialogResult &result);
     bool ValidateForm(const Dialog &dialog);
 };

@@ -1,11 +1,12 @@
 /* Copyright 2022 Ian Boisvert */
-
 #include <functional>
+
 #include "SafeCombinationPromptDlg.h"
 #include "Dialog.h"
 #include "MessageBox.h"
 #include "Filesystem.h"
 #include "PWSafeApp.h"
+#include "Utils.h"
 
 SafeCombinationPromptDlg::SafeCombinationPromptDlg(PWSafeApp &app) : app_(app)
 {
@@ -13,6 +14,15 @@ SafeCombinationPromptDlg::SafeCombinationPromptDlg(PWSafeApp &app) : app_(app)
         {"^S", "Save and continue", "Unlock the account database"},
         {"^X", "Cancel", "Cancel opening the account database"}
     });
+}
+
+bool SafeCombinationPromptDlg::InputHandler(Dialog &dialog, int &ch, DialogResult &/*result*/)
+{
+    if (const DialogField *pfield = dialog.GetActiveField(); pfield && pfield->m_fieldType == FT_PASSWORD && ch == '\n')
+    {
+        ch = KEY_CTRL('S');
+    }
+    return false;
 }
 
 bool SafeCombinationPromptDlg::ValidateForm(const Dialog &dialog)
@@ -85,7 +95,7 @@ void SafeCombinationPromptDlg::SetCommandBarWin()
 
 DialogResult SafeCombinationPromptDlg::Show(WINDOW *parent)
 {
-    using std::placeholders::_1;
+    using std::placeholders::_1, std::placeholders::_2, std::placeholders::_3;
 
     m_parentWin = parent;
 
@@ -97,7 +107,8 @@ DialogResult SafeCombinationPromptDlg::Show(WINDOW *parent)
         {FT_PASSWORD, "Password:", "", /*m_width*/ 40, /*m_fieldOptsOn*/ 0, O_STATIC | O_PUBLIC}};
 
     auto fvalidate = std::bind(&SafeCombinationPromptDlg::ValidateForm, this, _1);
-    Dialog dialog(app_, fields, /*readOnly*/ false, fvalidate);
+    auto finputHandler = std::bind(&SafeCombinationPromptDlg::InputHandler, this, _1, _2, _3);
+    Dialog dialog(app_, fields, /*readOnly*/ false, fvalidate, DefaultDiscardChanges, finputHandler);
     dialog.SetActiveField(db_pathname.empty() ? FT_FILEPATH : FT_PASSWORD);
     DialogResult result = dialog.Show(parent, "Unlock Database");
     if (result == DialogResult::OK)

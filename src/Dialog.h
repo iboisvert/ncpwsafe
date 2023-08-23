@@ -50,7 +50,8 @@ inline bool DefaultDiscardChanges(const Dialog & /*dialog*/)
 class Dialog
 {
 public:
-    typedef std::function<bool(Dialog &, int, DialogResult &)> InputHandler;
+    /** \param[in,out] ch The input character, can be modified by the input handler to affect subsequent processing. */
+    typedef std::function<bool(Dialog &, int &ch, DialogResult &)> InputHandler;
     typedef std::function<bool(const Dialog &)> Callback;
 
     /**
@@ -59,7 +60,8 @@ public:
      * @param discardChangesCallback A function callback to confirm the user wants to discard changes
      * when the user cancels. If `discardChangesCallback` returns false, editing continues.
      * @param inputDelegate Delegate input first to this handler.
-     * If `inputDelegate` returns `true` the dialog exits and `Show()` returns.
+     * If `inputDelegate` returns `true` the dialog exits and `Show()` returns;
+     * otherwise, input processing continues with the current character.
      * @returns The default return value is `DialogResult::CANCEL`. The return value
      * can be modified by `inputDelegate`.
      */
@@ -74,6 +76,8 @@ public:
 
     /** Set the field to be active when the Dialog is initialized. */
     Dialog &SetActiveField(PwsFieldType fieldType);
+    /** Gets the active field. */
+    const DialogField *GetActiveField() const;
 
     DialogResult Show(WINDOW *parent, const std::string &title);
 
