@@ -1,25 +1,30 @@
 # TODO
-In priority order
+## Bugs
+- Crash if terminal doesn't support UTF
+- Enter on password field of open dialog submits
+
+## Features
 - Create new database
 - Close db after timeout
   - Test by putting computer to sleep
 - Diceware passwords
-- Multiline password, notes fields
+- Fix password policies
+- Multiline notes fields
   - Dialog enhancement
 
-Backlog
+## Backlog
 - Improve command bar
   - Print page #
   - Add "More" command to show commands not visible
 - Save password policy to account entry
 - Display user name in account list if account title not unique
 - Colors
-- Crash if terminal doesn't support UTF
 - Move strings to string resource file for i18n
   - Check library used by pwsafe-cli
 - Yubikey
-- Export database
 - F1 Help
+~~- Export database~~
+~~- Write last opened db to prefs~~
 ~~- Database copy-on-backup function~~
 ~~- Change master password~~
 ~~- Export db as CSV~~
