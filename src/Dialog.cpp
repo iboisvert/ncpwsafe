@@ -9,7 +9,7 @@
 
 Dialog &Dialog::SetActiveField(PwsFieldType ft)
 {
-    m_activeField = GetField(ft);
+    active_field_ = GetField(ft);
     return *this;
 }
 
@@ -29,13 +29,13 @@ const DialogField *Dialog::GetActiveField() const
 void Dialog::ConstructFields()
 {
     fields_.clear();
-    m_maxFieldWidth = 0;
+    max_field_width_ = 0;
     // Fields are contained by a subwindow that is
     // moved to align with labels
     int row = 0;
-    for (const DialogField &df : m_dialogFields)
+    for (const DialogField &df : dialog_fields_)
     {
-        if (df.m_width > m_maxFieldWidth) m_maxFieldWidth = df.m_width;
+        if (df.m_width > max_field_width_) max_field_width_ = df.m_width;
 
         FIELD *field = new_field(/*height*/ 1, df.m_width, row++, /*leftcol*/ 0, /*offscreen*/ 0, /*nbuffers*/ 0);
 #pragma GCC diagnostic push
@@ -55,7 +55,7 @@ void Dialog::ConstructFields()
 
 DialogResult Dialog::Show(WINDOW *parent, const std::string &title)
 {
-    m_parentWin = parent;
+    parent_win_ = parent;
 
     InitTUI(title);
 
@@ -81,30 +81,30 @@ void Dialog::InitTUI(const std::string &title)
     // Calculate dimensions and coordinates to size and position dialog
 
     int max_label_width = 0;
-    for (const DialogField &field : m_dialogFields)
+    for (const DialogField &field : dialog_fields_)
     {
         // FIXME Correctly count number of characters in current locale, not number of bytes
         max_label_width = std::max(max_label_width, static_cast<int>(field.m_label.size()));
     }
 
     int max_y, max_x, beg_x, beg_y;
-    getmaxyx(m_parentWin, max_y, max_x);
-    getbegyx(m_parentWin, beg_y, beg_x);
+    getmaxyx(parent_win_, max_y, max_x);
+    getbegyx(parent_win_, beg_y, beg_x);
     int nlines = fields_.size();
-    int ncols = m_maxFieldWidth + max_label_width + 1;
+    int ncols = max_field_width_ + max_label_width + 1;
     int begin_y = (max_y - nlines + beg_y) / 2;
     int begin_x = (max_x - ncols + beg_x) / 2;
 
     // Add 2 to each dimension for border
-    m_win = newwin(nlines + 2, ncols + 4, begin_y, begin_x);
-    m_panel = new_panel(m_win);
+    win_ = newwin(nlines + 2, ncols + 4, begin_y, begin_x);
+    panel_ = new_panel(win_);
 
     // Enable keypad so curses interprets function keys
-    keypad(m_win, TRUE);
-    box(m_win, 0, 0);
-    wattron(m_win, A_BOLD);
+    keypad(win_, TRUE);
+    box(win_, 0, 0);
+    wattron(win_, A_BOLD);
 
-    Label::WriteJustified(m_win, /*y*/ 0, /*begin_x*/ 2, ncols + 4, title.c_str(), JUSTIFY_CENTER);
+    Label::WriteJustified(win_, /*y*/ 0, /*begin_x*/ 2, ncols + 4, title.c_str(), JUSTIFY_CENTER);
 
     int label_begin_x = 2, form_begin_y = 2, form_begin_x = max_label_width + label_begin_x + 1;
     form_ = new_form(fields_.data());
@@ -113,23 +113,23 @@ void Dialog::InitTUI(const std::string &title)
     assert(("Unexpected form null", form_));
 #pragma GCC diagnostic pop
     form_opts_off(form_, O_BS_OVERLOAD);
-    set_form_win(form_, m_win);
+    set_form_win(form_, win_);
     scale_form(form_, &nlines, &ncols);
-    m_formWin = derwin(m_win, nlines, ncols, form_begin_y, form_begin_x);
-    set_form_sub(form_, m_formWin);
+    form_win_ = derwin(win_, nlines, ncols, form_begin_y, form_begin_x);
+    set_form_sub(form_, form_win_);
     post_form(form_);
 
     int row = 2;
-    for (const DialogField &df : m_dialogFields)
+    for (const DialogField &df : dialog_fields_)
     {
-        Label::Write(m_win, row++, label_begin_x, df.m_label.c_str());
+        Label::Write(win_, row++, label_begin_x, df.m_label.c_str());
     }
 
-    wattroff(m_win, A_BOLD);
+    wattroff(win_, A_BOLD);
 
-    if (m_activeField != nullptr)
+    if (active_field_ != nullptr)
     {
-        set_current_field(form_, m_activeField);
+        set_current_field(form_, active_field_);
     }
 
     form_driver(form_, REQ_END_LINE);
@@ -149,12 +149,12 @@ void Dialog::EndTUI()
     }
     fields_.clear();
 
-    del_panel(m_panel);
-    m_panel = nullptr;
-    delwin(m_formWin);
-    m_formWin = nullptr;
-    delwin(m_win);
-    m_win = nullptr;
+    del_panel(panel_);
+    panel_ = nullptr;
+    delwin(form_win_);
+    form_win_ = nullptr;
+    delwin(win_);
+    win_ = nullptr;
 
     curs_set(save_cursor_);
 }
@@ -181,7 +181,7 @@ void Dialog::SaveData()
     {
         const FIELD *field = fields_[i];
         const PwsFieldType ft = reinterpret_cast<const DialogField*>(field_userptr(field))->m_fieldType;
-        m_values[ft] = GetFieldValue(field);
+        values_[ft] = GetFieldValue(field);
     }
 }
 
@@ -189,9 +189,9 @@ DialogResult Dialog::ProcessInput()
 {
     DialogResult result = DialogResult::CANCEL;
     int ch;
-    while ((ch = wgetch(m_win)) != ERR)
+    while ((ch = wgetch(win_)) != ERR)
     {
-        if (m_inputDelegate(*this, ch, result))
+        if (input_delegate_(*this, ch, result))
         {
             SaveData();
             goto done;
@@ -296,12 +296,12 @@ done:
 
 bool Dialog::ValidateForm()
 {
-    return m_validateCallback ? m_validateCallback(*this) : true;
+    return validate_callback_ ? validate_callback_(*this) : true;
 }
 
 bool Dialog::DiscardChanges()
 {
-    return m_discardChangesCallback ? m_discardChangesCallback(*this) : true;
+    return discard_changes_callback_ ? discard_changes_callback_(*this) : true;
 }
 
 void Dialog::RandomizeBuffers()
@@ -335,5 +335,5 @@ void Dialog::SetField(PwsFieldType ft, const std::string &value)
 
 const std::string &Dialog::GetValue(PwsFieldType ft) const
 {
-    return m_values.at(ft);
+    return values_.at(ft);
 }

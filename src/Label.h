@@ -9,7 +9,7 @@ class Label
 {
 public:
     Label(WINDOW *win, int y, int x, int width = 0, int attrs = 0, int justification = JUSTIFY_LEFT)
-        : m_win(win), m_y(y), m_x(x), m_width(width), m_attrs(attrs), m_justification(justification)
+        : win_(win), m_y(y), m_x(x), m_width(width), m_attrs(attrs), m_justification(justification)
     {
     }
 
@@ -42,14 +42,14 @@ public:
 
     int Clear(int ch = ' ')
     {
-        assert(m_win);
-        return mvwhline(m_win, m_y, m_x, ch, m_width);
+        assert(win_);
+        return mvwhline(win_, m_y, m_x, ch, m_width);
     }
 
     int Write(const char *msg)
     {
-        assert(m_win);
-        return Label::Write(m_win, m_y, m_x, m_width, msg, m_attrs, m_justification);
+        assert(win_);
+        return Label::Write(win_, m_y, m_x, m_width, msg, m_attrs, m_justification);
     }
 
     int Rewrite(const char *msg)
@@ -82,7 +82,7 @@ private:
         }
         return x;
     }
-    WINDOW *m_win = nullptr;
+    WINDOW *win_ = nullptr;
     int m_y, m_x;
     int m_width;
     int m_attrs;

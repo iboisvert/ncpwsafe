@@ -7,38 +7,38 @@
 
 void SearchBarWin::InitTUI()
 {
-    m_panel = new_panel(m_win);
+    panel_ = new_panel(win_);
 
     const std::vector<Action> actions{
         {"^L", "Next"},
         {"Enter", "Exit"},
         {"Esc", "Cancel"},
     };
-    CommandBarWin::ShowActions(app_, m_win, actions);
+    CommandBarWin::ShowActions(app_, win_, actions);
 
-    waddstr(m_win, "Search: ");
+    waddstr(win_, "Search: ");
 
-    int curx = getcurx(m_win), cols = getmaxx(m_win) - curx;
+    int curx = getcurx(win_), cols = getmaxx(win_) - curx;
     fields_[0] = new_field(/*height*/ 1, cols, /*toprow*/ 0, /*leftcol*/ 0, /*offscreen*/ 0, /*nbuffers*/ 0);
     field_opts_off(fields_[0], O_STATIC);
 
     form_ = new_form(fields_);
     form_opts_off(form_, O_BS_OVERLOAD);
-    set_form_win(form_, m_win);
-    m_formWin = derwin(m_win, /*nlines*/ 1, /*ncols*/ cols, /*begin_y*/ 0, /*begin_x*/ curx);
-    set_form_sub(form_, m_formWin);
+    set_form_win(form_, win_);
+    form_win_ = derwin(win_, /*nlines*/ 1, /*ncols*/ cols, /*begin_y*/ 0, /*begin_x*/ curx);
+    set_form_sub(form_, form_win_);
     post_form(form_);
 
     // Enable keypad so curses interprets function keys
-    keypad(m_win, TRUE);
+    keypad(win_, TRUE);
 
     save_cursor_ = curs_set(1);
 }
 
 void SearchBarWin::EndTUI()
 {
-    del_panel(m_panel);
-    m_panel = nullptr;
+    del_panel(panel_);
+    panel_ = nullptr;
 
     unpost_form(form_);
     free_form(form_);
@@ -47,8 +47,8 @@ void SearchBarWin::EndTUI()
     free_field(fields_[0]);
     fields_[0] = nullptr;
     
-    delwin(m_formWin);
-    m_formWin = nullptr;
+    delwin(form_win_);
+    form_win_ = nullptr;
 
     curs_set(save_cursor_);
 }
@@ -176,7 +176,7 @@ DialogResult SearchBarWin::ProcessInput()
 {
     DialogResult rc = DialogResult::CANCEL;
     int ch = ERR;
-    while ((ch = wgetch(m_win)) != ERR)
+    while ((ch = wgetch(win_)) != ERR)
     {
         bool update = false;
 

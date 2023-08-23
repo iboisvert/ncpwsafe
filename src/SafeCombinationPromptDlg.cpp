@@ -32,7 +32,7 @@ bool SafeCombinationPromptDlg::ValidateForm(const Dialog &dialog)
 
     if (db_pathname.empty())
     {
-        MessageBox(app_).Show(m_parentWin, "Account database file is required");
+        MessageBox(app_).Show(parent_win_, "Account database file is required");
         redrawwin(dialog.GetWindow());
         SetCommandBarWin();
         return false;
@@ -47,7 +47,7 @@ bool SafeCombinationPromptDlg::ValidateForm(const Dialog &dialog)
             {
                 std::string msg("An error occurred opening file ");
                 msg.append(db_pathname).append(".\nCheck that the file is valid.");
-                MessageBox(app_).Show(m_parentWin, msg.c_str());
+                MessageBox(app_).Show(parent_win_, msg.c_str());
                 redrawwin(dialog.GetWindow());
                 SetCommandBarWin();
                 return false;
@@ -57,7 +57,7 @@ bool SafeCombinationPromptDlg::ValidateForm(const Dialog &dialog)
         {
             std::string msg("File ");
             msg.append(db_pathname).append(" does not exist");
-            MessageBox(app_).Show(m_parentWin, msg.c_str());
+            MessageBox(app_).Show(parent_win_, msg.c_str());
             redrawwin(dialog.GetWindow());
             SetCommandBarWin();
             return false;
@@ -73,13 +73,13 @@ bool SafeCombinationPromptDlg::ValidateForm(const Dialog &dialog)
     {
         if (rc == RC_ERR_INCORRECT_PASSWORD)
         {
-            MessageBox(app_).Show(m_parentWin, "Incorrect password");
+            MessageBox(app_).Show(parent_win_, "Incorrect password");
             redrawwin(dialog.GetWindow());
             SetCommandBarWin();
         }
         else
         {
-            MessageBox(app_).Show(m_parentWin, "Incorrect passkey, not a PasswordSafe database, or a corrupt database.");
+            MessageBox(app_).Show(parent_win_, "Incorrect passkey, not a PasswordSafe database, or a corrupt database.");
             redrawwin(dialog.GetWindow());
             SetCommandBarWin();
         }
@@ -97,7 +97,7 @@ DialogResult SafeCombinationPromptDlg::Show(WINDOW *parent)
 {
     using std::placeholders::_1, std::placeholders::_2, std::placeholders::_3;
 
-    m_parentWin = parent;
+    parent_win_ = parent;
 
     SetCommandBarWin();
 

@@ -42,14 +42,14 @@ class CommandBarWin
 public:
     static const std::vector<Action> YES_NO;
 
-    CommandBarWin(PWSafeApp &app, WINDOW *win) : m_app(app), m_win(win)
+    CommandBarWin(PWSafeApp &app, WINDOW *win) : app_(app), win_(win)
     {
     }
 
     /** Assign command bar actions to object `p` */
     void Register(void *p, std::vector<Action> actions)
     {
-        m_actions[p] = actions;
+        actions_[p] = actions;
     }
 
     /**
@@ -69,9 +69,9 @@ public:
     static void ShowActions(const PWSafeApp &app, WINDOW *win, const std::vector<Action> &actions, int opts = -1);
 
 private:
-    std::map<void *, std::vector<Action>> m_actions;
-    PWSafeApp &m_app;
-    WINDOW *m_win = nullptr;
+    std::map<void *, std::vector<Action>> actions_;
+    PWSafeApp &app_;
+    WINDOW *win_ = nullptr;
 };
 
 #endif

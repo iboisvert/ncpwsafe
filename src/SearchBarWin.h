@@ -13,7 +13,7 @@ class SearchBarWin
 {
 public:
     SearchBarWin(PWSafeApp &app, WINDOW *win, AccountsWin &accounts_win)
-        : app_(app), accounts_win_(accounts_win), m_win(win), fields_{nullptr, nullptr}
+        : app_(app), accounts_win_(accounts_win), win_(win), fields_{nullptr, nullptr}
     {
     }
 
@@ -42,10 +42,10 @@ private:
     AccountRecords::iterator last_match_;      ///< Item selected after last "Find Next"
     AccountRecords::iterator transient_match_; ///< Item selected while typing query
 
-    WINDOW *m_win;
-    PANEL *m_panel = nullptr;
+    WINDOW *win_;
+    PANEL *panel_ = nullptr;
     FORM *form_ = nullptr;
-    WINDOW *m_formWin = nullptr;
+    WINDOW *form_win_ = nullptr;
     FIELD *fields_[2];
     int save_cursor_;
 };

@@ -30,7 +30,7 @@ private:
     std::string m_filename;
     std::string password_;
 
-    WINDOW *m_parentWin = nullptr;
+    WINDOW *parent_win_ = nullptr;
 
     void SetCommandBarWin();
     bool InputHandler(Dialog &dialog, int &ch, DialogResult &result);

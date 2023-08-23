@@ -31,16 +31,16 @@ private:
     void UpdatePWLength();
     void UpdatePassword();
 
-    PWSafeApp &m_app;
+    PWSafeApp &app_;
     PasswordPolicy m_pwPolicy;
     std::string password_;
     int save_cursor_;
     size_t m_pwPolicyFlagsIndex;
     size_t m_pwPolicyLength;
 
-    WINDOW *m_parentWin = nullptr;
-    WINDOW *m_win = nullptr;
-    PANEL *m_panel = nullptr;
+    WINDOW *parent_win_ = nullptr;
+    WINDOW *win_ = nullptr;
+    PANEL *panel_ = nullptr;
     Label m_pwPolicyField;
     Label m_pwLengthField;
     Label m_passwordField;

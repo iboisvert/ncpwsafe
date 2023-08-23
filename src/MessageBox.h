@@ -35,8 +35,8 @@ private:
 
     PWSafeApp &app_;
     
-    WINDOW *m_win = nullptr;
-    PANEL *m_panel = nullptr;
+    WINDOW *win_ = nullptr;
+    PANEL *panel_ = nullptr;
     int save_cursor_ = 0;
 };
 

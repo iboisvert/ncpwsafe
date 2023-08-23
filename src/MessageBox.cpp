@@ -70,7 +70,7 @@ DialogResult MessageBox::Show(WINDOW *parent, const std::string &msg, KeyHandler
 
     InitTUI(parent, msg);
 
-    PrintMessage(m_win, 2, 2, msg.c_str());
+    PrintMessage(win_, 2, 2, msg.c_str());
 
     touchwin(parent);
     update_panels();
@@ -95,12 +95,12 @@ void MessageBox::InitTUI(WINDOW *parent, const std::string &msg)
     cols += 2;
     ScaleMsgBox(parent, lines, cols, y, x);
 
-    m_win = newwin(lines + 2, cols + 2, y, x);
-    m_panel = new_panel(m_win);
+    win_ = newwin(lines + 2, cols + 2, y, x);
+    panel_ = new_panel(win_);
     
     // Enable keypad so curses interprets function keys
-    keypad(m_win, TRUE);
-    box(m_win, 0, 0);
+    keypad(win_, TRUE);
+    box(win_, 0, 0);
 
     // Reset cursor for input fields
     save_cursor_ = curs_set(0);
@@ -108,10 +108,10 @@ void MessageBox::InitTUI(WINDOW *parent, const std::string &msg)
 
 void MessageBox::EndTUI()
 {
-    del_panel(m_panel);
-    m_panel = nullptr;
-    delwin(m_win);
-    m_win = nullptr;
+    del_panel(panel_);
+    panel_ = nullptr;
+    delwin(win_);
+    win_ = nullptr;
 
     curs_set(save_cursor_);
 }
@@ -121,7 +121,7 @@ DialogResult MessageBox::ProcessInput(KeyHandler handler)
 {
     DialogResult result = DialogResult::CANCEL;
     int c;
-    while ((c = wgetch(m_win)) != ERR)
+    while ((c = wgetch(win_)) != ERR)
     {
         if (handler(c, result))
             break;

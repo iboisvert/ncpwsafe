@@ -9,13 +9,13 @@ const std::vector<Action> CommandBarWin::YES_NO{Action::YES, Action::NO};
 
 void CommandBarWin::Show(void *p, int opts)
 {
-    CommandBarWin::ShowActions(m_app, m_win, m_actions.at(p), opts);
+    CommandBarWin::ShowActions(app_, win_, actions_.at(p), opts);
 }
 
 /** Update the command bar with the give actions */
 void CommandBarWin::Show(std::vector<Action> actions)
 {
-    CommandBarWin::ShowActions(m_app, m_win, actions, /*opts*/ (int)-1);
+    CommandBarWin::ShowActions(app_, win_, actions, /*opts*/ (int)-1);
 }
 
 static const char *STATUS_READ_ONLY = "RO";

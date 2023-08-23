@@ -68,8 +68,8 @@ public:
     Dialog(PWSafeApp &app, const std::vector<DialogField> &fields, bool readOnly = false,
         Callback validateCallback = &DefaultFormValidate, Callback discardChangesCallback = &DefaultDiscardChanges,
         InputHandler inputDelegate = &DefaultInputDelegate)
-        : m_app(app), m_dialogFields(fields), read_only_(readOnly), m_inputDelegate(inputDelegate),
-          m_validateCallback(validateCallback), m_discardChangesCallback(discardChangesCallback)
+        : app_(app), dialog_fields_(fields), read_only_(readOnly), input_delegate_(inputDelegate),
+          validate_callback_(validateCallback), discard_changes_callback_(discardChangesCallback)
     {
         ConstructFields();
     }
@@ -83,17 +83,17 @@ public:
 
     PWSafeApp &GetApp() const
     {
-        return m_app;
+        return app_;
     }
 
     WINDOW *GetWindow() const
     {
-        return m_win;
+        return win_;
     }
 
     WINDOW *GetParentWindow() const
     {
-        return m_parentWin;
+        return parent_win_;
     }
 
     bool IsReadOnly() const
@@ -125,23 +125,23 @@ private:
     /** Scramble curses field buffers */
     void RandomizeBuffers();
 
-    PWSafeApp &m_app;
+    PWSafeApp &app_;
 
-    const std::vector<DialogField> &m_dialogFields;
+    const std::vector<DialogField> &dialog_fields_;
     bool read_only_ = false;
-    InputHandler m_inputDelegate;
-    Callback m_validateCallback;
-    Callback m_discardChangesCallback;
-    std::map<PwsFieldType, std::string> m_values;
-    int m_maxFieldWidth;
+    InputHandler input_delegate_;
+    Callback validate_callback_;
+    Callback discard_changes_callback_;
+    std::map<PwsFieldType, std::string> values_;
+    int max_field_width_;
 
-    WINDOW *m_parentWin = nullptr;
-    WINDOW *m_win = nullptr;
-    PANEL *m_panel = nullptr;
-    WINDOW *m_formWin = nullptr;
+    WINDOW *parent_win_ = nullptr;
+    WINDOW *win_ = nullptr;
+    PANEL *panel_ = nullptr;
+    WINDOW *form_win_ = nullptr;
     FORM *form_ = nullptr;
     std::vector<FIELD *> fields_;
-    FIELD *m_activeField = nullptr;
+    FIELD *active_field_ = nullptr;
     int save_cursor_ = 0;
 };
 

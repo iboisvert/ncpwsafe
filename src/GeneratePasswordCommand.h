@@ -10,10 +10,10 @@ class PWSafeApp;
 /** Generate passwords to stdout */
 class GeneratePasswordCommand
 {
-    PWSafeApp &m_app;
+    PWSafeApp &app_;
 
 public:
-    GeneratePasswordCommand(PWSafeApp &app) : m_app(app) {}
+    GeneratePasswordCommand(PWSafeApp &app) : app_(app) {}
     /** Generate passwords to stdout */
     std::vector<std::string> Execute();
 };

@@ -48,5 +48,4 @@ private:
 
     AccountRecord account_rec_;
     const AccountRecord &save_account_rec_;
-    std::string m_confirmPassword;
 };

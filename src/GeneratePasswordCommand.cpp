@@ -7,7 +7,7 @@
 /** Generate passwords to stdout */
 std::vector<std::string> GeneratePasswordCommand::Execute()
 {
-    const ProgArgs &args = m_app.GetArgs();
+    const ProgArgs &args = app_.GetArgs();
 
     size_t count = args.generate_password_count_;
     size_t length = args.password_length_;

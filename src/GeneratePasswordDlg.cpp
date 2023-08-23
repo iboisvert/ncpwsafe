@@ -8,10 +8,10 @@ static constexpr int MAX_PASSWORD_LENGTH = 56;
 static constexpr int MIN_PASSWORD_LENGTH = 4;
 static constexpr int PASSWORD_LENGTH_STEP = 4;
 
-GeneratePasswordDlg::GeneratePasswordDlg(PWSafeApp &app) : m_app(app), m_pwPolicyFlagsIndex(0), m_pwPolicyLength(12)
+GeneratePasswordDlg::GeneratePasswordDlg(PWSafeApp &app) : app_(app), m_pwPolicyFlagsIndex(0), m_pwPolicyLength(12)
 {
     // clang-format off
-    m_app.GetCommandBar().Register(this, {
+    app_.GetCommandBar().Register(this, {
         {"^S", "Save and close", "Save the new password and close"},
         {"^X", "Cancel", "Cancel changing password"}, 
         {"Enter", "Generate", "Generate a new password"},
@@ -23,7 +23,7 @@ GeneratePasswordDlg::GeneratePasswordDlg(PWSafeApp &app) : m_app(app), m_pwPolic
 
 void GeneratePasswordDlg::SetCommandBarWin()
 {
-    m_app.GetCommandBar().Show(this);
+    app_.GetCommandBar().Show(this);
 }
 
 void GeneratePasswordDlg::Update()
@@ -56,7 +56,7 @@ DialogResult GeneratePasswordDlg::Show(WINDOW *parent)
 {
     SetCommandBarWin();
 
-    m_parentWin = parent;
+    parent_win_ = parent;
 
     InitTUI("Generate Password");
 
@@ -80,30 +80,30 @@ DialogResult GeneratePasswordDlg::Show(WINDOW *parent)
 void GeneratePasswordDlg::InitTUI(const std::string &title)
 {
     int beg_y, beg_x, max_y, max_x;
-    getbegyx(m_parentWin, beg_y, beg_x);
-    getmaxyx(m_parentWin, max_y, max_x);
+    getbegyx(parent_win_, beg_y, beg_x);
+    getmaxyx(parent_win_, max_y, max_x);
     int nlines = 4, ncols = MAX_PASSWORD_LENGTH;
     beg_y = (max_y + beg_y - nlines) / 2;
     beg_x = (max_x + beg_x - ncols) / 2;
 
     // Add 2 to each dimension for border
-    m_win = newwin(nlines + 2, ncols + 4, beg_y, beg_x);
-    m_panel = new_panel(m_win);
+    win_ = newwin(nlines + 2, ncols + 4, beg_y, beg_x);
+    panel_ = new_panel(win_);
 
     // Enable keypad so curses interprets function keys
-    keypad(m_win, TRUE);
-    box(m_win, 0, 0);
+    keypad(win_, TRUE);
+    box(win_, 0, 0);
 
-    wattron(m_win, A_BOLD);
-    Label::WriteJustified(m_win, /*y*/ 0, /*begin_x*/ 2, ncols + 2, title.c_str(), JUSTIFY_CENTER);
-    wattroff(m_win, A_BOLD);
+    wattron(win_, A_BOLD);
+    Label::WriteJustified(win_, /*y*/ 0, /*begin_x*/ 2, ncols + 2, title.c_str(), JUSTIFY_CENTER);
+    wattroff(win_, A_BOLD);
 
-    Label::Write(m_win, /*y*/ 1, /*x*/ 2, "Complexity:");
-    Label::Write(m_win, /*y*/ 2, /*x*/ 2, "Length:");
+    Label::Write(win_, /*y*/ 1, /*x*/ 2, "Complexity:");
+    Label::Write(win_, /*y*/ 2, /*x*/ 2, "Length:");
     const int label_begin_x = 14;
-    m_pwPolicyField = Label(m_win, /*y*/ 1, label_begin_x, /*width*/ 32);
-    m_pwLengthField = Label(m_win, /*y*/ 2, label_begin_x, /*width*/ 10);
-    m_passwordField = Label(m_win, /*y*/ 4, /*x*/ 2, /*width*/ ncols, A_BOLD, JUSTIFY_CENTER);
+    m_pwPolicyField = Label(win_, /*y*/ 1, label_begin_x, /*width*/ 32);
+    m_pwLengthField = Label(win_, /*y*/ 2, label_begin_x, /*width*/ 10);
+    m_passwordField = Label(win_, /*y*/ 4, /*x*/ 2, /*width*/ ncols, A_BOLD, JUSTIFY_CENTER);
 
     // Reset cursor for input fields
     save_cursor_ = curs_set(0);
@@ -111,10 +111,10 @@ void GeneratePasswordDlg::InitTUI(const std::string &title)
 
 void GeneratePasswordDlg::EndTUI()
 {
-    del_panel(m_panel);
-    m_panel = nullptr;
-    delwin(m_win);
-    m_win = nullptr;
+    del_panel(panel_);
+    panel_ = nullptr;
+    delwin(win_);
+    win_ = nullptr;
     curs_set(save_cursor_);
 }
 
@@ -123,7 +123,7 @@ DialogResult GeneratePasswordDlg::ProcessInput()
 {
     DialogResult retval = DialogResult::CANCEL;
     int ch;
-    while ((ch = wgetch(m_win)) != ERR)
+    while ((ch = wgetch(win_)) != ERR)
     {
         switch (ch)
         {
