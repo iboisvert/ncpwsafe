@@ -691,17 +691,16 @@ bool AccountsWin::DiscardChanges()
 {
     bool retval = true;
 
-    app_.GetCommandBar().Show(CommandBarWin::YES_NO);
-
     if (app_.GetDb().IsDirty())
     {
+        app_.GetCommandBar().Show(CommandBarWin::YES_NO);
+
         const char *msg = "The database has changed. Discard changes?";
         retval = MessageBox(app_).Show(win_, msg, &YesNoKeyHandler) == DialogResult::YES;
 
         redrawwin(win_);
+        SetCommandBar();
     }
-
-    SetCommandBar();
 
     return retval;
 }
