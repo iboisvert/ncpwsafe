@@ -3,7 +3,9 @@
 #include <filesystem>
 
 #include "libcpptoml.h"
+#ifdef HAVE_GLOG
 #include "libglog.h"
+#endif
 
 #include "Prefs.h"
 #include "Utils.h"
@@ -63,13 +65,17 @@ R Prefs::Get(const std::string &key, const R &default_value)
         }
         else
         {
+#ifdef HAVE_GLOG
             LOG(WARNING) << "No value in preferences for key \"" << key << "\"";
+#endif
         }
         return retval;
     }
     catch(const std::exception& e)
     {
+#ifdef HAVE_GLOG
         LOG(INFO) << "Exception retrieving preference value for key \"" << key << "\":" << e.what();
+#endif
     }
     return retval;
 }
@@ -93,7 +99,9 @@ bool Prefs::ReadPrefs(const std::string &pathname)
     bool retval = false;
     if (!fs::Exists(pathname))
     {
+#ifdef HAVE_GLOG
         LOG(INFO) << "Preferences file \"" << pathname << "\" does not exist";
+#endif
         goto done;
     }
     try
@@ -101,13 +109,17 @@ bool Prefs::ReadPrefs(const std::string &pathname)
         prefs_ = cpptoml::parse_file(pathname);
         if (!prefs_)
         {
+#ifdef HAVE_GLOG
             LOG(WARNING) << "Error reading preferences from file \"" << pathname << "\"";
+#endif
             goto done;
         }
     }
     catch(const std::exception& e)
     {
+#ifdef HAVE_GLOG
         LOG(WARNING) << "Exception while reading preferences from file \"" << pathname << "\":" << e.what();
+#endif
         goto done;
     }
 

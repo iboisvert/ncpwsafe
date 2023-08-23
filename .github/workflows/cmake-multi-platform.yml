@@ -47,8 +47,8 @@ jobs:
     - name: Set up environment (ubuntu-latest)
       if: ${{ matrix.os == 'ubuntu-latest' }}
       run: |
-        sudo apt-get -y update
-        sudo apt-get -y install libncurses-dev libicu-dev nettle-dev libcpptoml-dev libgtest-dev libgoogle-glog-dev
+        sudo apt-get update -y
+        sudo apt-get install -y libncurses-dev libicu-dev nettle-dev libcpptoml-dev libgtest-dev
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.

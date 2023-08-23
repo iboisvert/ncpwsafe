@@ -9,7 +9,9 @@
 #include "Utils.h"
 
 #include "libpwsafe.h"
+#ifdef HAVE_GLOG
 #include "libglog.h"
+#endif
 
 #include <climits>
 #include <cstdarg>
@@ -132,8 +134,10 @@ static bool ValidateArgs(InputProgArgs &args)
         result = Error("Only one command may be specified\n");
     }
 
+#ifdef HAVE_GLOG
     LOG_IF(INFO, args.config_file_ && !fs::Exists(*args.config_file_)) 
         << "Configuration file \"" << ExpandEnvVars(args.config_file_.value_or("")) << "\" does not exist";
+#endif
 
     Operation cmd = args.GetCommand();
     if (args.database_)
@@ -459,8 +463,10 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
 
 int main(int argc, char *argv[])
 {
+#ifdef HAVE_GLOG
     // Initialize Google’s logging library.
     google::InitGoogleLogging(argv[0]);
+#endif
     
     // Don't allow ptrace or gdump on release build
     if (!DisableCoreDump())
