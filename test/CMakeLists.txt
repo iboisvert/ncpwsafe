@@ -1,5 +1,3 @@
-resolve_test_dependencies()
-
 add_executable(unittests
     AccountDb-tests.cpp
     PWSafeApp-tests.cpp

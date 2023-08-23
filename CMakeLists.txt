@@ -49,6 +49,7 @@ add_link_options(
 
 add_subdirectory(src)
 if(BUILD_TESTING)
+    resolve_test_dependencies()
     enable_testing()
     add_subdirectory(test)
 endif()
