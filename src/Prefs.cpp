@@ -135,7 +135,13 @@ bool Prefs::WritePrefs(const std::string &pathname)
     fs::path config(pathname);
     std::error_code err;
     fs::create_directories(config.parent_path(), err);
-    if (err.value() != 0) return false;
+    if (err)
+    {
+#ifdef HAVE_GLOG
+        LOG(WARNING) << "Error writing config file: " << err.message();
+#endif
+        return false;
+    }
 
     std::ofstream ofs(config);
     ofs << (*prefs_);
