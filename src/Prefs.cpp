@@ -1,8 +1,9 @@
 /* Copyright 2023 Ian Boisvert */
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 
-#include "libcpptoml.h"
+#include "libconfini.h"
 #ifdef HAVE_GLOG
 #include "libglog.h"
 #endif
@@ -11,7 +12,7 @@
 #include "Utils.h"
 #include "Filesystem.h"
 
-std::map<const char *, std::string> Prefs::DEFAULTS_{
+static std::map<std::string, std::string> DEFAULTS_{
     {Prefs::DB_PATHNAME, "${HOME}/.pwsafe.dat"},
     {Prefs::BACKUP_BEFORE_SAVE, "true"},
     {Prefs::BACKUP_COUNT, "3"},
@@ -22,35 +23,40 @@ Prefs Prefs::instance_;
 /**
  * Initialize Prefs from defaults
 */
-Prefs::Prefs()
+Prefs::Prefs() : prefs_(DEFAULTS_)
 {
-    prefs_ = cpptoml::make_table();
-    for (const auto &e : DEFAULTS_)
-    {
-        prefs_->insert(e.first, e.second);
-    }
+    // Empty
 }
 
 /** Returns `true` if preference exists, otherwise `false` */
 bool Prefs::HasPref(const std::string &key)
 {
-    return prefs_->contains(key);
-}
-
-template <class R>
-R Prefs::GetPrefValue(const std::string &key)
-{
-    assert(prefs_->get_qualified(key)->is_value());
-    return prefs_->get_qualified(key)->as<R>()->get();
+    return (prefs_.find(key) != prefs_.end());
 }
 
 template <>
 std::string Prefs::GetPrefValue<std::string>(const std::string &key)
 {
-    assert(prefs_->get_qualified(key)->is_value());
-    std::string value = prefs_->get_qualified(key)->as<std::string>()->get();
+    std::string value = prefs_.at(key);
     value = ExpandEnvVars(value);
     return value;
+}
+
+template <>
+bool Prefs::GetPrefValue<bool>(const std::string &key)
+{
+    std::string &svalue = prefs_.at(key);
+    int result = confini::ini_get_bool(svalue.c_str(), 0);
+    bool retval = result ? true : false;
+    return retval;
+}
+
+template <>
+long Prefs::GetPrefValue<long>(const std::string &key)
+{
+    std::string &svalue = prefs_.at(key);
+    long retval = confini::ini_get_lint(svalue.c_str());
+    return retval;
 }
 
 template <class R>
@@ -87,16 +93,30 @@ template bool Prefs::Get<bool>(const std::string &, const bool &);
 template <class R>
 void Prefs::Set(const std::string &key, R value)
 {
-    assert(prefs_->get_qualified(key)->is_value());
-    prefs_->insert(key, value);
+    prefs_[key] = value;
 }
 
 // Template instantiation
 template void Prefs::Set<std::string>(const std::string &, std::string);
 
+int IniHandler(confini::IniDispatch *dispatch, void *user_data)
+{
+    using namespace confini;
+    Prefs *prefs = reinterpret_cast<Prefs*>(user_data);
+    assert(dispatch->type == IniNodeType::INI_KEY);
+    std::string key = dispatch->data;
+    std::string value = dispatch->value;
+    prefs->prefs_[key] = value;
+    return 0;
+}
+
 bool Prefs::ReadPrefs(const std::string &pathname)
 {
+    using namespace confini;
+
     bool retval = false;
+    int status = confini::CONFINI_SUCCESS;
+
     if (!fs::Exists(pathname))
     {
 #ifdef HAVE_GLOG
@@ -104,21 +124,12 @@ bool Prefs::ReadPrefs(const std::string &pathname)
 #endif
         goto done;
     }
-    try
-    {
-        prefs_ = cpptoml::parse_file(pathname);
-        if (!prefs_)
-        {
-#ifdef HAVE_GLOG
-            LOG(WARNING) << "Error reading preferences from file \"" << pathname << "\"";
-#endif
-            goto done;
-        }
-    }
-    catch(const std::exception& e)
+
+    status = load_ini_path(pathname.c_str(), INI_DEFAULT_FORMAT, /*finit*/nullptr, /*fforeach*/&IniHandler, /*user_data*/this);
+    if (status != CONFINI_SUCCESS)
     {
 #ifdef HAVE_GLOG
-        LOG(WARNING) << "Exception while reading preferences from file \"" << pathname << "\":" << e.what();
+        LOG(WARNING) << "Error reading preferences from file \"" << pathname << "\"";
 #endif
         goto done;
     }
@@ -144,7 +155,9 @@ bool Prefs::WritePrefs(const std::string &pathname)
     }
 
     std::ofstream ofs(config);
-    ofs << (*prefs_);
+    std::for_each(prefs_.begin(), prefs_.end(), [&](auto it){
+        ofs << it.first << " = " << it.second << '\n';
+    });
     ofs.close();
 
     return true;

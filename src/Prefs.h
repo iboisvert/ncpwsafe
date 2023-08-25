@@ -6,9 +6,9 @@
 #include <map>
 #include <memory>
 
-namespace cpptoml
+namespace confini
 {
-    class table;
+    struct IniDispatch;
 }
 
 class Prefs
@@ -74,10 +74,11 @@ public:
     void Set(const std::string &key, R value);
 
 private:
-    static std::map<const char *, std::string> DEFAULTS_;
     static Prefs instance_;
 
-    std::shared_ptr<cpptoml::table> prefs_;
+    std::map<std::string, std::string> prefs_;
+
+    friend int IniHandler(confini::IniDispatch *dispatch, void *user_data);
 };
 
 #endif

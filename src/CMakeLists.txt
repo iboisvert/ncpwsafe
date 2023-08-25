@@ -27,7 +27,7 @@ list(APPEND SRC
 add_library(libncpwsafe OBJECT ${SRC})
 target_link_libraries(libncpwsafe 
     pwsafeStatic
-    cpptoml
+    confini
     ${NCURSES_LIBRARIES} 
     ${ICU_LIBRARIES}
     ${GLOG_LIBRARIES}
@@ -39,10 +39,6 @@ set_target_properties(ncpwsafe
     PROPERTIES 
     VERSION ${NCPWSAFE_VERSION}
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
-)
-target_compile_definitions(ncpwsafe
-    PUBLIC CPPTOML_VALUE_ASSTRING
-    PUBLIC CPPTOML_NO_RTTI
 )
 target_link_libraries(ncpwsafe 
     libncpwsafe
