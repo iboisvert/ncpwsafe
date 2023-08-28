@@ -2,7 +2,9 @@
 #include <time.h>
 #include <algorithm>
 
+#ifdef HAVE_GLOG
 #include "libglog.h"
+#endif
 
 #include "AccountsWin.h"
 #include "Dialog.h"
