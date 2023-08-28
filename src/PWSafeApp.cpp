@@ -270,7 +270,7 @@ void PWSafeApp::CleanBackups()
     for (backup_list_t::iterator it = pos; it != backups.end(); ++it)
     {
         std::error_code ec;
-        fs::remove(it->second, ec);
+        filesystem_.Remove(it->second, ec);
 #if HAVE_GLOG
         LOG_IF(WARNING, ec) << "Error deleting backup file \"" << it->second << "\": " << ec.message();
 #endif
@@ -349,7 +349,7 @@ ResultCode PWSafeApp::BackupDbImpl()
             if (!prefs_.HasPref(key))
             {
                 std::error_code ec;
-                backup = fs::canonical(backup, ec);  // Ignore errors
+                backup = filesystem_.Canonical(backup, ec);  // Ignore errors
                 if (ec)
                 {
 #if HAVE_GLOG

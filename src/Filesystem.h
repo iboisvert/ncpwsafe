@@ -6,6 +6,10 @@
 
 namespace fs
 {
+inline std::filesystem::path Canonical(const std::filesystem::path &pathname, std::error_code &ec)
+{
+    return std::filesystem::canonical(pathname, ec);
+}
 inline std::filesystem::path Canonical(const std::filesystem::path &pathname)
 {
     return std::filesystem::canonical(pathname);
@@ -22,6 +26,10 @@ inline uintmax_t FileSize(const std::filesystem::path &pathname)
 {
     return std::filesystem::file_size(pathname);
 }
+inline bool Remove(const std::filesystem::path &p, std::error_code &ec)
+{
+    return std::filesystem::remove(p, ec);
+}
 }
 
 // This class exists so it can be mocked in tests
@@ -29,6 +37,10 @@ struct Filesystem
 {
     static Filesystem instance;
 
+    virtual std::filesystem::path Canonical(const std::filesystem::path &pathname, std::error_code &ec) const
+    {
+        return fs::Canonical(pathname, ec);
+    }
     virtual std::filesystem::path Canonical(const std::filesystem::path &pathname) const
     {
         return fs::Canonical(pathname);
@@ -44,6 +56,10 @@ struct Filesystem
     virtual uintmax_t FileSize(const std::filesystem::path &pathname) const
     {
         return fs::FileSize(pathname);
+    }
+    virtual bool Remove(const std::filesystem::path &p, std::error_code &ec) const
+    {
+        return fs::Remove(p, ec);
     }
 };
 

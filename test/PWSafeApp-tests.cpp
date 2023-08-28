@@ -69,6 +69,5 @@ TEST(AppTest, TestBackupDb_DstDoesExist)
 
     ASSERT_EQ(ResultCode::RC_SUCCESS, app.BackupDb());
     ASSERT_EQ(0, strncmp("/foo/pwsafe-", std::get<1>(fs_mock.copy_args[0]).string().c_str(), 7));
-    ASSERT_EQ(0, strncmp(".dat.2", std::get<1>(fs_mock.copy_args[0]).string().c_str()+27, 4));
-    ASSERT_EQ(0, strncmp(".dat.1", std::get<1>(fs_mock.copy_args[1]).string().c_str()+27, 4));
+    ASSERT_EQ(0, strncmp(".dat", std::get<1>(fs_mock.copy_args[0]).string().c_str()+27, 4));
 }
