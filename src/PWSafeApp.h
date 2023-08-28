@@ -78,6 +78,9 @@ private:
     void EndTUI();
     void ProcessInput();
 
+    ResultCode BackupDbImpl();
+    void CleanBackups();
+
     Prefs &prefs_;
     ProgArgs args_;
     AccountDb db_;

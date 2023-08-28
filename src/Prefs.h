@@ -13,9 +13,6 @@ namespace confini
 
 class Prefs
 {
-    template <class R>
-    R GetPrefValue(const std::string &key);
-
 public:
     /** Account database file pathname, string */
     static constexpr const char *DB_PATHNAME = "db-pathname";
@@ -63,16 +60,25 @@ public:
     /** 
      * Returns the value of the preference. 
      * 
-     * If value for key does not exist, return empty string.
+     * If value for key does not exist, returns `default_value`.
      * \see HasPref()
      */
     template <class R>
     R Get(const std::string &key, const R &default_value);
 
+    /**
+     * Returns the value of the preference. 
+     * 
+     * \throws If value for key does not exist
+    */
+    template <class R>
+    R GetPrefValue(const std::string &key);
+
     /** Set the value of a preference */
     template <class R>
     void Set(const std::string &key, R value);
 
+    void Delete(const std::string &key);
 private:
     static Prefs instance_;
 

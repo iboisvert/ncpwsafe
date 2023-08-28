@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <string>
 
 #include "libconfini.h"
 #ifdef HAVE_GLOG
@@ -12,7 +13,7 @@
 #include "Utils.h"
 #include "Filesystem.h"
 
-static std::map<std::string, std::string> DEFAULTS_{
+static std::map<std::string, std::string> DEFAULTS{
     {Prefs::DB_PATHNAME, "${HOME}/.pwsafe.dat"},
     {Prefs::BACKUP_BEFORE_SAVE, "true"},
     {Prefs::BACKUP_COUNT, "3"},
@@ -23,9 +24,14 @@ Prefs Prefs::instance_;
 /**
  * Initialize Prefs from defaults
 */
-Prefs::Prefs() : prefs_(DEFAULTS_)
+Prefs::Prefs() : prefs_(DEFAULTS)
 {
     // Empty
+}
+
+void Prefs::Delete(const std::string &key)
+{
+    if (auto it = prefs_.find(key); it != prefs_.end()) prefs_.erase(key);
 }
 
 /** Returns `true` if preference exists, otherwise `false` */
