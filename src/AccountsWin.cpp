@@ -559,20 +559,20 @@ DialogResult AccountsWin::AddNewEntry()
     if (result == DialogResult::OK)
     {
         const AccountRecord &new_record = details.GetItem();
-        db.Records().Save(new_record);
+        AccountRecords::iterator record_iter = db.Records().Save(new_record);
 
         DestroyMenu();
         CreateMenu();
 
         // Reset selection
-        const std::string &new_uuid = new_record.GetField(FT_UUID);
-        auto it = std::find_if(menu_items_.begin(), menu_items_.end(), [&new_uuid](const ITEM *pitem) { 
+        const std::string &new_uuid = record_iter->GetField(FT_UUID);
+        auto menu_iter = std::find_if(menu_items_.begin(), menu_items_.end(), [&new_uuid](const ITEM *pitem) { 
             return item_userptr(pitem) && reinterpret_cast<AccountRecord *>(item_userptr(pitem))->GetField(FT_UUID) == new_uuid; 
         });
-        assert(it != menu_items_.end());
-        if (it != menu_items_.end())
+        assert(menu_iter != menu_items_.end());
+        if (menu_iter != menu_items_.end())
         {
-            set_current_item(menu_, *it);
+            set_current_item(menu_, *menu_iter);
         }
     }
 

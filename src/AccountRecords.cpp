@@ -73,9 +73,11 @@ AccountRecords::iterator AccountRecords::Save(const AccountRecord &rec)
         it = InsertRecord(rec);
         dirty_ = true;
     }
+    std::string uuid = it->GetField(FT_UUID, "");
 
-    // Resort records after insert
+    // Sort records after insert
     std::sort(records_.begin(), records_.end(), CompareRecords);
 
+    it = FindRecordByUuid(uuid.c_str());
     return it;
 }
