@@ -1,6 +1,6 @@
 macro(resolve_dependencies)
     include(FetchContent)
-    find_package(PkgConfig)
+    find_package(PkgConfig REQUIRED)
 
     FetchContent_Declare(
         libpwsafe
@@ -22,9 +22,10 @@ macro(resolve_dependencies)
 
     FetchContent_MakeAvailable(libpwsafe libconfini)
 
-    pkg_check_modules(NCURSES REQUIRED ncursesw form menu panel)
+    pkg_check_modules(NCURSES REQUIRED form menu panel)
     pkg_check_modules(ICU REQUIRED icu-uc)
     pkg_check_modules(GLOG libglog)
+    pkg_check_modules(NETTLE REQUIRED nettle)
     add_compile_definitions($<$<BOOL:${GLOG_FOUND}>:HAVE_GLOG>)
 endmacro()
 

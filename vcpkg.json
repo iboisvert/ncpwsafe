@@ -1,0 +1,9 @@
+{
+  "dependencies": [
+    "glog",
+    "icu",
+    "ncurses",
+    "nettle",
+    "gtest"
+  ]
+}

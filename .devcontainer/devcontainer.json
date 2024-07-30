@@ -1,12 +1,12 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
 {
-	"name": "Fedora",
+	"name": "Devcontainer",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	//"image": "mcr.microsoft.com/devcontainers/base:jammy"
     "build": {
         // Path is relataive to the devcontainer.json file.
-        "dockerfile": "Dockerfile.fedora"
+        "dockerfile": "Dockerfile.ubuntu"
     },
 	"mounts": [
 		"type=bind,src=/home/iboisvert/Projects/github/libpwsafe,dst=/workspaces/libpwsafe"

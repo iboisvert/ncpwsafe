@@ -28,11 +28,12 @@ add_library(libncpwsafe OBJECT ${SRC})
 target_link_libraries(libncpwsafe 
     pwsafeStatic
     confini
-    ${NCURSES_LIBRARIES} 
-    ${ICU_LIBRARIES}
-    ${GLOG_LIBRARIES}
+    ${NCURSES_LINK_LIBRARIES} 
+    ${ICU_LINK_LIBRARIES}
+    ${GLOG_LINK_LIBRARIES}
 )
 target_include_directories(libncpwsafe PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+target_link_directories(libncpwsafe PUBLIC ${NETTLE_LIBRARY_DIRS})
 
 add_executable(ncpwsafe main.cpp)
 set_target_properties(ncpwsafe 
