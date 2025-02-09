@@ -25,13 +25,27 @@ list(APPEND SRC
 )
 
 add_library(libncpwsafe OBJECT ${SRC})
+if(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
 target_link_libraries(libncpwsafe 
     pwsafeStatic
     confini
-    ${NCURSES_LINK_LIBRARIES} 
+        ${CURSES_LIBRARIES} 
+        form
+        panel
+        menu
     ${ICU_LINK_LIBRARIES}
     ${GLOG_LINK_LIBRARIES}
 )
+else()
+target_link_libraries(libncpwsafe 
+    pwsafeStatic
+    confini
+${NCURSES_LINK_LIBRARIES} 
+    endif()
+    ${ICU_LINK_LIBRARIES}
+    ${GLOG_LINK_LIBRARIES}
+)
+endif()
 target_include_directories(libncpwsafe PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 target_link_directories(libncpwsafe PUBLIC ${NETTLE_LIBRARY_DIRS})
 

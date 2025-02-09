@@ -6,6 +6,7 @@
 #include <array>
 #include <iterator>
 #include <cassert>
+#include <string>
 
 constexpr char KEY_ESC = 0x1B;
 inline constexpr char KEY_CTRL(char c)

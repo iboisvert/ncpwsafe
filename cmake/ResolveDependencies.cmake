@@ -22,7 +22,11 @@ macro(resolve_dependencies)
 
     FetchContent_MakeAvailable(libpwsafe libconfini)
 
-    pkg_check_modules(NCURSES REQUIRED form menu panel)
+    if(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+        find_package(Curses REQUIRED COMPONENTS form menu panel)
+    else()
+        pkg_check_modules(NCURSES REQUIRED form menu panel)
+    endif()
     pkg_check_modules(ICU REQUIRED icu-uc)
     pkg_check_modules(GLOG libglog)
     pkg_check_modules(NETTLE REQUIRED nettle)
