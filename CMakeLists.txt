@@ -7,6 +7,7 @@ project(ncpwsafe
 )
 option(BUILD_TESTING "Enable unit tests" ON)
 option(NCPWSAFE_DEBUG_SANITIZE "Enable AddressSanitizer and UBSan, requires full recompile" OFF)
+option(USE_GLOG "Enable logging" OFF)
 set(NCPWSAFE_CONFIG_FILE "$HOME/.config/ncpwsafe/ncpwsafe.ini" CACHE FILEPATH "Config file default pathname")
 
 set(NCPWSAFE_APPNAME "${CMAKE_PROJECT_NAME}")
