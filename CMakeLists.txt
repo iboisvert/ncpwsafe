@@ -36,14 +36,11 @@ add_compile_definitions(
 )
 add_compile_options(
     -fPIC -Wall -Wextra
-    -Wall -Wextra
-    "$<$<CONFIG:DEBUG>:-g;-O0>"
+    "$<$<CONFIG:DEBUG>:-O0>"
     "$<$<AND:$<CONFIG:DEBUG>,$<BOOL:${NCPWSAFE_DEBUG_SANITIZE}>>:-fsanitize=address,undefined>"
 )
 add_link_options(
     -fPIC -Wall -Wextra
-    -Wall -Wextra
-    "$<$<CONFIG:DEBUG>:-g;-O0>"
     "$<$<AND:$<CONFIG:DEBUG>,$<BOOL:${NCPWSAFE_DEBUG_SANITIZE}>>:-fsanitize=address,undefined>"
 )
 

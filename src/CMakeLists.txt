@@ -29,10 +29,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
 target_link_libraries(libncpwsafe 
     pwsafeStatic
     confini
-        ${CURSES_LIBRARIES} 
-        form
-        panel
-        menu
+    ${CURSES_LIBRARIES} 
+    form
+    panel
+    menu
     ${ICU_LINK_LIBRARIES}
     ${GLOG_LINK_LIBRARIES}
 )
@@ -40,8 +40,7 @@ else()
 target_link_libraries(libncpwsafe 
     pwsafeStatic
     confini
-${NCURSES_LINK_LIBRARIES} 
-    endif()
+    ${NCURSES_LINK_LIBRARIES} 
     ${ICU_LINK_LIBRARIES}
     ${GLOG_LINK_LIBRARIES}
 )
