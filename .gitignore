@@ -1,5 +1,37 @@
-build
 .vscode
 !.vscode/launch.json
 .github
+
+# CMake build artifacts
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+CPackConfig.cmake
+CPackSourceConfig.cmake
+
+# CMake user files
 CMakeUserPresets.json
+
+# Dependencies
+_deps/
+vcpkg_installed/
+
+# Generated files
+config.h
+install_manifest.txt
+
+# Build outputs
+bin/
+lib/
+*.o
+*.a
+*.so
+*.dll
+*.exe
+
+# Test outputs
+Testing/

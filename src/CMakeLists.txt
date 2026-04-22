@@ -45,8 +45,16 @@ target_link_libraries(libncpwsafe
     ${GLOG_LINK_LIBRARIES}
 )
 endif()
-target_include_directories(libncpwsafe PUBLIC ${CMAKE_CURRENT_LIST_DIR})
-target_link_directories(libncpwsafe PUBLIC ${NETTLE_LIBRARY_DIRS})
+target_include_directories(libncpwsafe PUBLIC 
+    ${CMAKE_CURRENT_LIST_DIR}
+    ${NCURSES_INCLUDE_DIRS}
+    ${ICU_INCLUDE_DIRS}
+)
+target_link_directories(libncpwsafe PUBLIC 
+    ${NETTLE_LIBRARY_DIRS}
+    ${NCURSES_LIBRARY_DIRS}
+    ${ICU_LIBRARY_DIRS}
+)
 
 add_executable(ncpwsafe main.cpp)
 set_target_properties(ncpwsafe 
