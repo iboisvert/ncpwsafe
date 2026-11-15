@@ -63,7 +63,11 @@ DialogResult Dialog::Show(WINDOW *parent, const std::string &title)
     update_panels();
     doupdate();
 
-    DialogResult result = ProcessInput();
+    DialogResult result;
+    {
+        ScopedResizeHandler resize_handler(app_, [this]() { OnResize(); });
+        result = ProcessInput();
+    }
 
     RandomizeBuffers();
 
@@ -76,56 +80,39 @@ DialogResult Dialog::Show(WINDOW *parent, const std::string &title)
     return result;
 }
 
-void Dialog::InitTUI(const std::string &title)
+void Dialog::CalcGeometry(int &nlines, int &ncols, int &begin_y, int &begin_x, int &label_width) const
 {
-    // Calculate dimensions and coordinates to size and position dialog
-
-    int max_label_width = 0;
+    label_width = 0;
     for (const DialogField &field : dialog_fields_)
     {
         // FIXME Correctly count number of characters in current locale, not number of bytes
-        max_label_width = std::max(max_label_width, static_cast<int>(field.m_label.size()));
+        label_width = std::max(label_width, static_cast<int>(field.m_label.size()));
     }
 
     int max_y, max_x, beg_x, beg_y;
     getmaxyx(parent_win_, max_y, max_x);
     getbegyx(parent_win_, beg_y, beg_x);
-    int nlines = fields_.size();
-    int ncols = max_field_width_ + max_label_width + 1;
-    int begin_y = (max_y - nlines + beg_y) / 2;
-    int begin_x = (max_x - ncols + beg_x) / 2;
+    int content_nlines = fields_.size();
+    int content_ncols = max_field_width_ + label_width + 1;
+    begin_y = std::max(0, (max_y - content_nlines + beg_y) / 2);
+    begin_x = std::max(0, (max_x - content_ncols + beg_x) / 2);
 
-    // Add 2 to each dimension for border
-    win_ = newwin(nlines + 2, ncols + 4, begin_y, begin_x);
+    // Add space for border
+    nlines = content_nlines + 2;
+    ncols = content_ncols + 4;
+}
+
+void Dialog::InitTUI(const std::string &title)
+{
+    title_ = title;
+
+    int nlines, ncols, begin_y, begin_x, label_width;
+    CalcGeometry(nlines, ncols, begin_y, begin_x, label_width);
+
+    win_ = newwin(nlines, ncols, begin_y, begin_x);
     panel_ = new_panel(win_);
 
-    // Enable keypad so curses interprets function keys
-    keypad(win_, TRUE);
-    box(win_, 0, 0);
-    wattron(win_, A_BOLD);
-
-    Label::WriteJustified(win_, /*y*/ 0, /*begin_x*/ 2, ncols + 4, title.c_str(), JUSTIFY_CENTER);
-
-    int label_begin_x = 2, form_begin_y = 2, form_begin_x = max_label_width + label_begin_x + 1;
-    form_ = new_form(fields_.data());
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-value"
-    assert(("Unexpected form null", form_));
-#pragma GCC diagnostic pop
-    form_opts_off(form_, O_BS_OVERLOAD);
-    set_form_win(form_, win_);
-    scale_form(form_, &nlines, &ncols);
-    form_win_ = derwin(win_, nlines, ncols, form_begin_y, form_begin_x);
-    set_form_sub(form_, form_win_);
-    post_form(form_);
-
-    int row = 2;
-    for (const DialogField &df : dialog_fields_)
-    {
-        Label::Write(win_, row++, label_begin_x, df.m_label.c_str());
-    }
-
-    wattroff(win_, A_BOLD);
+    CreateForm(label_width);
 
     if (active_field_ != nullptr)
     {
@@ -136,6 +123,76 @@ void Dialog::InitTUI(const std::string &title)
 
     // Reset cursor for input fields
     save_cursor_ = curs_set(1);
+}
+
+void Dialog::CreateForm(int label_width)
+{
+    // Enable keypad so curses interprets function keys
+    keypad(win_, TRUE);
+    box(win_, 0, 0);
+    wattron(win_, A_BOLD);
+
+    Label::WriteJustified(win_, /*y*/ 0, /*begin_x*/ 2, getmaxx(win_), title_.c_str(), JUSTIFY_CENTER);
+
+    int label_begin_x = 2, form_begin_y = 2, form_begin_x = label_width + label_begin_x + 1;
+    form_ = new_form(fields_.data());
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-value"
+    assert(("Unexpected form null", form_));
+#pragma GCC diagnostic pop
+    form_opts_off(form_, O_BS_OVERLOAD);
+    set_form_win(form_, win_);
+    int form_nlines, form_ncols;
+    scale_form(form_, &form_nlines, &form_ncols);
+    form_win_ = derwin(win_, form_nlines, form_ncols, form_begin_y, form_begin_x);
+    set_form_sub(form_, form_win_);
+    post_form(form_);
+
+    int row = 2;
+    for (const DialogField &df : dialog_fields_)
+    {
+        Label::Write(win_, row++, label_begin_x, df.m_label.c_str());
+    }
+
+    wattroff(win_, A_BOLD);
+}
+
+void Dialog::OnResize()
+{
+    int nlines, ncols, begin_y, begin_x, label_width;
+    CalcGeometry(nlines, ncols, begin_y, begin_x, label_width);
+
+    WINDOW *win = newwin(nlines, ncols, begin_y, begin_x);
+    if (win == nullptr)
+    {
+        // The dialog doesn't fit on the screen, leave it as ncurses truncated it.
+        // It will be laid out again when the terminal is made large enough.
+        return;
+    }
+
+    // Synchronize the field buffers with the form window before
+    // the form is destroyed, the fields retain their values
+    form_driver(form_, REQ_VALIDATION);
+    FIELD *field = current_field(form_);
+
+    unpost_form(form_);
+    free_form(form_);
+    form_ = nullptr;
+    delwin(form_win_);
+    form_win_ = nullptr;
+
+    // Replacing the window keeps the panel's position in the panel stack
+    replace_panel(panel_, win);
+    delwin(win_);
+    win_ = win;
+
+    CreateForm(label_width);
+
+    if (field != nullptr)
+    {
+        set_current_field(form_, field);
+    }
+    form_driver(form_, REQ_END_LINE);
 }
 
 void Dialog::EndTUI()
@@ -191,6 +248,12 @@ DialogResult Dialog::ProcessInput()
     int ch;
     while ((ch = wgetch(win_)) != ERR)
     {
+        if (ch == KEY_RESIZE)
+        {
+            app_.HandleResize();
+            continue;
+        }
+
         if (input_delegate_(*this, ch, result))
         {
             SaveData();

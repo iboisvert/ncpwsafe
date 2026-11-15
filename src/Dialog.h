@@ -113,6 +113,12 @@ private:
 
     void ConstructFields();
     void InitTUI(const std::string &title);
+    /** Calculate the size and position of the dialog window, centered on the parent window */
+    void CalcGeometry(int &nlines, int &ncols, int &begin_y, int &begin_x, int &label_width) const;
+    /** Draw the dialog decorations and create and post the form in `win_` */
+    void CreateForm(int label_width);
+    /** Lay out the dialog after the terminal has been resized */
+    void OnResize();
     void EndTUI();
     /** Input driver */
     DialogResult ProcessInput();
@@ -134,6 +140,7 @@ private:
     Callback discard_changes_callback_;
     std::map<PwsFieldType, std::string> values_;
     int max_field_width_;
+    std::string title_;
 
     WINDOW *parent_win_ = nullptr;
     WINDOW *win_ = nullptr;

@@ -70,13 +70,15 @@ DialogResult MessageBox::Show(WINDOW *parent, const std::string &msg, KeyHandler
 
     InitTUI(parent, msg);
 
-    PrintMessage(win_, 2, 2, msg.c_str());
-
     touchwin(parent);
     update_panels();
     doupdate();
 
-    DialogResult retval = ProcessInput(handler);
+    DialogResult retval;
+    {
+        ScopedResizeHandler resize_handler(app_, [this]() { OnResize(); });
+        retval = ProcessInput(handler);
+    }
 
     EndTUI();
 
@@ -89,21 +91,54 @@ DialogResult MessageBox::Show(WINDOW *parent, const std::string &msg, KeyHandler
 
 void MessageBox::InitTUI(WINDOW *parent, const std::string &msg)
 {
+    parent_win_ = parent;
+    msg_ = msg;
+
+    win_ = NewWindow();
+    panel_ = new_panel(win_);
+
+    Draw();
+
+    // Reset cursor for input fields
+    save_cursor_ = curs_set(0);
+}
+
+WINDOW *MessageBox::NewWindow() const
+{
     int lines, cols, y, x;
-    SizeMsg(msg, lines, cols);
+    SizeMsg(msg_, lines, cols);
     lines += 2;
     cols += 2;
-    ScaleMsgBox(parent, lines, cols, y, x);
+    ScaleMsgBox(parent_win_, lines, cols, y, x);
 
-    win_ = newwin(lines + 2, cols + 2, y, x);
-    panel_ = new_panel(win_);
-    
+    return newwin(lines + 2, cols + 2, std::max(0, y), std::max(0, x));
+}
+
+void MessageBox::Draw()
+{
     // Enable keypad so curses interprets function keys
     keypad(win_, TRUE);
     box(win_, 0, 0);
 
-    // Reset cursor for input fields
-    save_cursor_ = curs_set(0);
+    PrintMessage(win_, 2, 2, msg_);
+}
+
+void MessageBox::OnResize()
+{
+    WINDOW *win = NewWindow();
+    if (win == nullptr)
+    {
+        // The message box doesn't fit on the screen, leave it as ncurses truncated it.
+        // It will be laid out again when the terminal is made large enough.
+        return;
+    }
+
+    // Replacing the window keeps the panel's position in the panel stack
+    replace_panel(panel_, win);
+    delwin(win_);
+    win_ = win;
+
+    Draw();
 }
 
 void MessageBox::EndTUI()
@@ -123,6 +158,12 @@ DialogResult MessageBox::ProcessInput(KeyHandler handler)
     int c;
     while ((c = wgetch(win_)) != ERR)
     {
+        if (c == KEY_RESIZE)
+        {
+            app_.HandleResize();
+            continue;
+        }
+
         if (handler(c, result))
             break;
     }

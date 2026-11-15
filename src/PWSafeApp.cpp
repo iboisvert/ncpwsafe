@@ -152,17 +152,76 @@ void PWSafeApp::InitTUI()
     int nlines = max_y - beg_y, ncols = max_x - beg_x;
 
     accounts_win_ = derwin(root_win_, nlines - 1, ncols, /*begin_y*/ 0, /*begin_x*/ 0);
-    box(accounts_win_, /*verch*/ 0, /*horch*/ 0);
-    Label::WriteJustified(accounts_win_, beg_y, beg_x, max_x, APPNAME_VERSION, JUSTIFY_CENTER);
 
     win_ = newwin(nlines - 3, ncols - 2, /*begin_y*/ beg_y + 1, /*begin_x*/ beg_x + 1);
 
     commandbar_win_ = newwin(/*nlines*/ 1, ncols, /*begin_y*/ nlines - 1, /*begin_x*/ beg_x);
     commandbar_panel_ = new_panel(commandbar_win_);
+
+    DrawFrame();
+
     // Draw command bar
     wattron(commandbar_win_, A_REVERSE | A_DIM);
     mvwhline(commandbar_win_, /*y*/ 0, beg_x, /*ch*/ ' ', ncols);
     wattroff(commandbar_win_, A_REVERSE | A_DIM);
+}
+
+/** Draw the border and title of the accounts list */
+void PWSafeApp::DrawFrame()
+{
+    werase(accounts_win_);
+    box(accounts_win_, /*verch*/ 0, /*horch*/ 0);
+    Label::WriteJustified(accounts_win_, /*y*/ 0, /*x*/ 0, getmaxx(accounts_win_), APPNAME_VERSION, JUSTIFY_CENTER);
+    // accounts_win_ is a subwindow of stdscr, which is the bottom panel
+    touchwin(root_win_);
+}
+
+/**
+ * Resize the application windows to fit the terminal.
+ * When this is called, ncurses has already resized stdscr to the new terminal size.
+ */
+void PWSafeApp::LayoutTUI()
+{
+    int nlines = getmaxy(root_win_), ncols = getmaxx(root_win_);
+
+    wresize(accounts_win_, nlines - 1, ncols);
+    DrawFrame();
+
+    // Position of the accounts list content window doesn't change, only its size.
+    // Owners of the content of win_ re-draw it from their resize handlers.
+    wresize(win_, nlines - 3, ncols - 2);
+
+    // If the terminal shrank, the command bar may now be below the bottom of the screen.
+    // ncurses has already narrowed it, so it can be moved before it is resized.
+    move_panel(commandbar_panel_, /*starty*/ nlines - 1, /*startx*/ 0);
+    wresize(commandbar_win_, /*nlines*/ 1, ncols);
+    werase(commandbar_win_);
+    if (commandbarwin_)
+    {
+        commandbarwin_->Redraw();
+    }
+}
+
+void PWSafeApp::HandleResize()
+{
+    // If the terminal is too small, leave windows as they were truncated by ncurses.
+    // They will be laid out again when the terminal is made large enough.
+    if (getmaxy(root_win_) >= MIN_TERM_LINES && getmaxx(root_win_) >= MIN_TERM_COLS)
+    {
+        LayoutTUI();
+
+        // Handlers may not be added or removed while they are being called,
+        // but use an index anyway to be robust against reallocation
+        for (size_t i = 0; i < resize_handlers_.size(); ++i)
+        {
+            resize_handlers_[i]();
+        }
+    }
+
+    // Terminals may leave garbage on the screen after resizing, repaint everything
+    clearok(curscr, TRUE);
+    update_panels();
+    doupdate();
 }
 
 void PWSafeApp::EndTUI()
@@ -186,11 +245,7 @@ void PWSafeApp::DoSearch()
     update_panels();
     hide_panel(commandbar_panel_);
 
-    WINDOW *win = dupwin(commandbar_win_);
-
-    SearchBarWin{*this, win, *accountswin_}.Show();
-
-    delwin(win);
+    SearchBarWin{*this, commandbar_win_, *accountswin_}.Show();
 
     show_panel(commandbar_panel_);
     update_panels();
