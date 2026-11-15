@@ -2,13 +2,14 @@
 #include <string>
 #include <cstdlib>
 #include <gtest/gtest.h>
+#include "TestUtils.h"
 #include "Utils.h"
 
 
 TEST(UtilTest, TestExpandEnvVars)
 {
-    setenv("FOO", "foo", 1);
-    setenv("BAR", "bar", 1);
+    SetEnv("FOO", "foo");
+    SetEnv("BAR", "bar");
     ASSERT_STREQ("foo", ExpandEnvVars("${FOO}").c_str());
     ASSERT_STREQ("abcfooxyz", ExpandEnvVars("abc${FOO}xyz").c_str());
     ASSERT_STREQ("abcfoobarxyz", ExpandEnvVars("abc${FOO}${BAR}xyz").c_str());

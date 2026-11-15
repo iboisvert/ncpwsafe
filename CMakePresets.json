@@ -1,12 +1,75 @@
 {
-    "version": 3,
-    "configurePresets": [
-      {
-        "name": "default",
-        "binaryDir": "${sourceDir}/build",
-        "cacheVariables": {
-          "CMAKE_BUILD_TYPE": "Release"
-        }
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "default",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
       }
-    ]
-  }
+    },
+    {
+      "name": "x64-windows-msvc",
+      "hidden": true,
+      "description": "Native Windows build with MSVC, the Windows SDK and vcpkg. Run from a Visual Studio Developer prompt.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl",
+        "CMAKE_CXX_COMPILER": "cl",
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_TARGET_TRIPLET": "x64-windows-static-md",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "x64-windows-msvc-debug",
+      "inherits": "x64-windows-msvc",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "x64-windows-msvc-release",
+      "inherits": "x64-windows-msvc",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "x64-windows-msvc-debug",
+      "configurePreset": "x64-windows-msvc-debug"
+    },
+    {
+      "name": "x64-windows-msvc-release",
+      "configurePreset": "x64-windows-msvc-release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "x64-windows-msvc-debug",
+      "configurePreset": "x64-windows-msvc-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "x64-windows-msvc-release",
+      "configurePreset": "x64-windows-msvc-release",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

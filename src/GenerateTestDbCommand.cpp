@@ -1,6 +1,6 @@
 /* Copyright 2022 Ian Boisvert */
-#include <fcntl.h>
-#include <unistd.h>
+#include <cerrno>
+#include <cstring>
 
 #include "PWSafeApp.h"
 #include "ProgArgs.h"
@@ -8,12 +8,12 @@
 #include "Utils.h"
 #include "RandUtils.h"
 
-[[gnu::unused]] static const char *WORDS_EN_CA[] = {
+[[maybe_unused]] static const char *WORDS_EN_CA[] = {
 #include "en_CA.dat"
 };
 static const size_t NWORDS_EN_CA = sizeof(WORDS_EN_CA) / sizeof(*WORDS_EN_CA);
 
-[[gnu::unused]] static const char *WORDS_RU[] = {
+[[maybe_unused]] static const char *WORDS_RU[] = {
 #include "ru.dat"
 };
 static const size_t NWORDS_RU = sizeof(WORDS_RU) / sizeof(*WORDS_RU);

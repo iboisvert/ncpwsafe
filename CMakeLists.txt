@@ -35,15 +35,36 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 add_compile_definitions(
     "$<$<CONFIG:RELEASE>:NDEBUG>"
 )
-add_compile_options(
-    -fPIC -Wall -Wextra
-    "$<$<CONFIG:DEBUG>:-O0>"
-    "$<$<AND:$<CONFIG:DEBUG>,$<BOOL:${NCPWSAFE_DEBUG_SANITIZE}>>:-fsanitize=address,undefined>"
-)
-add_link_options(
-    -fPIC -Wall -Wextra
-    "$<$<AND:$<CONFIG:DEBUG>,$<BOOL:${NCPWSAFE_DEBUG_SANITIZE}>>:-fsanitize=address,undefined>"
-)
+if(MSVC)
+    add_compile_definitions(
+        # Silence warnings for POSIX/C-runtime names (strdup, getenv, ...)
+        _CRT_SECURE_NO_WARNINGS
+        _CRT_NONSTDC_NO_WARNINGS
+        WIN32_LEAN_AND_MEAN
+        NOMINMAX
+    )
+    add_compile_options(
+        # Source files (e.g. ru.dat) contain UTF-8 string literals
+        /utf-8
+        /W3
+        # Unknown pragma, the sources use `#pragma GCC diagnostic`
+        /wd4068
+        /permissive-
+        /Zc:__cplusplus
+        # MSVC supports AddressSanitizer only, not UBSan
+        "$<$<AND:$<CONFIG:DEBUG>,$<BOOL:${NCPWSAFE_DEBUG_SANITIZE}>>:/fsanitize=address>"
+    )
+else()
+    add_compile_options(
+        -fPIC -Wall -Wextra
+        "$<$<CONFIG:DEBUG>:-O0>"
+        "$<$<AND:$<CONFIG:DEBUG>,$<BOOL:${NCPWSAFE_DEBUG_SANITIZE}>>:-fsanitize=address,undefined>"
+    )
+    add_link_options(
+        -fPIC -Wall -Wextra
+        "$<$<AND:$<CONFIG:DEBUG>,$<BOOL:${NCPWSAFE_DEBUG_SANITIZE}>>:-fsanitize=address,undefined>"
+    )
+endif()
 
 add_subdirectory(src)
 if(BUILD_TESTING)

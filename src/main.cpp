@@ -21,13 +21,29 @@
 #include <cwctype>
 #include <getopt.h>
 #include <wchar.h>
+#ifdef _WIN32
+#include <filesystem>
+#include "Win32.h"
+#else
 #include <libgen.h>
+#endif
 #ifdef HAVE_SYS_PRCTL_H
 #include <sys/prctl.h>
 #endif
 
 using std::fprintf;
 using std::srand;
+
+/** Get the program name to display from `argv[0]` */
+static std::string ProgramName(char *argv0)
+{
+#ifdef _WIN32
+    // Strip directory and `.exe` extension
+    return std::filesystem::path(argv0).stem().string();
+#else
+    return basename(argv0);
+#endif
+}
 
 static bool DisableCoreDump()
 {
@@ -79,9 +95,9 @@ static void Usage(const char *progName)
             "  --test-db-lang=STR   Language of strings in generated database\n"
             "                       Valid values are en-CA, ru. Default value is %s\n"
             "  --test-db-groups=N   Number of groups in the generated database\n"
-            "                       Default value is %zd\n"
+            "                       Default value is %lu\n"
             "  --test-db-items=N    Number of itesm in the generated database\n"
-            "                       Default value is %zd\n"
+            "                       Default value is %lu\n"
             "\n"
             "Generate password options:\n"
             "  --password-count=N   Generate N passwords, default count is %zd\n"
@@ -467,7 +483,11 @@ int main(int argc, char *argv[])
     // Initialize Google’s logging library.
     google::InitGoogleLogging(argv[0]);
 #endif
-    
+
+#ifdef _WIN32
+    win32::InitConsole();
+#endif
+
     // Don't allow ptrace or gdump on release build
     if (!DisableCoreDump())
         return 0;
@@ -475,7 +495,7 @@ int main(int argc, char *argv[])
     InputProgArgs input_args;
     if (!ParseArgs(argc, argv, input_args))
     {
-        Usage(basename(argv[0]));
+        Usage(ProgramName(argv[0]).c_str());
         return PRC_ERR_FAIL;
     }
 
