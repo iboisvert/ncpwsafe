@@ -18,6 +18,28 @@ $ cmake --build build
 $ ./build/src/ncpwsafe
 ```
 
+### Windows
+
+ncpwsafe builds on Windows with [MinGW-w64](https://www.mingw-w64.org/) gcc,
+with dependencies provided by [vcpkg](https://vcpkg.io/).
+MSVC is not supported, because the ncurses `form` and `menu` libraries
+do not build with MSVC.
+
+Requirements:
+- MinGW-w64 gcc on the `PATH`, for example from [MSYS2](https://www.msys2.org/) (UCRT64) or [WinLibs](https://winlibs.com/)
+- [Ninja](https://ninja-build.org/) and CMake 3.21 or later
+- A clone of vcpkg, with the `VCPKG_ROOT` environment variable set to its location
+
+To build:
+```
+> cmake --preset x64-windows-mingw-release
+> cmake --build --preset x64-windows-mingw-release
+> build\bin\ncpwsafe.exe
+```
+
+The first configure builds the dependencies with vcpkg (`x64-mingw-static` triplet),
+which takes a while. To enable logging, add `-DUSE_GLOG=ON` to the configure command.
+
 ## Known issues
 - Resize of terminal window not supported
 - Crash if when opening database with Unicode characters if the locale does not support Unicode

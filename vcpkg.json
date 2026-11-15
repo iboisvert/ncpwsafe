@@ -1,9 +1,20 @@
 {
   "dependencies": [
-    "glog",
     "icu",
     "ncurses",
-    "nettle",
+    {
+      "name": "nettle",
+      "platform": "!windows"
+    },
+    "openssl",
     "gtest"
-  ]
+  ],
+  "features": {
+    "glog": {
+      "description": "Logging, enable with the CMake option USE_GLOG",
+      "dependencies": [
+        "glog"
+      ]
+    }
+  }
 }

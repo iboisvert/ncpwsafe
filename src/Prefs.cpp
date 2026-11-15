@@ -14,7 +14,12 @@
 #include "Filesystem.h"
 
 static std::map<std::string, std::string> DEFAULTS{
+#ifdef _WIN32
+    // HOME is not usually set on Windows
+    {Prefs::DB_PATHNAME, "${USERPROFILE}/.pwsafe.dat"},
+#else
     {Prefs::DB_PATHNAME, "${HOME}/.pwsafe.dat"},
+#endif
     {Prefs::BACKUP_BEFORE_SAVE, "true"},
     {Prefs::BACKUP_COUNT, "3"},
 };

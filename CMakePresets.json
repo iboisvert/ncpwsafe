@@ -7,6 +7,34 @@
         "cacheVariables": {
           "CMAKE_BUILD_TYPE": "Release"
         }
-      }
+      },
+
+      { "name": "debug",    "hidden": true, "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" } },
+      { "name": "release",  "hidden": true, "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" } },
+
+      {
+        "name": "x64-windows-mingw", "hidden": true,
+        "description": "MinGW-w64 gcc, dependencies from vcpkg. Requires VCPKG_ROOT and gcc on the PATH",
+        "generator": "Ninja",
+        "binaryDir": "${sourceDir}/build",
+        "cacheVariables": {
+          "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+          "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+          "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchain-windows-mingw.cmake",
+          "VCPKG_TARGET_TRIPLET": "x64-mingw-static",
+          "VCPKG_HOST_TRIPLET": "x64-mingw-static"
+        },
+        "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
+      },
+      { "name": "x64-windows-mingw-debug", "inherits": [ "x64-windows-mingw", "debug" ] },
+      { "name": "x64-windows-mingw-release", "inherits": [ "x64-windows-mingw", "release" ] }
+    ],
+    "buildPresets": [
+      { "name": "x64-windows-mingw-debug", "configurePreset": "x64-windows-mingw-debug" },
+      { "name": "x64-windows-mingw-release", "configurePreset": "x64-windows-mingw-release" }
+    ],
+    "testPresets": [
+      { "name": "x64-windows-mingw-debug", "configurePreset": "x64-windows-mingw-debug" },
+      { "name": "x64-windows-mingw-release", "configurePreset": "x64-windows-mingw-release" }
     ]
   }

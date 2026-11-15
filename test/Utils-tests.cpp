@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <gtest/gtest.h>
 #include "Utils.h"
+#include "TestUtils.h"
 
 
 TEST(UtilTest, TestExpandEnvVars)

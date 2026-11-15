@@ -7,6 +7,7 @@
 
 #include "PWSafeApp.h"
 #include "Filesystem.h"
+#include "TestUtils.h"
 
 struct FilesystemMock : public Filesystem
 {
