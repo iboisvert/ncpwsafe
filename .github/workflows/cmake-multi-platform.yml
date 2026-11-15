@@ -7,8 +7,77 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
+  build-windows:
+    name: Windows (MSVC, ${{ matrix.preset }})
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [x64-windows-msvc-release]
+
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg-binary-cache
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}\vcpkg-binary-cache,readwrite
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Restore vcpkg binary cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ github.workspace }}\vcpkg-binary-cache
+        key: vcpkg-${{ runner.os }}-x64-windows-static-md-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'ports/**') }}
+        restore-keys: |
+          vcpkg-${{ runner.os }}-x64-windows-static-md-
+
+    - name: Create vcpkg binary cache directory
+      shell: pwsh
+      run: New-Item -ItemType Directory -Force "$env:VCPKG_DEFAULT_BINARY_CACHE" | Out-Null
+
+    - name: Set up MSVC developer environment
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Set up vcpkg
+      # Use the runner's preinstalled vcpkg, the ports baseline comes from vcpkg-configuration.json.
+      # This runs after the developer environment is set up, which may set VCPKG_ROOT
+      # to the Visual Studio bundled vcpkg.
+      shell: pwsh
+      run: |
+        "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV
+
+    - name: Configure CMake
+      # Installs dependencies from vcpkg.json in manifest mode
+      run: cmake --preset ${{ matrix.preset }}
+
+    - name: Build
+      run: cmake --build --preset ${{ matrix.preset }}
+
+    - name: Test
+      run: ctest --preset ${{ matrix.preset }}
+
+    - name: Upload executable
+      uses: actions/upload-artifact@v4
+      with:
+        name: ncpwsafe-${{ matrix.preset }}
+        path: build/${{ matrix.preset }}/bin/ncpwsafe.exe
+
+    - name: Upload vcpkg logs
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: vcpkg-logs-${{ matrix.preset }}
+        path: |
+          build/${{ matrix.preset }}/vcpkg-manifest-install.log
+          build/${{ matrix.preset }}/vcpkg_installed/vcpkg/blds/**/*.log
+          ${{ env.VCPKG_ROOT }}/buildtrees/**/*.log
+        if-no-files-found: ignore
+
   build:
     runs-on: ${{ matrix.os }}
 

@@ -55,8 +55,20 @@ target_link_directories(libncpwsafe PUBLIC
     ${NCURSES_LIBRARY_DIRS}
     ${ICU_LIBRARY_DIRS}
 )
+if(WIN32)
+    target_sources(libncpwsafe PRIVATE Win32.cpp)
+    target_link_libraries(libncpwsafe
+        ${GETOPT_LINK_LIBRARIES}
+        # Clipboard
+        user32
+    )
+endif()
 
 add_executable(ncpwsafe main.cpp)
+if(WIN32)
+    # Application manifest: UTF-8 active code page, Windows 10+
+    target_sources(ncpwsafe PRIVATE ncpwsafe.manifest)
+endif()
 set_target_properties(ncpwsafe 
     PROPERTIES 
     VERSION ${NCPWSAFE_VERSION}

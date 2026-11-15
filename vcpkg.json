@@ -1,9 +1,17 @@
 {
   "dependencies": [
+    {
+      "name": "getopt",
+      "platform": "windows"
+    },
     "glog",
+    "gtest",
     "icu",
     "ncurses",
-    "nettle",
-    "gtest"
+    {
+      "name": "nettle",
+      "platform": "!windows"
+    },
+    "openssl"
   ]
 }

@@ -1,5 +1,6 @@
 /* Copyright 2023 Ian Boisvert */
 #include <gtest/gtest.h>
+#include "TestUtils.h"
 
 #include <filesystem>
 #include <string>
@@ -38,7 +39,7 @@ struct FilesystemMock : public Filesystem
 
 TEST(AppTest, TestBackupDb_DstDoesntExist)
 {
-    setenv("TZ", "UTC0", 1);
+    SetTimeZone("UTC0");
 
     FilesystemMock fs_mock;
     std::string db_file("/foo/pwsafe.dat");
@@ -56,7 +57,7 @@ TEST(AppTest, TestBackupDb_DstDoesntExist)
 
 TEST(AppTest, TestBackupDb_DstDoesExist)
 {
-    setenv("TZ", "UTC0", 1);
+    SetTimeZone("UTC0");
 
     FilesystemMock fs_mock;
     std::string db_file("/foo/pwsafe.dat");
