@@ -63,15 +63,27 @@ public:
     /** Update the command bar with the give actions */
     void Show(std::vector<Action> actions);
 
+    /**
+     * Draw the actions that were last shown, e.g. after the window has been resized.
+     * The window is not refreshed.
+     */
+    void Redraw();
+
     // Generate help screen from list of actions
     // void ShowHelp()
 
+    /** Draw the actions in `win` and refresh `win` */
     static void ShowActions(const PWSafeApp &app, WINDOW *win, const std::vector<Action> &actions, int opts = -1);
+
+    /** Draw the actions in `win` without refreshing `win` */
+    static void DrawActions(const PWSafeApp &app, WINDOW *win, const std::vector<Action> &actions, int opts = -1);
 
 private:
     std::map<void *, std::vector<Action>> actions_;
     PWSafeApp &app_;
     WINDOW *win_ = nullptr;
+    std::vector<Action> last_actions_;
+    int last_opts_ = -1;
 };
 
 #endif

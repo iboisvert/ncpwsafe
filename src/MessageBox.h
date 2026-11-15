@@ -29,12 +29,20 @@ public:
 
 private:
     void InitTUI(WINDOW *parent, const std::string &msg);
+    /** Create a window for the message box, centered on the parent window */
+    WINDOW *NewWindow() const;
+    /** Draw the message box border and message */
+    void Draw();
+    /** Lay out the message box after the terminal has been resized */
+    void OnResize();
     void EndTUI();
     /** Input driver */
     DialogResult ProcessInput(KeyHandler handler);
 
     PWSafeApp &app_;
     
+    WINDOW *parent_win_ = nullptr;
+    std::string msg_;
     WINDOW *win_ = nullptr;
     PANEL *panel_ = nullptr;
     int save_cursor_ = 0;
