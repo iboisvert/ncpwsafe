@@ -22,6 +22,7 @@ list(APPEND SRC
     SafeCombinationPromptDlg.cpp
     SearchBarWin.cpp
     Utils.cpp
+    WinClipboard.cpp
 )
 
 add_library(libncpwsafe OBJECT ${SRC})
@@ -44,6 +45,10 @@ target_link_libraries(libncpwsafe
     ${ICU_LINK_LIBRARIES}
     ${GLOG_LINK_LIBRARIES}
 )
+endif()
+if(WIN32)
+    # Clipboard
+    target_link_libraries(libncpwsafe user32)
 endif()
 target_include_directories(libncpwsafe PUBLIC 
     ${CMAKE_CURRENT_LIST_DIR}

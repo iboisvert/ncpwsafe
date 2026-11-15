@@ -7,7 +7,9 @@ database formats.
 Be sure to make a backup of your account password database 
 before using this application.
 
-`xclip` is required to copy data to the clipboard from the CLI,
+`xclip` is required to copy data to the clipboard from the CLI.
+On Windows, the system clipboard is used, and copied user names
+and passwords are excluded from clipboard history and the cloud clipboard.
 
 ## Get Started
 
