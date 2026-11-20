@@ -1,6 +1,5 @@
 .vscode
 !.vscode/launch.json
-.github
 
 # CMake build artifacts
 build/
