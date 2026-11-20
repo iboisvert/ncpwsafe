@@ -1,29 +1,19 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
+// README at: https://github.com/devcontainers/templates/tree/main/src/cpp
 {
-	"name": "Devcontainer",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	//"image": "mcr.microsoft.com/devcontainers/base:jammy"
-    "build": {
-        // Path is relataive to the devcontainer.json file.
-        "dockerfile": "Dockerfile.ubuntu"
-    },
+	"name": "ncpwsafe",
+	"build": {
+		// Path is relative to the devcontainer.json file.
+		// Dockerfile.fedora is an alternative with the same toolset.
+		"dockerfile": "Dockerfile.ubuntu"
+	},
+
+	// Makes a libpwsafe checkout next to this repo available at /workspaces/libpwsafe,
+	// for use with the commented SOURCE_DIR line in cmake/ResolveDependencies.cmake.
+	// The checkout must exist on the host, or the container will not start.
 	"mounts": [
-		"type=bind,src=/home/iboisvert/Projects/github/libpwsafe,dst=/workspaces/libpwsafe"
+		"type=bind,src=${localWorkspaceFolder}/../libpwsafe,dst=/workspaces/libpwsafe"
 	],
-	
-	// Features to add to the dev container. More info: https://containers.dev/features.
-    // "features": {},
 
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
-
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "uname -a",
-
-	// Configure tool-specific properties.
-	// "customizations": {},
-
-	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
 	"remoteUser": "vscode"
 }
