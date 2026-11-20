@@ -1,12 +1,48 @@
 {
-    "version": 3,
-    "configurePresets": [
-      {
-        "name": "default",
+  "version": 3,
+  "configurePresets": [
+    {
+        "name":  "base",
+        "hidden": true,
+        "generator": "Unix Makefiles",
         "binaryDir": "${sourceDir}/build",
         "cacheVariables": {
-          "CMAKE_BUILD_TYPE": "Release"
+            "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
         }
-      }
-    ]
-  }
+    },
+    { "name": "debug",    "hidden": true, "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" } },
+    { "name": "release",  "hidden": true, "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" } },
+
+    {
+        "name": "x64-linux-gcc", "hidden": true,
+        "cacheVariables": {
+            "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchain-linux-gcc.cmake"
+        },
+        "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+    },
+    { "name": "x64-linux-gcc-debug", "inherits": [ "base", "x64-linux-gcc", "debug" ] },
+    { "name": "x64-linux-gcc-release", "inherits": [ "base", "x64-linux-gcc", "release" ] },
+
+    {
+        "name": "x64-linux-clang", "hidden": true,
+        "cacheVariables": {
+            "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchain-linux-clang.cmake"
+        },
+        "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+    },
+    { "name": "x64-linux-clang-debug", "inherits": [ "base", "x64-linux-clang", "debug" ] },
+    { "name": "x64-linux-clang-release", "inherits": [ "base", "x64-linux-clang", "release" ] }
+  ],
+  "buildPresets": [
+    { "name": "x64-linux-gcc-debug", "configurePreset": "x64-linux-gcc-debug" },
+    { "name": "x64-linux-gcc-release", "configurePreset": "x64-linux-gcc-release" },
+    { "name": "x64-linux-clang-debug", "configurePreset": "x64-linux-clang-debug" },
+    { "name": "x64-linux-clang-release", "configurePreset": "x64-linux-clang-release" }
+  ],
+  "testPresets": [
+    { "name": "x64-linux-gcc-debug", "configurePreset": "x64-linux-gcc-debug" },
+    { "name": "x64-linux-gcc-release", "configurePreset": "x64-linux-gcc-release" },
+    { "name": "x64-linux-clang-debug", "configurePreset": "x64-linux-clang-debug" },
+    { "name": "x64-linux-clang-release", "configurePreset": "x64-linux-clang-release" }
+  ]
+}
