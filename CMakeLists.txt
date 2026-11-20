@@ -31,18 +31,21 @@ resolve_dependencies()
 CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/config.h.in" "${CMAKE_CURRENT_BINARY_DIR}/config.h")
 include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 
-# TODO IMB 2023-01-22 Move to preset
+# Compiler warnings and debug flags live in cmake/toolchain-*.cmake,
+# selected via CMAKE_TOOLCHAIN_FILE in CMakePresets.json
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+if(NOT DEFINED NCPWSAFE_SANITIZE_FLAGS)
+    set(NCPWSAFE_SANITIZE_FLAGS "-fsanitize=address,undefined")
+endif()
+
 add_compile_definitions(
     "$<$<CONFIG:RELEASE>:NDEBUG>"
 )
 add_compile_options(
-    -fPIC -Wall -Wextra
-    "$<$<CONFIG:DEBUG>:-O0>"
-    "$<$<AND:$<CONFIG:DEBUG>,$<BOOL:${NCPWSAFE_DEBUG_SANITIZE}>>:-fsanitize=address,undefined>"
+    "$<$<AND:$<CONFIG:DEBUG>,$<BOOL:${NCPWSAFE_DEBUG_SANITIZE}>>:${NCPWSAFE_SANITIZE_FLAGS}>"
 )
 add_link_options(
-    -fPIC -Wall -Wextra
-    "$<$<AND:$<CONFIG:DEBUG>,$<BOOL:${NCPWSAFE_DEBUG_SANITIZE}>>:-fsanitize=address,undefined>"
+    "$<$<AND:$<CONFIG:DEBUG>,$<BOOL:${NCPWSAFE_DEBUG_SANITIZE}>>:${NCPWSAFE_SANITIZE_FLAGS}>"
 )
 
 add_subdirectory(src)
