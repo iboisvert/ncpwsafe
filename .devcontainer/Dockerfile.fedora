@@ -1,8 +1,14 @@
-FROM fedora:38
+FROM fedora:latest
+
+# Build, test and runtime dependencies for ncpwsafe (see cmake/ResolveDependencies.cmake).
+# libpwsafe and libconfini are fetched by CMake (FetchContent); OpenSSL and clang-tidy are for the libpwsafe build.
 RUN dnf makecache \
-    && dnf install -y git cmake rpm-build gcc gcc-c++ libasan libubsan gdb ncurses-devel libicu-devel nettle-devel glog-devel gtest-devel \
-    && dnf clean -y all \
+    && dnf install -y \
+        git pkgconf-pkg-config cmake make gcc gcc-c++ clang clang-tools-extra libasan libubsan gdb rpm-build sudo \
+        ncurses-devel libicu-devel nettle-devel gtest-devel glog-devel openssl-devel \
+        xclip \
+    && dnf clean all \
     && groupadd --gid 1000 vscode \
     && useradd --uid 1000 --gid 1000 -G wheel -s /bin/bash -m vscode \
-    && sh -c "echo \"%wheel ALL=(ALL) NOPASSWD: ALL\" > /etc/sudoers.d/10-wheel"
+    && echo "%wheel ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/10-wheel
 USER 1000

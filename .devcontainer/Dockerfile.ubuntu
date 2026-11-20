@@ -1,5 +1,11 @@
 FROM mcr.microsoft.com/devcontainers/cpp
 
+# Build, test and runtime dependencies for ncpwsafe (see cmake/ResolveDependencies.cmake).
+# libpwsafe and libconfini are fetched by CMake (FetchContent); OpenSSL and clang-tidy are for the libpwsafe build.
 RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update \
-    && apt-get install -y pkg-config cmake gcc g++ gdb autoconf autoconf-archive libtool
+    && apt-get install -y --no-install-recommends \
+        git pkg-config cmake make gcc g++ clang clang-tidy gdb \
+        libncurses-dev libicu-dev nettle-dev libgtest-dev libgoogle-glog-dev libssl-dev \
+        xclip \
+    && rm -rf /var/lib/apt/lists/*
