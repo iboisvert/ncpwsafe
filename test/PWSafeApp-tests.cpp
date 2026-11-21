@@ -35,8 +35,6 @@ struct FilesystemMock : public Filesystem
     }
 };
 
-// IMB 2023-07-02 These tests will probably fail on Windows
-
 TEST(AppTest, TestBackupDb_DstDoesntExist)
 {
     SetTimeZone("UTC0");
@@ -51,8 +49,10 @@ TEST(AppTest, TestBackupDb_DstDoesntExist)
     fs_mock.exists_retval = false;
 
     ASSERT_EQ(ResultCode::RC_SUCCESS, app.BackupDb());
-    ASSERT_EQ(0, strncmp("/foo/pwsafe-", std::get<1>(fs_mock.copy_args[0]).string().c_str(), 7));
-    ASSERT_EQ(0, strncmp(".dat", std::get<1>(fs_mock.copy_args[0]).string().c_str()+27, 4));
+    // generic_string(): MSVC's std::filesystem joins paths with '\\'
+    std::string backup = std::get<1>(fs_mock.copy_args[0]).generic_string();
+    ASSERT_EQ(0, strncmp("/foo/pwsafe-", backup.c_str(), 12));
+    ASSERT_EQ(0, strncmp(".dat", backup.c_str()+27, 4));
 }
 
 TEST(AppTest, TestBackupDb_DstDoesExist)
@@ -69,6 +69,8 @@ TEST(AppTest, TestBackupDb_DstDoesExist)
     fs_mock.exists_retval = true;
 
     ASSERT_EQ(ResultCode::RC_SUCCESS, app.BackupDb());
-    ASSERT_EQ(0, strncmp("/foo/pwsafe-", std::get<1>(fs_mock.copy_args[0]).string().c_str(), 7));
-    ASSERT_EQ(0, strncmp(".dat", std::get<1>(fs_mock.copy_args[0]).string().c_str()+27, 4));
+    // generic_string(): MSVC's std::filesystem joins paths with '\\'
+    std::string backup = std::get<1>(fs_mock.copy_args[0]).generic_string();
+    ASSERT_EQ(0, strncmp("/foo/pwsafe-", backup.c_str(), 12));
+    ASSERT_EQ(0, strncmp(".dat", backup.c_str()+27, 4));
 }

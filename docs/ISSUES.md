@@ -7,14 +7,6 @@ Known open issues. Severity is one of:
 
 Issues 1–9 were found by a code review of the Windows MSVC port (branch `dev/build-win-msvc`, 2026-11-21).
 
-## 1. Backup tests fail on Windows
-
-**Severity:** Important
-
-`AppTest.TestBackupDb_DstDoesntExist` and `AppTest.TestBackupDb_DstDoesExist` (`test/PWSafeApp-tests.cpp:54`, `:72`) check the backup path with `strncmp("/foo/pwsafe-", path.string().c_str(), 7)`. `PWSafeApp::BackupDbImpl` builds the path with `db_path.parent_path() / backup_filename` (`src/PWSafeApp.cpp:414`). MSVC's `std::filesystem` joins with `\`, so the path is `/foo\pwsafe-YYYYMMDD_HHMMSS.dat` and the comparison fails. The test file already notes "These tests will probably fail on Windows" (line 38), and the new `build-windows` CI job runs `ctest`, so the job fails.
-
-**Fix:** compare `std::filesystem::path(...).generic_string()`, or build the expected prefix with `std::filesystem::path("/foo") / "pwsafe-"`.
-
 ## 2. `NCPWSAFE_DEBUG_SANITIZE` does not build with MSVC
 
 **Severity:** Important
