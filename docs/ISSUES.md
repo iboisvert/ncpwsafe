@@ -1,6 +1,6 @@
 # Issues
 
-## README build instructions point to the wrong binary path
+## 1. README build instructions point to the wrong binary path
 
 **Status: open.**
 
@@ -8,7 +8,7 @@
 `RUNTIME_OUTPUT_DIRECTORY` to `${CMAKE_BINARY_DIR}/bin`. The binary is actually at
 `./build/bin/ncpwsafe`.
 
-## Core-dump/ptrace protection is enabled in Debug builds, not Release
+## 2. Core-dump/ptrace protection is enabled in Debug builds, not Release
 
 **Status: open.**
 
@@ -18,7 +18,7 @@ The comment at the call site ("Don't allow ptrace or gdump on release build") sa
 opposite. As written, Release builds can still be ptraced and can write core dumps that
 may contain decrypted passwords. Debug builds block debugger attach.
 
-## Leftover in-source CMake build artifacts in the repo root
+## 3. Leftover in-source CMake build artifacts in the repo root
 
 **Status: partly cleaned up.** `CMakeCache.txt` and most of the root files are gone,
 which removes the risk to `build/`. Still left: `CMakeFiles/` and `config.h` in the
@@ -31,7 +31,7 @@ The repo root contained files from an in-source CMake configure (`CMakeCache.txt
 under `test/`. They are gitignored, but a stale `CMakeCache.txt` in the source dir can
 interfere with out-of-source builds in `build/`. The rest can be deleted.
 
-## Message boxes wider than the terminal are not shown
+## 4. Message boxes wider than the terminal are not shown
 
 **Status: open.**
 
@@ -41,7 +41,7 @@ is wider than the terminal (e.g. "File <long pathname> does not exist"), `newwin
 never seen. Long lines should be wrapped or truncated to fit the terminal. Also,
 `ProcessInput` treats any `ERR` from `wgetch` as closing the box.
 
-## Editing an account's group or title deletes a different account
+## 5. Editing an account's group or title deletes a different account
 
 **Status: open.** Test: `test_edit_account_moves_group` in `test/e2e/tui/test_edit.py`
 (expected failure).
@@ -55,18 +55,7 @@ Saving writes the loss to the file. For example, with the e2e `small` fixture, m
 Bookstore from Shopping to Banking deletes Work mail. Copy the old record (or its UUID)
 before calling `Save`.
 
-## `--export-db` without `-o` reads an empty `std::optional`
-
-**Status: open.** Test: `test_output_required` in `test/e2e/cli/test_export.py`
-(expected failure in Debug builds). It also affects any command line that turns on
-`--export-db` with no `-o`, e.g. `--export-db --change-password`.
-
-In `ValidateArgs` (`src/main.cpp`), the `EXPORT_DB` branch reports "Output file is
-required" but then still evaluates `fs::Exists(*args.output_file_)`. This is undefined
-behaviour. Debug builds abort with SIGABRT on the libstdc++ assertion, and Release builds
-happen to carry on. Only check whether the file exists once `output_file_` has a value.
-
-## Search doesn't match queries containing capital letters
+## 7. Search doesn't match queries containing capital letters
 
 **Status: open.** Test: `test_search_mixed_case` in `test/e2e/tui/test_navigation.py`
 (expected failure).
@@ -75,7 +64,7 @@ happen to carry on. Only check whether the file exists once `output_file_` has a
 field value but not the query, so "book" finds Bookstore but "Book" finds nothing.
 Lowercase `sub` too, or use ICU case folding on both.
 
-## `--password-policy` by name selects the wrong policy, and 0 is accepted
+## 8. `--password-policy` by name selects the wrong policy, and 0 is accepted
 
 **Status: open.** Tests: `test_policy_by_name` and `test_policy_zero_rejected` in
 `test/e2e/cli/test_generate_password.py` (expected failures).
@@ -87,7 +76,7 @@ Lowercase `sub` too, or use ICU case folding on both.
 - `ValidateArgs` only rejects values `> PasswordPolicy::Composition::COUNT`, so
   `--password-policy=0` is accepted and also indexes at -1. Reject values `< 1` too.
 
-## `--change-password` exits 0 when it fails
+## 9. `--change-password` exits 0 when it fails
 
 **Status: open.** Test: `test_wrong_password_exit_code` in
 `test/e2e/cli/test_change_password.py` (expected failure).
@@ -97,7 +86,7 @@ or "Changing account database password failed", but never sets `result`, so the 
 code is always 0 and scripts can't detect the failure. These messages also go to stdout
 rather than stderr, unlike `--export-db`'s errors.
 
-## The delete prompt names the user even when the title is unique
+## 10. The delete prompt names the user even when the title is unique
 
 **Status: open.** Test: `test_delete_unique_title_omits_user` in
 `test/e2e/tui/test_edit.py` (expected failure).
@@ -109,7 +98,7 @@ when *every* account has the same title, so the user is named almost every time.
 should be `none_of` over the other records having the same title, i.e.
 `!FieldCompare(...) || &record == prec` inside `all_of`.
 
-## Cancelling a search that started on a group heading jumps to the first account
+## 11. Cancelling a search that started on a group heading jumps to the first account
 
 **Status: open.** Minor. No test.
 
@@ -118,7 +107,7 @@ heading is selected, `GetSelection()` returns `nullptr` and the saved position b
 `records.begin()`, so Esc moves the selection to the first account instead of back to
 the heading.
 
-## Crash opening a database with Unicode characters when the locale doesn't support Unicode
+## 12. Crash opening a database with Unicode characters when the locale doesn't support Unicode
 
 **Status: open.** Moved from the README's known issues. Not yet reproduced or tested.
 

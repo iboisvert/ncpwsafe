@@ -78,12 +78,9 @@ class ExportTest(e2elib.E2ETestCase):
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("Account database password is required", proc.stderr)
 
-    @e2elib.expected_failure_if(e2elib.IS_DEBUG_BUILD)
     def test_output_required(self):
-        # BUG: after reporting "Output file is required", ValidateArgs checks
-        # fs::Exists(*args.output_file_) on the empty optional. That is
-        # undefined behaviour: Debug builds abort on the libstdc++ assertion,
-        # Release builds happen to work
+        # ValidateArgs used to check fs::Exists(*args.output_file_) on the
+        # empty optional, which crashed
         db, pw = self.make_db()
         proc = self.run_ncpwsafe("--export-db", "--password-file", pw, db)
         self.assertNotEqual(proc.returncode, 0)

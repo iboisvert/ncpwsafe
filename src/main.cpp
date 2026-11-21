@@ -275,7 +275,7 @@ static bool ValidateArgs(InputProgArgs &args)
         {
             result = Error("Output file is required\n");
         }
-        if (!args.force_ && fs::Exists(*args.output_file_))
+        else if (!args.force_ && fs::Exists(*args.output_file_))
         {
             result = Error("Output file %s already exists\n", args.output_file_->c_str());
         }
