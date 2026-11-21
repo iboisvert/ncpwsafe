@@ -11,7 +11,7 @@ ncpwsafe is a C++17 ncurses TUI (plus a few non-interactive CLI commands) for Pa
 ```sh
 cmake --preset=x64-linux-gcc-debug            # or x64-linux-clang-*, *-release; extra options: -DBUILD_TESTING=OFF, -DNCPWSAFE_DEBUG_SANITIZE=ON (ASan+UBSan, Debug only), -DUSE_GLOG=ON
 cmake --build --preset=x64-linux-gcc-debug
-./build/bin/ncpwsafe [DATABASE_FILE]          # executable goes to build/bin (README's build/src path is out of date)
+./build/bin/ncpwsafe [DATABASE_FILE]          # executable goes to build/bin
 ./build/bin/ncpwsafe --help                   # CLI commands: --generate-password, --export-db, --change-password, --test-db (Debug only)
 
 ctest --preset=x64-linux-gcc-debug            # all tests

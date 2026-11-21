@@ -1,13 +1,5 @@
 # Issues
 
-## 1. README build instructions point to the wrong binary path
-
-**Status: open.**
-
-`README.md` says to run `./build/src/ncpwsafe`, but `src/CMakeLists.txt` sets
-`RUNTIME_OUTPUT_DIRECTORY` to `${CMAKE_BINARY_DIR}/bin`. The binary is actually at
-`./build/bin/ncpwsafe`.
-
 ## 2. Core-dump/ptrace protection is enabled in Debug builds, not Release
 
 **Status: open.**
