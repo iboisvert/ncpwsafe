@@ -19,7 +19,6 @@ $ ./build/src/ncpwsafe
 ```
 
 ## Known issues
-- Resize of terminal window not supported
 - Crash if when opening database with Unicode characters if the locale does not support Unicode
 
 # Attribution

@@ -3,7 +3,9 @@
 
 #include "config.h"
 #include "libncurses.h"
+#include <functional>
 #include <memory>
+#include <vector>
 
 #include "AccountDb.h"
 #include "AccountsWin.h"
@@ -73,8 +75,45 @@ public:
         return *commandbarwin_;
     }
 
+    /** Get the command bar window, used as the layout reference for the search bar */
+    WINDOW *GetCommandBarWindow()
+    {
+        return commandbar_win_;
+    }
+
+    typedef std::function<void()> ResizeHandler;
+
+    /**
+     * Register a function to be called when the terminal is resized.
+     * Handlers are called in the order they were registered, so that
+     * windows are laid out from the bottom of the panel stack to the top.
+     * @see ScopedResizeHandler
+     */
+    void PushResizeHandler(ResizeHandler handler)
+    {
+        resize_handlers_.push_back(std::move(handler));
+    }
+
+    /** Remove the most recently registered resize handler */
+    void PopResizeHandler()
+    {
+        resize_handlers_.pop_back();
+    }
+
+    /**
+     * Lay out all windows to fit the terminal after it has been resized.
+     * Call when `wgetch()` returns `KEY_RESIZE`.
+     */
+    void HandleResize();
+
 private:
+    /** Minimum terminal size for which windows will be laid out */
+    static constexpr int MIN_TERM_LINES = 6;
+    static constexpr int MIN_TERM_COLS = 20;
+
     void InitTUI();
+    void LayoutTUI();
+    void DrawFrame();
     void EndTUI();
     void ProcessInput();
 
@@ -94,9 +133,33 @@ private:
     PANEL *commandbar_panel_ = nullptr; // Command bar panel
     WINDOW *win_ = nullptr;            // Content of accounts list window
     int save_cursor_ = 0;
+    std::vector<ResizeHandler> resize_handlers_;
 
 #ifdef FRIEND_TEST
     FRIEND_TEST(AppTest, TestBackupDb_DstDoesntExist);
     FRIEND_TEST(AppTest, TestBackupDb_DstDoesExist);
 #endif
+};
+
+/**
+ * Registers a resize handler with the application for the lifetime of this object.
+ */
+class ScopedResizeHandler
+{
+public:
+    ScopedResizeHandler(PWSafeApp &app, PWSafeApp::ResizeHandler handler) : app_(app)
+    {
+        app_.PushResizeHandler(std::move(handler));
+    }
+
+    ~ScopedResizeHandler()
+    {
+        app_.PopResizeHandler();
+    }
+
+    ScopedResizeHandler(const ScopedResizeHandler &) = delete;
+    ScopedResizeHandler &operator=(const ScopedResizeHandler &) = delete;
+
+private:
+    PWSafeApp &app_;
 };

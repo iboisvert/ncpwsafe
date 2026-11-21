@@ -7,20 +7,31 @@
 
 void SearchBarWin::InitTUI()
 {
+    CreateWindows();
     panel_ = new_panel(win_);
+
+    save_cursor_ = curs_set(1);
+}
+
+void SearchBarWin::CreateWindows()
+{
+    win_ = dupwin(layout_win_);
 
     const std::vector<Action> actions{
         {"^L", "Next"},
         {"Enter", "Exit"},
         {"Esc", "Cancel"},
     };
-    CommandBarWin::ShowActions(app_, win_, actions);
+    CommandBarWin::DrawActions(app_, win_, actions);
 
     waddstr(win_, "Search: ");
 
-    int curx = getcurx(win_), cols = getmaxx(win_) - curx;
+    int maxx = getmaxx(win_);
+    int curx = std::min(getcurx(win_), maxx - 1), cols = maxx - curx;
     fields_[0] = new_field(/*height*/ 1, cols, /*toprow*/ 0, /*leftcol*/ 0, /*offscreen*/ 0, /*nbuffers*/ 0);
     field_opts_off(fields_[0], O_STATIC);
+    // Restore the query after a resize
+    set_field_buffer(fields_[0], /*buf*/ 0, query_.c_str());
 
     form_ = new_form(fields_);
     form_opts_off(form_, O_BS_OVERLOAD);
@@ -28,11 +39,36 @@ void SearchBarWin::InitTUI()
     form_win_ = derwin(win_, /*nlines*/ 1, /*ncols*/ cols, /*begin_y*/ 0, /*begin_x*/ curx);
     set_form_sub(form_, form_win_);
     post_form(form_);
+    form_driver(form_, REQ_END_LINE);
 
     // Enable keypad so curses interprets function keys
     keypad(win_, TRUE);
+}
 
-    save_cursor_ = curs_set(1);
+void SearchBarWin::DestroyForm()
+{
+    unpost_form(form_);
+    free_form(form_);
+    form_ = nullptr;
+
+    free_field(fields_[0]);
+    fields_[0] = nullptr;
+
+    delwin(form_win_);
+    form_win_ = nullptr;
+}
+
+void SearchBarWin::OnResize()
+{
+    // query_ is kept up to date as the user types, CreateWindows() restores it in the new field
+    WINDOW *old_win = win_;
+    DestroyForm();
+
+    CreateWindows();
+
+    // Replacing the window keeps the panel's position in the panel stack
+    replace_panel(panel_, win_);
+    delwin(old_win);
 }
 
 void SearchBarWin::EndTUI()
@@ -40,15 +76,9 @@ void SearchBarWin::EndTUI()
     del_panel(panel_);
     panel_ = nullptr;
 
-    unpost_form(form_);
-    free_form(form_);
-    form_ = nullptr;
-
-    free_field(fields_[0]);
-    fields_[0] = nullptr;
-    
-    delwin(form_win_);
-    form_win_ = nullptr;
+    DestroyForm();
+    delwin(win_);
+    win_ = nullptr;
 
     curs_set(save_cursor_);
 }
@@ -72,7 +102,10 @@ void SearchBarWin::Show()
 
     InitTUI();
 
-    ProcessInput();
+    {
+        ScopedResizeHandler resize_handler(app_, [this]() { OnResize(); });
+        ProcessInput();
+    }
 
     EndTUI();
 }
@@ -182,6 +215,10 @@ DialogResult SearchBarWin::ProcessInput()
 
         switch (ch)
         {
+        case KEY_RESIZE: {
+            app_.HandleResize();
+            break;
+        }
         case '\n': {
             rc = DialogResult::OK;
             goto done;

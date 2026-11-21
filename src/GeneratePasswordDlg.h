@@ -22,6 +22,12 @@ public:
 private:
     void SetCommandBarWin();
     void InitTUI(const std::string &title);
+    /** Create a window for the dialog, centered on the parent window */
+    WINDOW *NewWindow() const;
+    /** Draw the dialog decorations and create the labels in `win_` */
+    void Draw();
+    /** Lay out the dialog after the terminal has been resized */
+    void OnResize();
     void EndTUI();
     /** Input driver */
     DialogResult ProcessInput();
@@ -38,6 +44,7 @@ private:
     size_t m_pwPolicyFlagsIndex;
     size_t m_pwPolicyLength;
 
+    std::string title_;
     WINDOW *parent_win_ = nullptr;
     WINDOW *win_ = nullptr;
     PANEL *panel_ = nullptr;

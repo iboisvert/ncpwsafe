@@ -9,18 +9,33 @@ const std::vector<Action> CommandBarWin::YES_NO{Action::YES, Action::NO};
 
 void CommandBarWin::Show(void *p, int opts)
 {
-    CommandBarWin::ShowActions(app_, win_, actions_.at(p), opts);
+    last_actions_ = actions_.at(p);
+    last_opts_ = opts;
+    CommandBarWin::ShowActions(app_, win_, last_actions_, last_opts_);
 }
 
 /** Update the command bar with the give actions */
 void CommandBarWin::Show(std::vector<Action> actions)
 {
-    CommandBarWin::ShowActions(app_, win_, actions, /*opts*/ (int)-1);
+    last_actions_ = std::move(actions);
+    last_opts_ = -1;
+    CommandBarWin::ShowActions(app_, win_, last_actions_, last_opts_);
+}
+
+void CommandBarWin::Redraw()
+{
+    CommandBarWin::DrawActions(app_, win_, last_actions_, last_opts_);
 }
 
 static const char *STATUS_READ_ONLY = "RO";
 
 void CommandBarWin::ShowActions(const PWSafeApp &app, WINDOW *win, const std::vector<Action> &actions, int opts)
+{
+    DrawActions(app, win, actions, opts);
+    wrefresh(win);
+}
+
+void CommandBarWin::DrawActions(const PWSafeApp &app, WINDOW *win, const std::vector<Action> &actions, int opts)
 {
     wattron(win, A_REVERSE/* | A_DIM*/);
 
@@ -61,6 +76,4 @@ void CommandBarWin::ShowActions(const PWSafeApp &app, WINDOW *win, const std::ve
     {
         mvwaddstr(win, /*y*/0, max_x, STATUS_READ_ONLY);
     }
-
-    wrefresh(win);
 }
