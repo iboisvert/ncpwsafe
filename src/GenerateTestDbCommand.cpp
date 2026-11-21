@@ -1,4 +1,5 @@
 /* Copyright 2022 Ian Boisvert */
+#include <cstring>
 #include <fcntl.h>
 #include <unistd.h>
 
