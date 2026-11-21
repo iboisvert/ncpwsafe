@@ -577,13 +577,17 @@ int main(int argc, char *argv[])
         {
             fprintf(stdout, "Account database password changed\n");
         }
-        else if (rc == RC_ERR_INCORRECT_PASSWORD)
-        {
-            fprintf(stdout, "Incorrect account database password\n");
-        }
         else
         {
-            fprintf(stdout, "Changing account database password failed\n");
+            result = static_cast<int>(RC_FAILURE);
+            if (rc == RC_ERR_INCORRECT_PASSWORD)
+            {
+                fprintf(stderr, "Incorrect account database password\n");
+            }
+            else
+            {
+                fprintf(stderr, "Changing account database password failed\n");
+            }
         }
         fflush(stdout);
         break;

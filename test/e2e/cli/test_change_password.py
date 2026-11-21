@@ -1,7 +1,6 @@
 """CLI: --change-password."""
 import hashlib
 import sys
-import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -58,16 +57,15 @@ class ChangePasswordTest(e2elib.E2ETestCase):
         db, _ = self.make_db()
         before = digest(db)
         proc = self.change(db, self.password_file("not the password"), self.password_file(NEW_PASSWORD))
-        self.assertIn("Incorrect account database password", proc.stdout)
+        self.assertIn("Incorrect account database password", proc.stderr)
+        self.assertNotIn("password changed", proc.stdout)
         self.assertEqual(digest(db), before)
 
-    @unittest.expectedFailure
     def test_wrong_password_exit_code(self):
-        # BUG: main() never sets the exit code for --change-password, so it
-        # exits 0 even when the password is not changed
+        # main() used to exit 0 even when the password was not changed
         db, _ = self.make_db()
         proc = self.change(db, self.password_file("not the password"), self.password_file(NEW_PASSWORD))
-        self.assertNotEqual(proc.returncode, 0)
+        self.assertEqual(proc.returncode, e2elib.PRC_ERR_FAIL)
 
     def test_new_password_required(self):
         db, pw = self.make_db()

@@ -1,15 +1,5 @@
 # Issues
 
-## 9. `--change-password` exits 0 when it fails
-
-**Status: open.** Test: `test_wrong_password_exit_code` in
-`test/e2e/cli/test_change_password.py` (expected failure).
-
-The `CHANGE_DB_PASSWORD` case in `main()` prints "Incorrect account database password"
-or "Changing account database password failed", but never sets `result`, so the exit
-code is always 0 and scripts can't detect the failure. These messages also go to stdout
-rather than stderr, unlike `--export-db`'s errors.
-
 ## 10. The delete prompt names the user even when the title is unique
 
 **Status: open.** Test: `test_delete_unique_title_omits_user` in
