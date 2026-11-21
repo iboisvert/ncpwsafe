@@ -13,6 +13,7 @@
 
 #include <climits>
 #include <clocale>
+#include <csignal>
 #include <cstdint>
 #include <cstdlib>
 
@@ -30,15 +31,42 @@ static void RestoreConsole()
         SetConsoleOutputCP(saved_output_cp);
 }
 
+static LPTOP_LEVEL_EXCEPTION_FILTER previous_exception_filter = nullptr;
+
+/** Unhandled exception filter: restores the console, then passes the exception on */
+static LONG WINAPI RestoreConsoleOnUnhandledException(EXCEPTION_POINTERS *info)
+{
+    RestoreConsole();
+    return previous_exception_filter ? previous_exception_filter(info) : EXCEPTION_CONTINUE_SEARCH;
+}
+
+/** `SIGABRT` handler: `abort()` ends the process with `_exit()`, which skips `atexit` */
+static void __cdecl RestoreConsoleOnAbort(int)
+{
+    RestoreConsole();
+}
+
+/** Console control handler for Ctrl+C, Ctrl+Break, closing the console, logoff and shutdown */
+static BOOL WINAPI RestoreConsoleOnCtrlEvent(DWORD)
+{
+    RestoreConsole();
+    // Not handled, so the default handler ends the process
+    return FALSE;
+}
+
 void InitConsole()
 {
     // The console code pages are a property of the console, not the process,
-    // so they are restored on exit to avoid changing the parent shell's console
+    // so they are restored on exit to avoid changing the parent shell's console,
+    // also when the process ends without running atexit handlers
     saved_input_cp = GetConsoleCP();
     saved_output_cp = GetConsoleOutputCP();
     if (saved_input_cp != 0 || saved_output_cp != 0)
     {
         std::atexit(RestoreConsole);
+        std::signal(SIGABRT, RestoreConsoleOnAbort);
+        SetConsoleCtrlHandler(RestoreConsoleOnCtrlEvent, TRUE);
+        previous_exception_filter = SetUnhandledExceptionFilter(RestoreConsoleOnUnhandledException);
     }
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
@@ -50,6 +78,7 @@ void InitConsole()
 /** Unhandled exception filter: ends the process before WER can write a crash dump */
 static LONG WINAPI TerminateOnUnhandledException(EXCEPTION_POINTERS *info)
 {
+    RestoreConsole();
     TerminateProcess(GetCurrentProcess(), info->ExceptionRecord->ExceptionCode);
     return EXCEPTION_EXECUTE_HANDLER;
 }
@@ -58,12 +87,14 @@ static LONG WINAPI TerminateOnUnhandledException(EXCEPTION_POINTERS *info)
 static void __cdecl TerminateOnInvalidParameter(const wchar_t *, const wchar_t *, const wchar_t *,
                                                 unsigned int, uintptr_t)
 {
+    RestoreConsole();
     // STATUS_INVALID_CRUNTIME_PARAMETER, the exit code the default handler uses
     TerminateProcess(GetCurrentProcess(), 0xC0000417);
 }
 
 void DisableCrashDumps()
 {
+    // Replaces the filter set by InitConsole(), and restores the console itself
     SetUnhandledExceptionFilter(TerminateOnUnhandledException);
     _set_invalid_parameter_handler(TerminateOnInvalidParameter);
     // abort() raises SIGABRT and exits, without the WER fault report

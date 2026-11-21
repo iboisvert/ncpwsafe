@@ -23,7 +23,9 @@ namespace win32
  * Sets the console input and output code pages to UTF-8 and selects the
  * UTF-8 C runtime locale so that multibyte strings are interpreted
  * as UTF-8 by curses. The original console code pages are restored
- * when the process exits.
+ * when the process exits, also after a crash, `abort()` or a console control
+ * event (Ctrl+C, Ctrl+Break, closing the console). They are not restored
+ * after a fail-fast exception, or if the process is killed.
  */
 void InitConsole();
 

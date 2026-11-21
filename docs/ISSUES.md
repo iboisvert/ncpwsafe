@@ -15,14 +15,6 @@ Issues 1–9 were found by a code review of the Windows MSVC port (branch `dev/b
 
 **Fix:** `setlocale(LC_CTYPE, ".UTF-8")`.
 
-## 5. Console code page not restored after a crash
-
-**Severity:** Minor
-
-`win32::InitConsole()` sets the console input and output code pages to UTF-8 (`src/Win32.cpp:42`). These belong to the console, which is shared with the parent shell, not to the process. They are restored only from an `atexit` handler (line 40), which does not run on a crash, `abort()` or Ctrl+Break. The parent `cmd.exe` then stays on code page 65001, and legacy console programs run from it afterwards show garbled text.
-
-**Fix:** also restore from a `SetConsoleCtrlHandler` handler and an unhandled-exception filter, or accept and document it.
-
 ## 6. `Win32.cpp` is not in the `SRC` list
 
 **Severity:** Minor
