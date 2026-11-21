@@ -1,15 +1,5 @@
 # Issues
 
-## 4. Message boxes wider than the terminal are not shown
-
-**Status: open.**
-
-`MessageBox::InitTUI` sizes the window to fit the longest line of the message. If that
-is wider than the terminal (e.g. "File <long pathname> does not exist"), `newwin` fails,
-`wgetch(NULL)` returns `ERR`, and `ProcessInput` returns immediately, so the message is
-never seen. Long lines should be wrapped or truncated to fit the terminal. Also,
-`ProcessInput` treats any `ERR` from `wgetch` as closing the box.
-
 ## 5. Editing an account's group or title deletes a different account
 
 **Status: open.** Test: `test_edit_account_moves_group` in `test/e2e/tui/test_edit.py`

@@ -157,3 +157,45 @@ TEST(UtilTest, TestZeroString)
     EXPECT_TRUE(str.empty());
     EXPECT_EQ(0, std::memcmp(data, "\0\0\0\0\0\0", 6));
 }
+
+TEST(UtilTest, TestUtf8Length)
+{
+    EXPECT_EQ(0u, Utf8Length(""));
+    EXPECT_EQ(5u, Utf8Length("hello"));
+    EXPECT_EQ(5u, Utf8Length("Café!"));
+    EXPECT_EQ(4u, Utf8Length("Банк"));
+    EXPECT_EQ(3u, Utf8Length("日本語"));
+}
+
+using Lines = std::vector<std::string>;
+
+TEST(UtilTest, TestWrapTextFits)
+{
+    EXPECT_EQ(Lines{}, WrapText("", 10));
+    EXPECT_EQ(Lines{"hello"}, WrapText("hello", 10));
+    EXPECT_EQ(Lines{"hello"}, WrapText("hello", 5));
+    EXPECT_EQ((Lines{"one", "two"}), WrapText("one\ntwo", 10));
+    // A newline at the end doesn't add a line, but blank lines in the middle are kept
+    EXPECT_EQ(Lines{"one"}, WrapText("one\n", 10));
+    EXPECT_EQ((Lines{"one", "", "two"}), WrapText("one\n\ntwo", 10));
+}
+
+TEST(UtilTest, TestWrapTextBetweenWords)
+{
+    EXPECT_EQ((Lines{"Delete", "account", "Bookstore?"}), WrapText("Delete account Bookstore?", 10));
+    EXPECT_EQ((Lines{"one two", "three"}), WrapText("one two three", 7));
+    EXPECT_EQ((Lines{"one two", "three"}), WrapText("one two three", 8));
+    EXPECT_EQ((Lines{"a b c", "d"}), WrapText("a b c d", 5));
+}
+
+TEST(UtilTest, TestWrapTextLongWord)
+{
+    EXPECT_EQ((Lines{"abcd", "efgh", "ij"}), WrapText("abcdefghij", 4));
+    EXPECT_EQ((Lines{"File", "/tmp/a/b/c/", "d/e/f.dat", "does not", "exist"}),
+              WrapText("File /tmp/a/b/c/d/e/f.dat does not exist", 11));
+    // Lines are counted and broken in characters, not bytes
+    EXPECT_EQ((Lines{"Сбер", "егат", "ельн", "ый"}), WrapText("Сберегательный", 4));
+    EXPECT_EQ((Lines{"Café", "Crème"}), WrapText("Café Crème", 5));
+    // A width of 0 is taken as 1
+    EXPECT_EQ((Lines{"a", "b"}), WrapText("ab", 0));
+}

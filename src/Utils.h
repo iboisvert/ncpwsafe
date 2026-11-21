@@ -7,6 +7,8 @@
 #include <iterator>
 #include <cassert>
 #include <string>
+#include <string_view>
+#include <vector>
 
 constexpr char KEY_ESC = 0x1B;
 inline constexpr char KEY_CTRL(char c)
@@ -67,3 +69,17 @@ inline std::string &rtrim(std::string &str)
 
 /** Expand environment variables in the string */
 std::string ExpandEnvVars(const std::string &str);
+
+/**
+ * Number of characters (code points) in UTF-8 text. A character is assumed to
+ * take one column on the terminal, which isn't so for wide (e.g. CJK) characters.
+ */
+size_t Utf8Length(std::string_view text);
+
+/**
+ * Wrap text into lines of at most `width` characters (see `Utf8Length`).
+ * Lines are broken at newlines and between words, and a word longer than
+ * `width` (e.g. a long pathname) is broken across lines.
+ * A newline at the end of `text` doesn't start another line.
+ */
+std::vector<std::string> WrapText(const std::string &text, size_t width);

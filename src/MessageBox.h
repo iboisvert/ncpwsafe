@@ -3,6 +3,8 @@
 
 #include "PWSafeApp.h"
 #include "Dialog.h"
+#include <string>
+#include <vector>
 
 typedef bool (*KeyHandler)(int ch, DialogResult &result);
 
@@ -29,8 +31,8 @@ public:
 
 private:
     void InitTUI(WINDOW *parent, const std::string &msg);
-    /** Create a window for the message box, centered on the parent window */
-    WINDOW *NewWindow() const;
+    /** Create a window for the message box `lines`, centered on the parent window */
+    WINDOW *NewWindow(const std::vector<std::string> &lines) const;
     /** Draw the message box border and message */
     void Draw();
     /** Lay out the message box after the terminal has been resized */
@@ -43,6 +45,8 @@ private:
     
     WINDOW *parent_win_ = nullptr;
     std::string msg_;
+    /** The message wrapped to fit the parent window */
+    std::vector<std::string> lines_;
     WINDOW *win_ = nullptr;
     PANEL *panel_ = nullptr;
     int save_cursor_ = 0;

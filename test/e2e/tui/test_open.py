@@ -80,6 +80,24 @@ class OpenTest(e2elib.TuiTestCase):
         app.send("Enter")
         app.wait_for(f"File {missing} does not exist")
 
+    def test_long_message_wrapped(self):
+        # A message wider than the terminal is wrapped to fit, it used to
+        # not be shown at all because its window couldn't be created
+        missing = self.tmp / "a directory with a long name" / "another long directory name" / "missing.dat"
+        message = f"File {missing} does not exist"
+        cols = 50
+        self.assertGreater(len(message), cols)
+        app = self.start(missing, cols=cols)
+        app.wait_for("Unlock Database")
+        app.type("whatever")
+        app.send("Enter")
+        screen = app.wait_for("Enter Close")
+        for word in message.split():
+            self.assertIn(word, screen)
+        app.send("Enter")
+        app.wait_gone("Enter Close")
+        app.wait_for("Unlock Database")
+
     def test_cancel_prompt(self):
         db, _ = self.make_db()
         app = self.start(db)

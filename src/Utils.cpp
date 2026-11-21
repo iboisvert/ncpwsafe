@@ -124,3 +124,82 @@ std::string ExpandEnvVars(const std::string &str)
         return str;
     }
 }
+
+size_t Utf8Length(std::string_view text)
+{
+    // Count the bytes that aren't UTF-8 continuation bytes
+    return std::count_if(text.begin(), text.end(), [](char c) { return (c & 0xC0) != 0x80; });
+}
+
+/** Number of bytes in the first `n` characters of UTF-8 text */
+static size_t Utf8PrefixBytes(std::string_view text, size_t n)
+{
+    size_t pos = 0;
+    while (pos < text.size() && n > 0)
+    {
+        ++pos;
+        while (pos < text.size() && (text[pos] & 0xC0) == 0x80) ++pos;
+        --n;
+    }
+    return pos;
+}
+
+static void WrapParagraph(std::string_view para, size_t width, std::vector<std::string> &lines)
+{
+    const size_t first_line = lines.size();
+    std::string line;
+    size_t line_len = 0;
+    size_t pos = 0;
+    while (pos <= para.size())
+    {
+        size_t end = std::min(para.find(' ', pos), para.size());
+        std::string_view word = para.substr(pos, end - pos);
+        pos = end + 1;
+
+        size_t word_len = Utf8Length(word);
+        if (line_len > 0 && line_len + 1 + word_len > width)
+        {
+            lines.push_back(std::move(line));
+            line.clear();
+            line_len = 0;
+        }
+        if (line_len > 0)
+        {
+            line += ' ';
+            ++line_len;
+        }
+        // Only a word longer than a whole line is broken
+        while (word_len > width - line_len)
+        {
+            size_t n = width - line_len;
+            size_t nbytes = Utf8PrefixBytes(word, n);
+            line.append(word.substr(0, nbytes));
+            lines.push_back(std::move(line));
+            line.clear();
+            line_len = 0;
+            word.remove_prefix(nbytes);
+            word_len -= n;
+        }
+        line.append(word);
+        line_len += word_len;
+    }
+    if (line_len > 0 || lines.size() == first_line)
+    {
+        lines.push_back(std::move(line));
+    }
+}
+
+std::vector<std::string> WrapText(const std::string &text, size_t width)
+{
+    width = std::max<size_t>(width, 1);
+    std::vector<std::string> lines;
+    std::string_view rest{text};
+    while (!rest.empty())
+    {
+        size_t nl = rest.find('\n');
+        WrapParagraph(rest.substr(0, nl), width, lines);
+        if (nl == std::string_view::npos) break;
+        rest.remove_prefix(nl + 1);
+    }
+    return lines;
+}
