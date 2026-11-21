@@ -1,7 +1,6 @@
 """TUI: adding, editing and deleting accounts, saving and discarding changes."""
 import hashlib
 import sys
-import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -227,10 +226,9 @@ class EditTest(e2elib.TuiTestCase):
         self.assertEqual(app.wait_exit(), e2elib.PRC_ERR_FAIL)
         self.assertDbContains(db, pw, e2elib.read_spec())
 
-    @unittest.expectedFailure
     def test_delete_unique_title_omits_user(self):
-        # BUG: the uniqueness check in AccountsWin::DeleteEntry() is inverted, so
-        # the user is named unless every account has the same title
+        # The uniqueness check in AccountsWin::DeleteEntry() used to be
+        # inverted, so the user was named unless every account had the same title
         app, _, _ = self.open_db()
         self.select(app, "Chequing")
         app.send("C-d")

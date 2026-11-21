@@ -1,17 +1,5 @@
 # Issues
 
-## 10. The delete prompt names the user even when the title is unique
-
-**Status: open.** Test: `test_delete_unique_title_omits_user` in
-`test/e2e/tui/test_edit.py` (expected failure).
-
-`AccountsWin::DeleteEntry` is meant to add "with user X" only when another account has
-the same title. Its check,
-`all_of(records, FieldCompare(FT_TITLE, record, *prec) || &record == prec)`, is true only
-when *every* account has the same title, so the user is named almost every time. It
-should be `none_of` over the other records having the same title, i.e.
-`!FieldCompare(...) || &record == prec` inside `all_of`.
-
 ## 11. Cancelling a search that started on a group heading jumps to the first account
 
 **Status: open.** Minor. No test.

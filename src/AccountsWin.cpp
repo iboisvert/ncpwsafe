@@ -665,8 +665,9 @@ DialogResult AccountsWin::DeleteEntry(const ITEM *pitem)
     app_.GetCommandBar().Show(CommandBarWin::YES_NO);
 
     auto &records = db.Records();
-    bool unique = std::all_of(records.begin(), records.end(), [prec](const AccountRecord &record) { 
-        return FieldCompare(FT_TITLE, record, *prec) || &record == prec; 
+    // Name the user only if another account has the same title
+    bool unique = std::none_of(records.begin(), records.end(), [prec](const AccountRecord &record) {
+        return &record != prec && FieldCompare(FT_TITLE, record, *prec);
     });
     std::string msg = std::string("Delete account ").append(prec->GetField(FT_TITLE));
     if (!unique && prec->GetField(FT_USER))
