@@ -337,3 +337,12 @@ const std::string &Dialog::GetValue(PwsFieldType ft) const
 {
     return values_.at(ft);
 }
+
+std::string Dialog::GetCurrentValue(PwsFieldType ft)
+{
+    // Commit pending edits in the active field to its buffer
+    form_driver(form_, REQ_VALIDATION);
+    FIELD *field = GetField(ft);
+    assert(field != nullptr);
+    return field != nullptr ? GetFieldValue(field) : std::string{};
+}
