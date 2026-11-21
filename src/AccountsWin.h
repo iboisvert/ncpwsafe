@@ -17,7 +17,18 @@ public:
     DialogResult Show();
 
     void SetSelection(const AccountRecord &cid) const;
+    /** The selected account, `nullptr` if a group heading is selected */
     const AccountRecord *GetSelection() const;
+    /** The selected menu item, an account or a group heading */
+    ITEM *GetCurrentItem() const
+    {
+        return current_item(menu_);
+    }
+    /** Select a menu item returned by `GetCurrentItem()`, the menu must not have changed since */
+    void SetCurrentItem(ITEM *item) const
+    {
+        if (item != nullptr) set_current_item(menu_, item);
+    }
 
 private:
     /* Command bar display mask */

@@ -1,14 +1,5 @@
 # Issues
 
-## 11. Cancelling a search that started on a group heading jumps to the first account
-
-**Status: open.** Minor. No test.
-
-`SearchBarWin::Show` saves the starting selection as an account record. When a group
-heading is selected, `GetSelection()` returns `nullptr` and the saved position becomes
-`records.begin()`, so Esc moves the selection to the first account instead of back to
-the heading.
-
 ## 12. Crash opening a database with Unicode characters when the locale doesn't support Unicode
 
 **Status: open.** Moved from the README's known issues. Not yet reproduced or tested.

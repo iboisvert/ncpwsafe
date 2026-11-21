@@ -118,6 +118,44 @@ class NavigationTest(e2elib.TuiTestCase):
         # Back to where the search started
         app.wait_highlighted("Chequing")
 
+    def test_search_cancel_from_group_heading(self):
+        # The saved position used to be an account record, which a heading
+        # doesn't have, so Esc went to the first account instead
+        app, _, _ = self.open_db()
+        app.send("Down")
+        app.wait_highlighted("Banking")
+        app.send("/")
+        app.wait_for("Search:")
+        app.type("book")
+        app.wait_highlighted("Bookstore")
+        app.send("Escape")
+        app.wait_gone("Search:")
+        app.wait_highlighted("Banking")
+        self.assertEqual(app.highlighted(), ["Banking"])
+
+    def test_search_cleared_from_group_heading(self):
+        # Deleting the whole query goes back to where the search started
+        app, _, _ = self.open_db()
+        app.send("Down")
+        app.wait_highlighted("Banking")
+        app.send("/")
+        app.wait_for("Search:")
+        app.type("book")
+        app.wait_highlighted("Bookstore")
+        app.send(*["BSpace"] * len("book"))
+        app.wait_highlighted("Banking")
+
+    def test_search_from_group_heading_finds_first_account(self):
+        # A search started on a heading used to start after the first account,
+        # and never wrapped around to it
+        app, _, _ = self.open_db()
+        app.send("End", "Up")
+        app.wait_highlighted("Shopping")
+        app.send("/")
+        app.wait_for("Search:")
+        app.type("router")
+        app.wait_highlighted("Router")
+
     def test_search_no_match(self):
         app, _, _ = self.open_db()
         app.send("/")
