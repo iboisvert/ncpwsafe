@@ -27,6 +27,8 @@ struct InputProgArgs
     std::optional<std::string> database_;                 // Account database
     std::optional<std::string> password_;                 // Database password
     std::optional<std::string> new_password_;              // New database password, for when password is being changed
+    std::optional<std::string> password_file_;            // File containing the database password
+    std::optional<std::string> new_password_file_;        // File containing the new database password
     std::optional<bool> read_only_;                    // Database read-only flag
     std::optional<std::string> generate_language_;         // Language to use in generated database
     std::optional<unsigned long> generate_group_count_; // Number of account groups to generate

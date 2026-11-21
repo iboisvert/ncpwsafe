@@ -25,6 +25,13 @@ void ZeroMemory(void *p, size_t len);
 /** Overwrite the contents of `str` with zeros, then clear it */
 void ZeroString(std::string &str);
 
+/**
+ * Read a password from the first line of the file `pathname`.
+ * A trailing line ending (LF or CR LF) is removed.
+ * @returns `false` if the file can't be read, with `errno` set
+ */
+bool ReadPasswordFile(const std::string &pathname, std::string &password);
+
 constexpr std::array<char, 5> WS{'\0', ' ', '\n', '\r', '\t'};
 template <typename It>
 inline It rtrim(It begin, It end)
