@@ -18,6 +18,19 @@ $ cmake --build build
 $ ./build/src/ncpwsafe
 ```
 
+## Testing
+
+Unit tests (GoogleTest) and end-to-end tests of the CLI commands and the
+ncurses UI run through CTest:
+```
+$ cmake --preset=x64-linux-gcc-debug
+$ cmake --build --preset=x64-linux-gcc-debug
+$ ctest --preset=x64-linux-gcc-debug
+```
+The end-to-end tests need Python 3, and the UI tests also need `tmux`
+(they are skipped without it). See [test/README.md](test/README.md) for
+requirements, running a subset of the tests, and how the tests work.
+
 ## Known issues
 - Crash if when opening database with Unicode characters if the locale does not support Unicode
 
