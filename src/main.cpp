@@ -537,6 +537,10 @@ int main(int argc, char *argv[])
     google::InitGoogleLogging(argv[0]);
 #endif
     
+    // ncurses needs a UTF-8 character set to show and edit non-ASCII account text.
+    // Only LC_CTYPE, so that e.g. number formats don't change
+    SetUtf8CtypeLocale();
+
     // Don't allow ptrace or core dumps in Release builds
     if (!DisableCoreDump())
     {

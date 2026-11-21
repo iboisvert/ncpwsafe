@@ -17,6 +17,24 @@ inline constexpr char KEY_CTRL(char c)
 }
 
 /**
+ * `text` with each character that isn't printable in the `LC_CTYPE` locale, or isn't
+ * valid in its character set, replaced by '?'. An empty `text` gives "?".
+ */
+std::string PrintableText(const char *text);
+
+/** Returned by `ReadKey()` for a character that isn't ASCII */
+constexpr int KEY_WIDE_CHAR = KEY_MAX + 1;
+
+/**
+ * Read a key from `win` with `wget_wch()`, so a non-ASCII (multibyte) character is read
+ * whole rather than byte by byte.
+ * @param[out] wch The character, if `KEY_WIDE_CHAR` is returned
+ * @returns A function key or ASCII character as `wgetch()` returns it, `KEY_WIDE_CHAR`
+ * for any other character, or `ERR`
+ */
+int ReadKey(WINDOW *win, wchar_t &wch);
+
+/**
  * Overwrite the 0 buffer of curses fields
  * @param fields A null-terminated array of curses `FIELD`s
  */
@@ -66,6 +84,16 @@ inline std::string &rtrim(std::string &str)
     }).base(), str.end());
     return str;
 }
+
+/**
+ * Set the character type locale (`LC_CTYPE`) to the user's locale if its character set is
+ * UTF-8, otherwise to a UTF-8 locale such as C.UTF-8.
+ *
+ * Account text is UTF-8. ncurses needs a UTF-8 character set to show it, and to edit it
+ * in a form without changing it.
+ * @returns `false` if no UTF-8 locale is available, `LC_CTYPE` is then the user's locale
+ */
+bool SetUtf8CtypeLocale();
 
 /** Expand environment variables in the string */
 std::string ExpandEnvVars(const std::string &str);

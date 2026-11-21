@@ -4,7 +4,9 @@
 #include "libncurses.h"
 #include "Dialog.h"
 #include "AccountRecord.h"
+#include <deque>
 #include <set>
+#include <string>
 
 class PWSafeApp;
 
@@ -89,6 +91,8 @@ private:
     MENU *menu_ = nullptr;
     PANEL *panel_ = nullptr;
     std::vector<ITEM *> menu_items_;
+    /** Item names that aren't account fields, see NewMenuItem() */
+    std::deque<std::string> menu_item_names_;
     int save_cursor_ = 0;
 };
 

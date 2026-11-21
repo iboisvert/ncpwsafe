@@ -221,7 +221,8 @@ DialogResult SearchBarWin::ProcessInput()
 {
     DialogResult rc = DialogResult::CANCEL;
     int ch = ERR;
-    while ((ch = wgetch(win_)) != ERR)
+    wchar_t wch = 0;
+    while ((ch = ReadKey(win_, wch)) != ERR)
     {
         bool update = false;
 
@@ -283,6 +284,14 @@ DialogResult SearchBarWin::ProcessInput()
         }
         case KEY_DC: {
             if (form_driver(form_, REQ_DEL_CHAR) == E_OK)
+            {
+                UpdateQueryString();
+                update = FindNext();
+            }
+            break;
+        }
+        case KEY_WIDE_CHAR: {
+            if (form_driver_w(form_, CURSES_OK, wch) == E_OK)
             {
                 UpdateQueryString();
                 update = FindNext();

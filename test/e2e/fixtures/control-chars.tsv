@@ -1,0 +1,4 @@
+# An account with a control character (BEL) in its title, shown as "Bell?"
+# group	title	user	password	notes
+	Bell	user	pw-bell
+	Router	admin	pw-router-6

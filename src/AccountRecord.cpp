@@ -72,5 +72,5 @@ bool FieldCompare(uint8_t field_type, const AccountRecord &a, const AccountRecor
         return false;
     }
 
-    return icu::UnicodeString(fa) == icu::UnicodeString(fb);
+    return icu::UnicodeString::fromUTF8(fa) == icu::UnicodeString::fromUTF8(fb);
 }

@@ -1,9 +1,18 @@
 /* Copyright 2022 Ian Boisvert */
+#include "config.h"
 #include "Utils.h"
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <clocale>
+#include <cwchar>
+#include <cwctype>
+#include <initializer_list>
+#ifdef HAVE_LANGINFO_H
+#include <langinfo.h>
+#include <strings.h>
+#endif
 
 // Prevent memset from being optimized out
 typedef void *(*memset_func)(void *, int, size_t);
@@ -202,4 +211,84 @@ std::vector<std::string> WrapText(const std::string &text, size_t width)
         rest.remove_prefix(nl + 1);
     }
     return lines;
+}
+
+/** `true` if the character set of the LC_CTYPE locale is UTF-8 */
+static bool IsUtf8Ctype()
+{
+#ifdef HAVE_LANGINFO_H
+    const char *codeset = nl_langinfo(CODESET);
+    return codeset && (strcasecmp(codeset, "UTF-8") == 0 || strcasecmp(codeset, "utf8") == 0);
+#else
+    return false;
+#endif
+}
+
+bool SetUtf8CtypeLocale()
+{
+    if (setlocale(LC_CTYPE, "") != nullptr && IsUtf8Ctype())
+    {
+        return true;
+    }
+    for (const char *name : {"C.UTF-8", "C.utf8", "en_US.UTF-8", "en_US.utf8"})
+    {
+        if (setlocale(LC_CTYPE, name) != nullptr && IsUtf8Ctype())
+        {
+            return true;
+        }
+    }
+    setlocale(LC_CTYPE, "");
+    return false;
+}
+
+int ReadKey(WINDOW *win, wchar_t &wch)
+{
+    wint_t key;
+    int rc = wget_wch(win, &key);
+    if (rc == KEY_CODE_YES)
+    {
+        return static_cast<int>(key);
+    }
+    if (rc == CURSES_OK)
+    {
+        if (key < 0x80)
+        {
+            return static_cast<int>(key);
+        }
+        wch = static_cast<wchar_t>(key);
+        return KEY_WIDE_CHAR;
+    }
+    return ERR;
+}
+
+std::string PrintableText(const char *text)
+{
+    std::string printable;
+    std::mbstate_t state{};
+    const char *p = text, *end = text + strlen(text);
+    while (p < end)
+    {
+        wchar_t wc;
+        size_t n = std::mbrtowc(&wc, p, end - p, &state);
+        if (n == static_cast<size_t>(-1) || n == static_cast<size_t>(-2) || n == 0)
+        {
+            // Not a character of this character set: replace the byte, and any UTF-8
+            // continuation bytes after it, which would be the rest of the character
+            printable += '?';
+            state = std::mbstate_t{};
+            ++p;
+            while (p < end && (*p & 0xC0) == 0x80) ++p;
+            continue;
+        }
+        if (std::iswprint(wc))
+        {
+            printable.append(p, n);
+        }
+        else
+        {
+            printable += '?';
+        }
+        p += n;
+    }
+    return printable.empty() ? std::string("?") : printable;
 }

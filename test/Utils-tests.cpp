@@ -5,6 +5,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <unistd.h>
+#include <clocale>
+#include <langinfo.h>
+#include <optional>
 #include <gtest/gtest.h>
 #include "Utils.h"
 
@@ -198,4 +201,75 @@ TEST(UtilTest, TestWrapTextLongWord)
     EXPECT_EQ((Lines{"Café", "Crème"}), WrapText("Café Crème", 5));
     // A width of 0 is taken as 1
     EXPECT_EQ((Lines{"a", "b"}), WrapText("ab", 0));
+}
+
+/** Sets LC_ALL for a test, and puts back the environment and LC_CTYPE afterwards */
+class Utf8LocaleTest : public ::testing::Test
+{
+protected:
+    void SetUp() override
+    {
+        const char *lc_all = getenv("LC_ALL");
+        if (lc_all) saved_lc_all_ = lc_all;
+        saved_ctype_ = setlocale(LC_CTYPE, nullptr);
+    }
+    void TearDown() override
+    {
+        if (saved_lc_all_) setenv("LC_ALL", saved_lc_all_->c_str(), 1);
+        else unsetenv("LC_ALL");
+        setlocale(LC_CTYPE, saved_ctype_.c_str());
+    }
+    static std::string Codeset()
+    {
+        return nl_langinfo(CODESET);
+    }
+
+    std::optional<std::string> saved_lc_all_;
+    std::string saved_ctype_;
+};
+
+TEST_F(Utf8LocaleTest, KeepsUtf8Locale)
+{
+    if (!setlocale(LC_CTYPE, "en_US.UTF-8")) GTEST_SKIP() << "en_US.UTF-8 locale is not installed";
+    setenv("LC_ALL", "en_US.UTF-8", 1);
+    ASSERT_TRUE(SetUtf8CtypeLocale());
+    EXPECT_EQ("UTF-8", Codeset());
+    EXPECT_STREQ("en_US.UTF-8", setlocale(LC_CTYPE, nullptr));
+}
+
+TEST_F(Utf8LocaleTest, ReplacesCLocale)
+{
+    setenv("LC_ALL", "C", 1);
+    if (!SetUtf8CtypeLocale()) GTEST_SKIP() << "no UTF-8 locale is installed";
+    EXPECT_EQ("UTF-8", Codeset());
+}
+
+TEST_F(Utf8LocaleTest, ReplacesNonUtf8Locale)
+{
+    if (!setlocale(LC_CTYPE, "en_US.ISO-8859-15")) GTEST_SKIP() << "en_US.ISO-8859-15 locale is not installed";
+    setenv("LC_ALL", "en_US.ISO-8859-15", 1);
+    if (!SetUtf8CtypeLocale()) GTEST_SKIP() << "no UTF-8 locale is installed";
+    EXPECT_EQ("UTF-8", Codeset());
+}
+
+TEST_F(Utf8LocaleTest, PrintableTextUtf8)
+{
+    if (!setlocale(LC_CTYPE, "C.UTF-8")) GTEST_SKIP() << "C.UTF-8 locale is not installed";
+    EXPECT_EQ("Router", PrintableText("Router"));
+    EXPECT_EQ("Café", PrintableText("Café"));
+    EXPECT_EQ("Bell?é", PrintableText("Bell\aé"));
+    EXPECT_EQ("a?b", PrintableText("a\tb"));
+    // Not valid UTF-8
+    EXPECT_EQ("a?b", PrintableText("a\xff" "b"));
+    EXPECT_EQ("?", PrintableText(""));
+}
+
+TEST_F(Utf8LocaleTest, PrintableTextCLocale)
+{
+    setlocale(LC_CTYPE, "C");
+    EXPECT_EQ("Router", PrintableText("Router"));
+    // One '?' for each UTF-8 character, not for each byte
+    EXPECT_EQ("Caf?", PrintableText("Café"));
+    EXPECT_EQ("????", PrintableText("Банк"));
+    EXPECT_EQ("Bell??", PrintableText("Bell\aé"));
 }

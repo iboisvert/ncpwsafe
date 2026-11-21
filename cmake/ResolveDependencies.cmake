@@ -22,10 +22,13 @@ macro(resolve_dependencies)
 
     FetchContent_MakeAvailable(libpwsafe libconfini)
 
+    # The wide character libraries are needed to show non-ASCII (UTF-8) text:
+    # the others take each byte of a multibyte character as a character of its own
     if(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+        set(CURSES_NEED_WIDE TRUE)
         find_package(Curses REQUIRED COMPONENTS form menu panel)
     else()
-        pkg_check_modules(NCURSES REQUIRED ncurses form menu panel)
+        pkg_check_modules(NCURSES REQUIRED ncursesw formw menuw panelw)
     endif()
     pkg_check_modules(ICU REQUIRED icu-uc)
     if(USE_GLOG)

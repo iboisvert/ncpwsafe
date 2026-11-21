@@ -32,6 +32,7 @@ include(ResolveDependencies)
 
 CHECK_INCLUDE_FILE("sys/prctl.h" HAVE_SYS_PRCTL_H)
 CHECK_INCLUDE_FILE("sys/random.h" HAVE_SYS_RANDOM_H)
+CHECK_INCLUDE_FILE("langinfo.h" HAVE_LANGINFO_H)
 
 resolve_dependencies()
 

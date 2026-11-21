@@ -246,7 +246,8 @@ DialogResult Dialog::ProcessInput()
 {
     DialogResult result = DialogResult::CANCEL;
     int ch;
-    while ((ch = wgetch(win_)) != ERR)
+    wchar_t wch = 0;
+    while ((ch = ReadKey(win_, wch)) != ERR)
     {
         if (ch == KEY_RESIZE)
         {
@@ -340,6 +341,13 @@ DialogResult Dialog::ProcessInput()
             if (!read_only_)
             {
                 form_driver(form_, REQ_DEL_CHAR);
+            }
+            break;
+        }
+        case KEY_WIDE_CHAR: {
+            if (!read_only_)
+            {
+                form_driver_w(form_, CURSES_OK, wch);
             }
             break;
         }

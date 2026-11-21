@@ -269,6 +269,24 @@ const AccountRecord *AccountsWin::GetSelection() const
     return pcid;
 }
 
+/**
+ * Create a menu item for `name`. ncurses rejects a name it can't print, e.g. one with a
+ * control character, or non-ASCII text when no UTF-8 locale is available. The item is
+ * then named with `PrintableText(name)`, which is kept in `names` because ncurses
+ * doesn't copy it.
+ */
+static ITEM *NewMenuItem(const char *name, const char *description, std::deque<std::string> &names)
+{
+    ITEM *item = new_item(name, description);
+    if (item == nullptr)
+    {
+        names.push_back(PrintableText(name));
+        item = new_item(names.back().c_str(), description);
+    }
+    assert(item != nullptr);
+    return item;
+}
+
 static ITEM *CreateBlankMenuItem()
 {
     ITEM *item = new_item(EMPTY_MENU_ITEM, 0);
@@ -324,7 +342,7 @@ void AccountsWin::CreateMenu()
                 }
             }
 
-            item = new_item(group, 0);
+            item = NewMenuItem(group, nullptr, menu_item_names_);
             ++itemIndex;
             menu_items_.push_back(item);
 
@@ -339,7 +357,7 @@ void AccountsWin::CreateMenu()
 
         const char *title = record.GetField(FT_TITLE, EMPTY_MENU_ITEM);
         const char *user = record.GetField(FT_USER, EMPTY_MENU_ITEM);
-        item = new_item(title, user);
+        item = NewMenuItem(title, user, menu_item_names_);
         ++itemIndex;
         AssignAccountRecord(item, record);
         menu_items_.push_back(item);
@@ -379,6 +397,7 @@ void AccountsWin::DestroyMenu()
         if (pitem) status = free_item(pitem);
     }
     menu_items_.clear();
+    menu_item_names_.clear();
     if (menu_win_)
     {
         delwin(menu_win_);
