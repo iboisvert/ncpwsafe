@@ -32,7 +32,7 @@ The end-to-end tests need Python 3, and the UI tests also need `tmux`
 requirements, running a subset of the tests, and how the tests work.
 
 ## Known issues
-- Crash if when opening database with Unicode characters if the locale does not support Unicode
+Known bugs are tracked in [docs/ISSUES.md](docs/ISSUES.md).
 
 # Attribution
 This project contains code from StackOverflow users @Ammo Goettsch and @eerpini,
