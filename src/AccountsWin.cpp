@@ -269,6 +269,24 @@ const AccountRecord *AccountsWin::GetSelection() const
     return pcid;
 }
 
+/**
+ * Create a menu item for `name`. ncurses rejects a name it can't print, e.g. one with a
+ * control character, or non-ASCII text when no UTF-8 locale is available. The item is
+ * then named with `PrintableText(name)`, which is kept in `names` because ncurses
+ * doesn't copy it.
+ */
+static ITEM *NewMenuItem(const char *name, const char *description, std::deque<std::string> &names)
+{
+    ITEM *item = new_item(name, description);
+    if (item == nullptr)
+    {
+        names.push_back(PrintableText(name));
+        item = new_item(names.back().c_str(), description);
+    }
+    assert(item != nullptr);
+    return item;
+}
+
 static ITEM *CreateBlankMenuItem()
 {
     ITEM *item = new_item(EMPTY_MENU_ITEM, 0);
@@ -324,7 +342,7 @@ void AccountsWin::CreateMenu()
                 }
             }
 
-            item = new_item(group, 0);
+            item = NewMenuItem(group, nullptr, menu_item_names_);
             ++itemIndex;
             menu_items_.push_back(item);
 
@@ -339,7 +357,7 @@ void AccountsWin::CreateMenu()
 
         const char *title = record.GetField(FT_TITLE, EMPTY_MENU_ITEM);
         const char *user = record.GetField(FT_USER, EMPTY_MENU_ITEM);
-        item = new_item(title, user);
+        item = NewMenuItem(title, user, menu_item_names_);
         ++itemIndex;
         AssignAccountRecord(item, record);
         menu_items_.push_back(item);
@@ -379,6 +397,7 @@ void AccountsWin::DestroyMenu()
         if (pitem) status = free_item(pitem);
     }
     menu_items_.clear();
+    menu_item_names_.clear();
     if (menu_win_)
     {
         delwin(menu_win_);
@@ -475,7 +494,7 @@ static void NavigateDown(MENU *menu, int cols, const std::vector<ITEM *> &items)
     int count = item_count(menu);
     // If menu item below current item is past the end of list or a blank item,
     // select the first non-blank menu item in the row below
-    if (idx + cols > count || IsBlankMenuItem(items[idx + cols]))
+    if (idx + cols >= count || IsBlankMenuItem(items[idx + cols]))
     {
         idx = (idx / cols) * cols + cols;
         while (idx < count)
@@ -526,7 +545,7 @@ static void NavigatePageUp(MENU *menu, int cols, const std::vector<ITEM *> &item
     menu_driver(menu, REQ_SCR_UPAGE);
     int idx = item_index(current_item(menu));
     int count = item_count(menu);
-    if (IsBlankMenuItem(items[idx]))
+    if (idx != ERR && IsBlankMenuItem(items[idx]))
     {
         // Move down rows until a non-blank menu item is found
         idx += cols;
@@ -546,7 +565,7 @@ static void NavigatePageDown(MENU *menu, int cols, const std::vector<ITEM *> &it
 {
     menu_driver(menu, REQ_SCR_DPAGE);
     int idx = item_index(current_item(menu));
-    if (IsBlankMenuItem(items[idx]))
+    if (idx != ERR && IsBlankMenuItem(items[idx]))
     {
         // Move up rows until a non-blank menu item is found
         idx -= cols;
@@ -569,23 +588,33 @@ static bool EqualMenuData(const AccountRecord &a, const AccountRecord &b)
         && FieldCompare(FT_USER, a, b);
 }
 
-void AccountsWin::UpdateMenu(ITEM *menu_item, const AccountRecord &old_record, const AccountRecord &new_record)
+void AccountsWin::UpdateMenu(const AccountRecord old_record, const AccountRecord &new_record)
 {
+    // `old_record` is a copy: Save() sorts the records, so a reference to the old record
+    // could refer to another account afterwards
     AccountRecords &records = app_.GetDb().Records();
-    AccountRecords::iterator it = records.Save(new_record);
-    if (!FieldCompare(FT_UUID, *it, old_record))
+    const std::string uuid = records.Save(new_record)->GetField(FT_UUID, "");
+
+    bool rebuild = !EqualMenuData(old_record, new_record);
+    if (uuid != old_record.GetField(FT_UUID, ""))
     {
-        AssignAccountRecord(menu_item, *it);
+        // Saved as a new record, remove the old one
         records.Delete(old_record);
+        rebuild = true;
     }
-    if (!EqualMenuData(old_record, new_record))
+    if (rebuild)
     {
+        // The records have moved, the menu items point to the wrong records
         DestroyMenu();
         CreateMenu();
     }
 
     // Reset selection
-    SetSelection(*it);
+    AccountRecords::iterator it = records.Find(FT_UUID, uuid);
+    if (it != records.end())
+    {
+        SetSelection(*it);
+    }
 }
 
 /** View or edit an account entry */
@@ -655,8 +684,9 @@ DialogResult AccountsWin::DeleteEntry(const ITEM *pitem)
     app_.GetCommandBar().Show(CommandBarWin::YES_NO);
 
     auto &records = db.Records();
-    bool unique = std::all_of(records.begin(), records.end(), [prec](const AccountRecord &record) { 
-        return FieldCompare(FT_TITLE, record, *prec) || &record == prec; 
+    // Name the user only if another account has the same title
+    bool unique = std::none_of(records.begin(), records.end(), [prec](const AccountRecord &record) {
+        return &record != prec && FieldCompare(FT_TITLE, record, *prec);
     });
     std::string msg = std::string("Delete account ").append(prec->GetField(FT_TITLE));
     if (!unique && prec->GetField(FT_USER))
@@ -857,9 +887,10 @@ DialogResult AccountsWin::ProcessInput()
         }
         case KEY_CTRL('D'):
         {
-            if (!read_only)
+            // Nothing is selected in an empty list, and a group heading has no account
+            ITEM *item = current_item(menu_);
+            if (!read_only && item != nullptr && GetAccountRecordFromMenuItem(item) != nullptr)
             {
-                ITEM *item = current_item(menu_);
                 DeleteEntry(item);
             }
             break;
@@ -885,10 +916,10 @@ DialogResult AccountsWin::ProcessInput()
         case KEY_CTRL('U'):
         {
             ITEM *item = current_item(menu_);
-            if (!IsGroupMenuItem(item))
+            if (item != nullptr && !IsGroupMenuItem(item))
             {
                 const AccountRecord *record = GetAccountRecordFromMenuItem(item);
-                const std::string &str = record->GetField(FT_USER);
+                const std::string str = record->GetField(FT_USER, "");
                 if (CopyTextToClipboard(app_, win_, str) > 0)
                 {
                     app_.GetCommandBar().Show(this);
@@ -899,10 +930,10 @@ DialogResult AccountsWin::ProcessInput()
         case KEY_CTRL('P'):
         {
             ITEM *item = current_item(menu_);
-            if (!IsGroupMenuItem(item))
+            if (item != nullptr && !IsGroupMenuItem(item))
             {
                 const AccountRecord *record = GetAccountRecordFromMenuItem(item);
-                const std::string &str = record->GetField(FT_PASSWORD);
+                const std::string str = record->GetField(FT_PASSWORD, "");
                 if (CopyTextToClipboard(app_, win_, str) > 0)
                 {
                     app_.GetCommandBar().Show(this);
@@ -920,6 +951,11 @@ DialogResult AccountsWin::ProcessInput()
         case '\n':
         {
             ITEM *item = current_item(menu_);
+            if (item == nullptr)
+            {
+                // The list is empty
+                break;
+            }
             assert(!IsBlankMenuItem(item));
             if (IsGroupMenuItem(item))
             {
@@ -932,7 +968,7 @@ DialogResult AccountsWin::ProcessInput()
                 AccountRecord copy{*record};
                 if (ShowAccountRecord(copy) == DialogResult::OK && !read_only)
                 {
-                    UpdateMenu(item, *record, copy);
+                    UpdateMenu(*record, copy);
                 }
             }
 

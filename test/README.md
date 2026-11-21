@@ -91,6 +91,9 @@ test/e2e/
     small.tsv        the accounts in the "small" test database
     small.pw         its password
     empty.tsv        a database with no accounts
+    sparse.tsv       accounts with fields left out
+    unicode.tsv      accounts with non-ASCII groups and titles
+    control-chars.tsv  an account with a control character in its title
   cli/test_*.py      CLI tests
   tui/test_*.py      TUI tests
 ```
@@ -129,11 +132,12 @@ Every test case gets:
 |---|---|
 | `send("C-a")`, `send("Down", "Enter")` | Send keys, using tmux key names (`Enter`, `Escape`, `BSpace`, `DC`, `Up`, `Home`, `NPage`, `C-x`, ...) |
 | `type("text")` | Type literal text |
-| `screen()`, `text()` | The screen as lines, or as one string. Line drawing shows as the ACS letters `lqk`, `x`, `mqj` |
+| `screen()`, `text()` | The screen as lines, or as one string. Line drawing shows as the ACS letters `lqk`, `x`, `mqj`, also when ncurses draws it with Unicode box drawing characters |
 | `highlighted()` | Text in reverse video, i.e. the selected menu item. The command bar is left out |
 | `wait_for(text)`, `wait_gone(text)`, `wait_highlighted(text)`, `wait_until(fn, what)` | Poll until the screen matches, or fail with a dump of the screen after 10 s |
 | `resize(cols, rows)` | Resize the window. ncpwsafe gets `SIGWINCH`/`KEY_RESIZE` |
 | `wait_exit()` | Wait for ncpwsafe to exit and return its exit code |
+| `pid()` | The process id of ncpwsafe, e.g. to inspect `/proc/<pid>` |
 
 Always wait for something on screen after sending keys, rather than
 sleeping. When a key should do nothing, send a key that does something

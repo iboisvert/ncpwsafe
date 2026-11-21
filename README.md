@@ -15,7 +15,7 @@ To build:
 ```
 $ cmake -DCMAKE_BUILD_TYPE:STRING=Debug -B build
 $ cmake --build build
-$ ./build/src/ncpwsafe
+$ ./build/bin/ncpwsafe
 ```
 
 ## Testing

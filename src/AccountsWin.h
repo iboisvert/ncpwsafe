@@ -4,7 +4,9 @@
 #include "libncurses.h"
 #include "Dialog.h"
 #include "AccountRecord.h"
+#include <deque>
 #include <set>
+#include <string>
 
 class PWSafeApp;
 
@@ -17,7 +19,18 @@ public:
     DialogResult Show();
 
     void SetSelection(const AccountRecord &cid) const;
+    /** The selected account, `nullptr` if a group heading is selected */
     const AccountRecord *GetSelection() const;
+    /** The selected menu item, an account or a group heading */
+    ITEM *GetCurrentItem() const
+    {
+        return current_item(menu_);
+    }
+    /** Select a menu item returned by `GetCurrentItem()`, the menu must not have changed since */
+    void SetCurrentItem(ITEM *item) const
+    {
+        if (item != nullptr) set_current_item(menu_, item);
+    }
 
 private:
     /* Command bar display mask */
@@ -46,8 +59,8 @@ private:
     bool DiscardChanges();
     /** View or edit an account entry */
     DialogResult ShowAccountRecord(AccountRecord &itemData);
-    /** Replace a menu entry */
-    void UpdateMenu(ITEM *menu_item, const AccountRecord &old_record, const AccountRecord &new_record);
+    /** Save an edited account and update the menu */
+    void UpdateMenu(AccountRecord old_record, const AccountRecord &new_record);
     /** Add a new account entry */
     DialogResult AddNewEntry();
     /** Delete an account entry */
@@ -78,6 +91,8 @@ private:
     MENU *menu_ = nullptr;
     PANEL *panel_ = nullptr;
     std::vector<ITEM *> menu_items_;
+    /** Item names that aren't account fields, see NewMenuItem() */
+    std::deque<std::string> menu_item_names_;
     int save_cursor_ = 0;
 };
 

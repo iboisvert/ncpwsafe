@@ -10,52 +10,43 @@ bool DefaultMessageBoxKeyHandler(int ch, DialogResult &result)
     return ch == '\n';
 }
 
-static void SizeMsg(const std::string &msg, int &lines, int &cols)
-{
-    lines = 0;
-    int idx;
-    size_t maxcol = 0, pos = 0;
-    while ((idx = msg.find(L'\n', pos)) != -1)
-    {
-        ++lines;
-        maxcol = std::max(maxcol, idx - pos);
-        pos = idx + 1;
-    }
-    if (msg.length() > pos)
-    {
-        ++lines;
-        maxcol = std::max(maxcol, msg.length() - pos);
-    }
-    cols = maxcol;
-}
+/** Space between the window edge and the message, including the border */
+static constexpr int MARGIN = 2;
 
-/** Print a message with embedded newlines */
-static int PrintMessage(WINDOW *win, int y, int x, const std::string &msg)
-{
-    int code = 0;
-    int idx;
-    size_t pos = 0;
-    while ((idx = msg.find(L'\n', pos)) != -1)
-    {
-        code = mvwaddnstr(win, y, x, msg.c_str() + pos, idx - pos);
-        if (code != 0)
-            return code;
-        ++y;
-        pos = idx + 1;
-    }
-    if (msg.length() > pos)
-    {
-        code = mvwaddnstr(win, y, x, msg.c_str() + pos, msg.length() - pos);
-    }
-    return code;
-}
-
-static void ScaleMsgBox(const WINDOW *parent, const int &lines, const int &cols, int &y, int &x)
+/**
+ * Wrap the message to fit in `parent`, and cut it to fit if it has more lines than
+ * `parent` has room for
+ */
+static std::vector<std::string> LayoutMsg(const WINDOW *parent, const std::string &msg)
 {
     int maxy, maxx;
     getmaxyx(parent, maxy, maxx);
-    y = (maxy - lines) / 2;
-    x = (maxx - cols) / 2;
+    std::vector<std::string> lines = WrapText(msg, std::max(1, maxx - 2 * MARGIN));
+    size_t max_lines = std::max(1, maxy - 2 * MARGIN);
+    if (lines.size() > max_lines)
+    {
+        lines.resize(max_lines);
+    }
+    return lines;
+}
+
+/** Print the lines of the message */
+static void PrintMessage(WINDOW *win, int y, int x, const std::vector<std::string> &lines)
+{
+    for (const std::string &line : lines)
+    {
+        mvwaddstr(win, y++, x, line.c_str());
+    }
+}
+
+/** Screen position of a window of size `lines` x `cols` centered on `parent` */
+static void ScaleMsgBox(const WINDOW *parent, const int &lines, const int &cols, int &y, int &x)
+{
+    int begy, begx, maxy, maxx;
+    getbegyx(parent, begy, begx);
+    getmaxyx(parent, maxy, maxx);
+    y = begy + (maxy - lines) / 2;
+    x = begx + (maxx - cols) / 2;
 }
 
 /** Show the message box */
@@ -94,7 +85,8 @@ void MessageBox::InitTUI(WINDOW *parent, const std::string &msg)
     parent_win_ = parent;
     msg_ = msg;
 
-    win_ = NewWindow();
+    lines_ = LayoutMsg(parent_win_, msg_);
+    win_ = NewWindow(lines_);
     panel_ = new_panel(win_);
 
     Draw();
@@ -103,15 +95,22 @@ void MessageBox::InitTUI(WINDOW *parent, const std::string &msg)
     save_cursor_ = curs_set(0);
 }
 
-WINDOW *MessageBox::NewWindow() const
+WINDOW *MessageBox::NewWindow(const std::vector<std::string> &lines) const
 {
-    int lines, cols, y, x;
-    SizeMsg(msg_, lines, cols);
-    lines += 2;
-    cols += 2;
-    ScaleMsgBox(parent_win_, lines, cols, y, x);
+    size_t cols = 0;
+    for (const std::string &line : lines)
+    {
+        cols = std::max(cols, Utf8Length(line));
+    }
+    // The message is laid out to fit the parent, but the margins may not fit a very small one
+    int maxy, maxx;
+    getmaxyx(parent_win_, maxy, maxx);
+    int nlines = std::min(static_cast<int>(lines.size()) + 2 * MARGIN, std::max(1, maxy));
+    int ncols = std::min(static_cast<int>(cols) + 2 * MARGIN, std::max(1, maxx));
 
-    return newwin(lines + 2, cols + 2, std::max(0, y), std::max(0, x));
+    int y, x;
+    ScaleMsgBox(parent_win_, nlines, ncols, y, x);
+    return newwin(nlines, ncols, std::max(0, y), std::max(0, x));
 }
 
 void MessageBox::Draw()
@@ -120,18 +119,20 @@ void MessageBox::Draw()
     keypad(win_, TRUE);
     box(win_, 0, 0);
 
-    PrintMessage(win_, 2, 2, msg_);
+    PrintMessage(win_, MARGIN, MARGIN, lines_);
 }
 
 void MessageBox::OnResize()
 {
-    WINDOW *win = NewWindow();
+    std::vector<std::string> lines = LayoutMsg(parent_win_, msg_);
+    WINDOW *win = NewWindow(lines);
     if (win == nullptr)
     {
-        // The message box doesn't fit on the screen, leave it as ncurses truncated it.
-        // It will be laid out again when the terminal is made large enough.
+        // The message box can't be created, leave it as ncurses truncated it.
+        // It will be laid out again when the terminal is resized.
         return;
     }
+    lines_ = std::move(lines);
 
     // Replacing the window keeps the panel's position in the panel stack
     replace_panel(panel_, win);
@@ -155,6 +156,11 @@ void MessageBox::EndTUI()
 DialogResult MessageBox::ProcessInput(KeyHandler handler)
 {
     DialogResult result = DialogResult::CANCEL;
+    if (win_ == nullptr)
+    {
+        // The window couldn't be created, wgetch() would return ERR at once
+        return result;
+    }
     int c;
     while ((c = wgetch(win_)) != ERR)
     {

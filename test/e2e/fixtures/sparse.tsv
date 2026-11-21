@@ -1,0 +1,6 @@
+# Accounts with fields left out. The last row of the list has two accounts:
+#   Banking
+#   No user        Savings
+# group	title	user	password	notes
+Banking	No user
+Banking	Savings	alice	pw-sav-2

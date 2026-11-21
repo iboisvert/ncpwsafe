@@ -1,9 +1,18 @@
 /* Copyright 2022 Ian Boisvert */
+#include "config.h"
 #include "Utils.h"
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <clocale>
+#include <cwchar>
+#include <cwctype>
+#include <initializer_list>
+#ifdef HAVE_LANGINFO_H
+#include <langinfo.h>
+#include <strings.h>
+#endif
 
 // Prevent memset from being optimized out
 typedef void *(*memset_func)(void *, int, size_t);
@@ -123,4 +132,163 @@ std::string ExpandEnvVars(const std::string &str)
     {
         return str;
     }
+}
+
+size_t Utf8Length(std::string_view text)
+{
+    // Count the bytes that aren't UTF-8 continuation bytes
+    return std::count_if(text.begin(), text.end(), [](char c) { return (c & 0xC0) != 0x80; });
+}
+
+/** Number of bytes in the first `n` characters of UTF-8 text */
+static size_t Utf8PrefixBytes(std::string_view text, size_t n)
+{
+    size_t pos = 0;
+    while (pos < text.size() && n > 0)
+    {
+        ++pos;
+        while (pos < text.size() && (text[pos] & 0xC0) == 0x80) ++pos;
+        --n;
+    }
+    return pos;
+}
+
+static void WrapParagraph(std::string_view para, size_t width, std::vector<std::string> &lines)
+{
+    const size_t first_line = lines.size();
+    std::string line;
+    size_t line_len = 0;
+    size_t pos = 0;
+    while (pos <= para.size())
+    {
+        size_t end = std::min(para.find(' ', pos), para.size());
+        std::string_view word = para.substr(pos, end - pos);
+        pos = end + 1;
+
+        size_t word_len = Utf8Length(word);
+        if (line_len > 0 && line_len + 1 + word_len > width)
+        {
+            lines.push_back(std::move(line));
+            line.clear();
+            line_len = 0;
+        }
+        if (line_len > 0)
+        {
+            line += ' ';
+            ++line_len;
+        }
+        // Only a word longer than a whole line is broken
+        while (word_len > width - line_len)
+        {
+            size_t n = width - line_len;
+            size_t nbytes = Utf8PrefixBytes(word, n);
+            line.append(word.substr(0, nbytes));
+            lines.push_back(std::move(line));
+            line.clear();
+            line_len = 0;
+            word.remove_prefix(nbytes);
+            word_len -= n;
+        }
+        line.append(word);
+        line_len += word_len;
+    }
+    if (line_len > 0 || lines.size() == first_line)
+    {
+        lines.push_back(std::move(line));
+    }
+}
+
+std::vector<std::string> WrapText(const std::string &text, size_t width)
+{
+    width = std::max<size_t>(width, 1);
+    std::vector<std::string> lines;
+    std::string_view rest{text};
+    while (!rest.empty())
+    {
+        size_t nl = rest.find('\n');
+        WrapParagraph(rest.substr(0, nl), width, lines);
+        if (nl == std::string_view::npos) break;
+        rest.remove_prefix(nl + 1);
+    }
+    return lines;
+}
+
+/** `true` if the character set of the LC_CTYPE locale is UTF-8 */
+static bool IsUtf8Ctype()
+{
+#ifdef HAVE_LANGINFO_H
+    const char *codeset = nl_langinfo(CODESET);
+    return codeset && (strcasecmp(codeset, "UTF-8") == 0 || strcasecmp(codeset, "utf8") == 0);
+#else
+    return false;
+#endif
+}
+
+bool SetUtf8CtypeLocale()
+{
+    if (setlocale(LC_CTYPE, "") != nullptr && IsUtf8Ctype())
+    {
+        return true;
+    }
+    for (const char *name : {"C.UTF-8", "C.utf8", "en_US.UTF-8", "en_US.utf8"})
+    {
+        if (setlocale(LC_CTYPE, name) != nullptr && IsUtf8Ctype())
+        {
+            return true;
+        }
+    }
+    setlocale(LC_CTYPE, "");
+    return false;
+}
+
+int ReadKey(WINDOW *win, wchar_t &wch)
+{
+    wint_t key;
+    int rc = wget_wch(win, &key);
+    if (rc == KEY_CODE_YES)
+    {
+        return static_cast<int>(key);
+    }
+    if (rc == CURSES_OK)
+    {
+        if (key < 0x80)
+        {
+            return static_cast<int>(key);
+        }
+        wch = static_cast<wchar_t>(key);
+        return KEY_WIDE_CHAR;
+    }
+    return ERR;
+}
+
+std::string PrintableText(const char *text)
+{
+    std::string printable;
+    std::mbstate_t state{};
+    const char *p = text, *end = text + strlen(text);
+    while (p < end)
+    {
+        wchar_t wc;
+        size_t n = std::mbrtowc(&wc, p, end - p, &state);
+        if (n == static_cast<size_t>(-1) || n == static_cast<size_t>(-2) || n == 0)
+        {
+            // Not a character of this character set: replace the byte, and any UTF-8
+            // continuation bytes after it, which would be the rest of the character
+            printable += '?';
+            state = std::mbstate_t{};
+            ++p;
+            while (p < end && (*p & 0xC0) == 0x80) ++p;
+            continue;
+        }
+        if (std::iswprint(wc))
+        {
+            printable.append(p, n);
+        }
+        else
+        {
+            printable += '?';
+        }
+        p += n;
+    }
+    return printable.empty() ? std::string("?") : printable;
 }

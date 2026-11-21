@@ -1,6 +1,5 @@
 """TUI: moving the selection in the accounts list, and search."""
 import sys
-import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -71,6 +70,13 @@ class NavigationTest(e2elib.TuiTestCase):
         # Everything fits on one page
         self.assertPath(app, [("NPage", "Router"), ("End", "Bookstore"), ("PPage", "Bookstore")])
 
+    def test_down_from_full_last_row(self):
+        # Down from the first column of a full last row used to read past the
+        # end of the menu items and abort
+        app, _, _ = self.open_db(spec="sparse")
+        self.assertPath(app, [("Down", "No user"), ("Down", "No user"), ("Right", "Savings"),
+                              ("Down", "Savings")])
+
     def test_search(self):
         app, _, _ = self.open_db()
         app.send("/")
@@ -119,6 +125,44 @@ class NavigationTest(e2elib.TuiTestCase):
         # Back to where the search started
         app.wait_highlighted("Chequing")
 
+    def test_search_cancel_from_group_heading(self):
+        # The saved position used to be an account record, which a heading
+        # doesn't have, so Esc went to the first account instead
+        app, _, _ = self.open_db()
+        app.send("Down")
+        app.wait_highlighted("Banking")
+        app.send("/")
+        app.wait_for("Search:")
+        app.type("book")
+        app.wait_highlighted("Bookstore")
+        app.send("Escape")
+        app.wait_gone("Search:")
+        app.wait_highlighted("Banking")
+        self.assertEqual(app.highlighted(), ["Banking"])
+
+    def test_search_cleared_from_group_heading(self):
+        # Deleting the whole query goes back to where the search started
+        app, _, _ = self.open_db()
+        app.send("Down")
+        app.wait_highlighted("Banking")
+        app.send("/")
+        app.wait_for("Search:")
+        app.type("book")
+        app.wait_highlighted("Bookstore")
+        app.send(*["BSpace"] * len("book"))
+        app.wait_highlighted("Banking")
+
+    def test_search_from_group_heading_finds_first_account(self):
+        # A search started on a heading used to start after the first account,
+        # and never wrapped around to it
+        app, _, _ = self.open_db()
+        app.send("End", "Up")
+        app.wait_highlighted("Shopping")
+        app.send("/")
+        app.wait_for("Search:")
+        app.type("router")
+        app.wait_highlighted("Router")
+
     def test_search_no_match(self):
         app, _, _ = self.open_db()
         app.send("/")
@@ -128,10 +172,9 @@ class NavigationTest(e2elib.TuiTestCase):
         app.wait_gone("Search:")
         self.assertEqual(app.highlighted(), ["Router"])
 
-    @unittest.expectedFailure
     def test_search_mixed_case(self):
-        # BUG: AccountRecord::FieldContainsCaseInsensitive() lower-cases the
-        # field but not the query, so a query with a capital never matches
+        # The query used to be compared without lower-casing it, so a query
+        # with a capital never matched
         app, _, _ = self.open_db()
         app.send("/")
         app.wait_for("Search:")

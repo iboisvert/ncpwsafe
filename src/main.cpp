@@ -30,15 +30,14 @@
 using std::fprintf;
 using std::srand;
 
+/**
+ * Prevent ptrace and the creation of core dumps, which could expose decrypted passwords.
+ * Only in Release builds, so that a debugger can attach to Debug builds.
+ */
 static bool DisableCoreDump()
 {
-#ifndef NDEBUG
-#ifdef HAVE_SYS_PRCTL_H
-    // prevent ptrace and creation of core dumps
+#if defined(NDEBUG) && defined(HAVE_SYS_PRCTL_H)
     return prctl(PR_SET_DUMPABLE, 0) == 0;
-#else
-    return true;
-#endif
 #else
     return true;
 #endif
@@ -222,7 +221,7 @@ static bool ValidateArgs(InputProgArgs &args)
             result = false;
         else
         {
-            if (*args.password_policy_ > PasswordPolicy::Composition::COUNT)
+            if (*args.password_policy_ < 1 || *args.password_policy_ > PasswordPolicy::Composition::COUNT)
             {
                 result = Error("Invalid policy for generated passwords\n");
             }
@@ -275,7 +274,7 @@ static bool ValidateArgs(InputProgArgs &args)
         {
             result = Error("Output file is required\n");
         }
-        if (!args.force_ && fs::Exists(*args.output_file_))
+        else if (!args.force_ && fs::Exists(*args.output_file_))
         {
             result = Error("Output file %s already exists\n", args.output_file_->c_str());
         }
@@ -414,17 +413,18 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
         }
         case O_PASSWORD_POLICY: {
             assert(optarg);
+            // A 1-based policy number, or a policy name. Anything else is rejected by ValidateArgs()
             char *pstr = optarg, *pend;
             size_t policy = strtoul(pstr, &pend, 10);
-            if (policy == 0 && pend == pstr)
+            if (pend == pstr || *pend != '\0')
             {
-                policy = (size_t)-1;
+                policy = 0;
                 for (size_t i = 0; i < PasswordPolicy::Composition::COUNT; ++i)
                 {
                     const char *policyName = PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(i));
-                    if (strncmp(policyName, optarg, strlen(policyName)) == 0)
+                    if (strcmp(policyName, optarg) == 0)
                     {
-                        policy = i;
+                        policy = i + 1;
                         break;
                     }
                 }
@@ -537,9 +537,16 @@ int main(int argc, char *argv[])
     google::InitGoogleLogging(argv[0]);
 #endif
     
-    // Don't allow ptrace or gdump on release build
+    // ncurses needs a UTF-8 character set to show and edit non-ASCII account text.
+    // Only LC_CTYPE, so that e.g. number formats don't change
+    SetUtf8CtypeLocale();
+
+    // Don't allow ptrace or core dumps in Release builds
     if (!DisableCoreDump())
-        return 0;
+    {
+        fprintf(stderr, "Unable to disable core dumps: %s\n", strerror(errno));
+        return PRC_ERR_FAIL;
+    }
 
     InputProgArgs input_args;
     if (!ParseArgs(argc, argv, input_args))
@@ -574,13 +581,17 @@ int main(int argc, char *argv[])
         {
             fprintf(stdout, "Account database password changed\n");
         }
-        else if (rc == RC_ERR_INCORRECT_PASSWORD)
-        {
-            fprintf(stdout, "Incorrect account database password\n");
-        }
         else
         {
-            fprintf(stdout, "Changing account database password failed\n");
+            result = static_cast<int>(RC_FAILURE);
+            if (rc == RC_ERR_INCORRECT_PASSWORD)
+            {
+                fprintf(stderr, "Incorrect account database password\n");
+            }
+            else
+            {
+                fprintf(stderr, "Changing account database password failed\n");
+            }
         }
         fflush(stdout);
         break;

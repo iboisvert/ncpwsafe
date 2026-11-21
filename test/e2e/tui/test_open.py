@@ -1,5 +1,7 @@
 """TUI: opening an account database."""
+import os
 import sys
+import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -78,6 +80,24 @@ class OpenTest(e2elib.TuiTestCase):
         app.send("Enter")
         app.wait_for(f"File {missing} does not exist")
 
+    def test_long_message_wrapped(self):
+        # A message wider than the terminal is wrapped to fit, it used to
+        # not be shown at all because its window couldn't be created
+        missing = self.tmp / "a directory with a long name" / "another long directory name" / "missing.dat"
+        message = f"File {missing} does not exist"
+        cols = 50
+        self.assertGreater(len(message), cols)
+        app = self.start(missing, cols=cols)
+        app.wait_for("Unlock Database")
+        app.type("whatever")
+        app.send("Enter")
+        screen = app.wait_for("Enter Close")
+        for word in message.split():
+            self.assertIn(word, screen)
+        app.send("Enter")
+        app.wait_gone("Enter Close")
+        app.wait_for("Unlock Database")
+
     def test_cancel_prompt(self):
         db, _ = self.make_db()
         app = self.start(db)
@@ -89,6 +109,14 @@ class OpenTest(e2elib.TuiTestCase):
         app, _, _ = self.open_db(spec="empty")
         self.assertIn("^A Add", app.screen()[-1])
         app.send("C-x")
+        self.assertEqual(app.wait_exit(), e2elib.PRC_ERR_FAIL)
+
+    def test_keys_in_empty_database(self):
+        # With no accounts nothing is selected. These keys used to act on the
+        # missing menu item and abort
+        app, _, _ = self.open_db(spec="empty")
+        app.send("Enter", "C-u", "C-p", "C-d", "PPage", "NPage", "Up", "Down", "Left", "Right",
+                 "Home", "End", "C-x")
         self.assertEqual(app.wait_exit(), e2elib.PRC_ERR_FAIL)
 
     def test_database_remembered(self):
@@ -105,6 +133,22 @@ class OpenTest(e2elib.TuiTestCase):
         app.send("Enter")
         app.wait_for("Enter View")
         self.assertAccountsShown(app)
+
+    @unittest.skipIf(os.getuid() == 0, "/proc/<pid> files are owned by root anyway")
+    @unittest.skipUnless(Path("/proc/self/task").is_dir(), "needs Linux /proc")
+    def test_core_dumps_disabled_in_release(self):
+        # Release builds call prctl(PR_SET_DUMPABLE, 0) so the decrypted
+        # database can't be read with ptrace or from a core dump. The kernel
+        # then makes the process's /proc/<pid> files owned by root. Debug
+        # builds stay dumpable so a debugger can attach
+        app, _, _ = self.open_db()
+        pid = app.pid()
+        self.assertIsNotNone(pid)
+        owner = os.stat(f"/proc/{pid}/status").st_uid
+        if e2elib.IS_DEBUG_BUILD:
+            self.assertEqual(owner, os.getuid())
+        else:
+            self.assertEqual(owner, 0)
 
     def test_config_option(self):
         config = self.tmp / "custom.ini"

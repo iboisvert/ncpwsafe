@@ -12,5 +12,7 @@
 #ifdef OK
 #undef OK
 #endif
+/** The curses OK return value, the macro is undefined above */
+constexpr int CURSES_OK = 0;
 
 #endif //#ifndef HAVE_LIBNCURSES_H

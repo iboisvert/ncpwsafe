@@ -1,0 +1,7 @@
+# Accounts with non-ASCII text, see tui/test_unicode.py
+# group	title	user	password	notes
+# The first account in the list is non-ASCII, ASCII accounts come after non-ASCII ones
+	Café	josé	pässwörd	naïve 日本語
+	Router	admin	pw-router-6
+Банк	Сберегательный счёт	алиса	пароль-1	Заметка
+Банк	Wiki	wikiuser	pw-wiki-7

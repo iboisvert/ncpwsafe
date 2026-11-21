@@ -3,3 +3,4 @@
 #cmakedefine NCPWSAFE_CONFIG_FILE "@NCPWSAFE_CONFIG_FILE@"
 #cmakedefine HAVE_SYS_PRCTL_H
 #cmakedefine HAVE_SYS_RANDOM_H
+#cmakedefine HAVE_LANGINFO_H

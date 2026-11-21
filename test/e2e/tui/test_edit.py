@@ -1,7 +1,6 @@
 """TUI: adding, editing and deleting accounts, saving and discarding changes."""
 import hashlib
 import sys
-import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -53,9 +52,7 @@ class EditTest(e2elib.TuiTestCase):
         """Move the selection to the account `title` (search for it)."""
         app.send("/")
         app.wait_for("Search:")
-        # Lower case: search doesn't match queries with capitals, see
-        # test_navigation.test_search_mixed_case
-        app.type(title.lower())
+        app.type(title)
         app.send("Enter")
         app.wait_gone("Search:")
         app.wait_highlighted(title)
@@ -149,12 +146,9 @@ class EditTest(e2elib.TuiTestCase):
         expected.append(("Banking", "Savings", "alice2", "pw-sav-2", "High interest"))
         self.assertDbContains(db, pw, expected)
 
-    @unittest.expectedFailure
     def test_edit_account_moves_group(self):
-        # BUG: AccountsWin::UpdateMenu() is passed `old_record` as a reference
-        # into the records vector. AccountRecords::Save() re-sorts the vector,
-        # so when the group or title changes the reference points at another
-        # account, and UpdateMenu() deletes that one (here "Work mail")
+        # AccountsWin::UpdateMenu() used to delete another account (here
+        # "Work mail") when the edit moved the account in the sorted records
         app, db, pw = self.open_db()
         self.select(app, "Bookstore")
         app.send("Enter")
@@ -169,6 +163,24 @@ class EditTest(e2elib.TuiTestCase):
         self.save_and_exit(app)
         expected = [r for r in e2elib.read_spec() if r[1] != "Bookstore"]
         expected.append(("Banking", "Bookstore", "bob", "pw-book-5", ""))
+        self.assertDbContains(db, pw, expected)
+
+    def test_edit_account_title_moves(self):
+        # Renamed, Chequing sorts after Savings. UpdateMenu() used to delete
+        # Savings, which took its place in the sorted records
+        app, db, pw = self.open_db()
+        self.select(app, "Chequing")
+        app.send("Enter")
+        app.wait_for("View Account")
+        self.fill_details(app, title="Term deposit")
+        app.send("C-s")
+        app.wait_gone("View Account")
+        screen = app.wait_gone("Chequing")
+        self.assertRegex(screen, r"x Banking +x\nx Savings +Term deposit +x")
+        self.assertEqual(app.highlighted(), ["Term deposit"])
+        self.save_and_exit(app)
+        expected = [r for r in e2elib.read_spec() if r[1] != "Chequing"]
+        expected.append(("Banking", "Term deposit", "alice", "pw-cheq-1", "Main account"))
         self.assertDbContains(db, pw, expected)
 
     def test_edit_account_discard(self):
@@ -212,15 +224,24 @@ class EditTest(e2elib.TuiTestCase):
         self.assertEqual(app.wait_exit(), e2elib.PRC_ERR_FAIL)
         self.assertDbContains(db, pw, e2elib.read_spec())
 
-    @unittest.expectedFailure
     def test_delete_unique_title_omits_user(self):
-        # BUG: the uniqueness check in AccountsWin::DeleteEntry() is inverted, so
-        # the user is named unless every account has the same title
+        # The uniqueness check in AccountsWin::DeleteEntry() used to be
+        # inverted, so the user was named unless every account had the same title
         app, _, _ = self.open_db()
         self.select(app, "Chequing")
         app.send("C-d")
         screen = app.wait_for("Delete account Chequing")
         self.assertIn("Delete account Chequing?", screen)
+
+    def test_delete_on_group_heading_does_nothing(self):
+        # A group heading has no account. DeleteEntry() used to fail an
+        # assertion in Debug builds
+        app, _, _ = self.open_db()
+        app.send("Down")
+        app.wait_highlighted("Banking")
+        app.send("C-d", "Right")
+        app.wait_highlighted("Chequing")
+        self.assertNotIn("Delete account", app.text())
 
     def test_delete_same_title_names_user(self):
         app, _, _ = self.open_db()

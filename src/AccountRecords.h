@@ -62,9 +62,9 @@ public:
     /** Find an account record having the given field value */
     iterator Find(PwsFieldType field_type, const std::string &value)
     {
-        icu::UnicodeString ustr{value.c_str()};
+        icu::UnicodeString ustr = icu::UnicodeString::fromUTF8(value);
         return std::find_if(records_.begin(), records_.end(), [field_type, &ustr](const auto &rec){
-            return ustr == icu::UnicodeString{rec.GetField(field_type)};
+            return ustr == icu::UnicodeString::fromUTF8(rec.GetField(field_type, ""));
         });
     }
 

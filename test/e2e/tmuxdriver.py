@@ -36,6 +36,9 @@ _SGR = re.compile(r"\x1b\[([0-9;:]*)m")
 # Other escape sequences and the SO/SI shift characters ncurses uses for
 # line drawing on the "screen" terminal
 _OTHER_ESC = re.compile(r"\x1b[^\[]|\x1b\[[0-9;?]*[A-Za-ln-z]|[\x0e\x0f]")
+# In a UTF-8 locale ncurses draws lines with Unicode box drawing characters on
+# the "screen" terminal, show them as the ACS letters it uses otherwise
+_BOX_TO_ACS = str.maketrans("┌┐└┘─│├┤┬┴┼", "lkmjqxtuwvn")
 
 
 class TimeoutError(AssertionError):
@@ -108,7 +111,7 @@ class TmuxApp:
 
     def screen(self):
         """The screen as a list of lines (line drawing appears as ACS letters: lqk x mqj)."""
-        lines = [_OTHER_ESC.sub("", line) for line in self._capture(False).split("\n")]
+        lines = [_OTHER_ESC.sub("", line).translate(_BOX_TO_ACS) for line in self._capture(False).split("\n")]
         return (lines + [""] * self.rows)[:self.rows]
 
     def text(self):
@@ -125,7 +128,7 @@ class TmuxApp:
         if not include_command_bar:
             lines = lines[:self.rows - 1]
         for line in lines:
-            line = _OTHER_ESC.sub("", line)
+            line = _OTHER_ESC.sub("", line).translate(_BOX_TO_ACS)
             reverse, current, pos = False, [], 0
             for m in _SGR.finditer(line + "\x1b[0m"):
                 if reverse:
@@ -173,6 +176,18 @@ class TmuxApp:
 
     def wait_highlighted(self, text, timeout=DEFAULT_TIMEOUT):
         self.wait_until(lambda: text in self.highlighted(), f"{text!r} to be highlighted", timeout)
+
+    def pid(self):
+        """The process id of the program, or None if it isn't running.
+
+        The program is a child of the shell started in the tmux pane."""
+        shell_pid = self.tmux("display-message", "-p", "-t", "main", "#{pane_pid}").stdout.strip()
+        try:
+            with open(f"/proc/{shell_pid}/task/{shell_pid}/children") as f:
+                children = f.read().split()
+        except OSError:
+            return None
+        return int(children[0]) if children else None
 
     def exit_code(self):
         """The program's exit code, or None while it is running."""

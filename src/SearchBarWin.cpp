@@ -87,9 +87,13 @@ void SearchBarWin::Show()
 {
     query_.clear();
 
+    // Saved to go back to on cancel, which may be a group heading rather than an account
+    save_item_ = accounts_win_.GetCurrentItem();
     const AccountRecord *psel = accounts_win_.GetSelection();
     auto &records = app_.GetDb().Records();
-    save_match_ = records.begin();
+    // Search from after the selected account, or from the first account if a group
+    // heading is selected (see FindNextImpl())
+    save_match_ = records.end();
     if (psel)
     {
         auto it = std::find_if(records.begin(), records.end(), [psel](const AccountRecord &rec) {
@@ -188,12 +192,20 @@ void SearchBarWin::SetSelection(AccountRecords::const_iterator it)
 
 void SearchBarWin::ResetSavedMatch()
 {
-    SetSelection(save_match_);
+    accounts_win_.SetCurrentItem(save_item_);
 }
 
 void SearchBarWin::ResetLastMatch()
 {
-    SetSelection(last_match_);
+    if (last_match_ == app_.GetDb().Records().end())
+    {
+        // No match yet, go back to where the search started
+        ResetSavedMatch();
+    }
+    else
+    {
+        SetSelection(last_match_);
+    }
 }
 
 void SearchBarWin::UpdateQueryString()
@@ -209,7 +221,8 @@ DialogResult SearchBarWin::ProcessInput()
 {
     DialogResult rc = DialogResult::CANCEL;
     int ch = ERR;
-    while ((ch = wgetch(win_)) != ERR)
+    wchar_t wch = 0;
+    while ((ch = ReadKey(win_, wch)) != ERR)
     {
         bool update = false;
 
@@ -271,6 +284,14 @@ DialogResult SearchBarWin::ProcessInput()
         }
         case KEY_DC: {
             if (form_driver(form_, REQ_DEL_CHAR) == E_OK)
+            {
+                UpdateQueryString();
+                update = FindNext();
+            }
+            break;
+        }
+        case KEY_WIDE_CHAR: {
+            if (form_driver_w(form_, CURSES_OK, wch) == E_OK)
             {
                 UpdateQueryString();
                 update = FindNext();

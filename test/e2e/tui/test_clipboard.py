@@ -46,6 +46,18 @@ class ClipboardTest(e2elib.TuiTestCase):
         app.wait_highlighted("Chequing")
         self.assertIsNone(self.clipboard())
 
+    def test_copy_missing_user_and_password(self):
+        # An account without a user or password used to abort, constructing a
+        # std::string from the missing (null) field
+        app, _, _ = self.open_db(spec="sparse")
+        app.send("Down")
+        app.wait_highlighted("No user")
+        app.send("C-u")
+        self.wait_clipboard(app, "")
+        self.clip_file.unlink()
+        app.send("C-p")
+        self.wait_clipboard(app, "")
+
     def test_copy_in_details_dialog(self):
         app, _, _ = self.open_db()
         self.select_chequing(app)
