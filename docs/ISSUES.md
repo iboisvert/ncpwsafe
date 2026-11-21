@@ -40,3 +40,91 @@ is wider than the terminal (e.g. "File <long pathname> does not exist"), `newwin
 `wgetch(NULL)` returns `ERR`, and `ProcessInput` returns immediately, so the message is
 never seen. Long lines should be wrapped or truncated to fit the terminal. Also,
 `ProcessInput` treats any `ERR` from `wgetch` as closing the box.
+
+## Editing an account's group or title deletes a different account
+
+**Status: open.** Test: `test_edit_account_moves_group` in `test/e2e/tui/test_edit.py`
+(expected failure).
+
+In `AccountsWin::ProcessInput`, Enter on an account passes `*record`, a reference into
+the `AccountRecords` vector, to `UpdateMenu` as `old_record`. `UpdateMenu` calls
+`records.Save(new_record)`, which re-sorts the vector. When the group or title changes,
+the record moves, so `old_record` now refers to whichever account took its slot. The
+UUID comparison then fails, and `records.Delete(old_record)` deletes that other account.
+Saving writes the loss to the file. For example, with the e2e `small` fixture, moving
+Bookstore from Shopping to Banking deletes Work mail. Copy the old record (or its UUID)
+before calling `Save`.
+
+## `--export-db` without `-o` reads an empty `std::optional`
+
+**Status: open.** Test: `test_output_required` in `test/e2e/cli/test_export.py`
+(expected failure in Debug builds). It also affects any command line that turns on
+`--export-db` with no `-o`, e.g. `--export-db --change-password`.
+
+In `ValidateArgs` (`src/main.cpp`), the `EXPORT_DB` branch reports "Output file is
+required" but then still evaluates `fs::Exists(*args.output_file_)`. This is undefined
+behaviour. Debug builds abort with SIGABRT on the libstdc++ assertion, and Release builds
+happen to carry on. Only check whether the file exists once `output_file_` has a value.
+
+## Search doesn't match queries containing capital letters
+
+**Status: open.** Test: `test_search_mixed_case` in `test/e2e/tui/test_navigation.py`
+(expected failure).
+
+`AccountRecord::FieldContainsCaseInsensitive` (`src/AccountRecord.cpp`) lowercases the
+field value but not the query, so "book" finds Bookstore but "Book" finds nothing.
+Lowercase `sub` too, or use ICU case folding on both.
+
+## `--password-policy` by name selects the wrong policy, and 0 is accepted
+
+**Status: open.** Tests: `test_policy_by_name` and `test_policy_zero_rejected` in
+`test/e2e/cli/test_generate_password.py` (expected failures).
+
+- When the policy is given by name, `ParseArgs` stores the 0-based index of the matching
+  name. `main()` treats `--password-policy` as 1-based (`args.password_policy_ - 1`), so
+  a name selects the policy listed before it. `alpha/digit/symbol` gives index -1, which
+  is out of bounds for `COMPOSITION_NAME` and `POLICY_CHARSET`. Store `i + 1`.
+- `ValidateArgs` only rejects values `> PasswordPolicy::Composition::COUNT`, so
+  `--password-policy=0` is accepted and also indexes at -1. Reject values `< 1` too.
+
+## `--change-password` exits 0 when it fails
+
+**Status: open.** Test: `test_wrong_password_exit_code` in
+`test/e2e/cli/test_change_password.py` (expected failure).
+
+The `CHANGE_DB_PASSWORD` case in `main()` prints "Incorrect account database password"
+or "Changing account database password failed", but never sets `result`, so the exit
+code is always 0 and scripts can't detect the failure. These messages also go to stdout
+rather than stderr, unlike `--export-db`'s errors.
+
+## The delete prompt names the user even when the title is unique
+
+**Status: open.** Test: `test_delete_unique_title_omits_user` in
+`test/e2e/tui/test_edit.py` (expected failure).
+
+`AccountsWin::DeleteEntry` is meant to add "with user X" only when another account has
+the same title. Its check,
+`all_of(records, FieldCompare(FT_TITLE, record, *prec) || &record == prec)`, is true only
+when *every* account has the same title, so the user is named almost every time. It
+should be `none_of` over the other records having the same title, i.e.
+`!FieldCompare(...) || &record == prec` inside `all_of`.
+
+## Cancelling a search that started on a group heading jumps to the first account
+
+**Status: open.** Minor. No test.
+
+`SearchBarWin::Show` saves the starting selection as an account record. When a group
+heading is selected, `GetSelection()` returns `nullptr` and the saved position becomes
+`records.begin()`, so Esc moves the selection to the first account instead of back to
+the heading.
+
+## Crash opening a database with Unicode characters when the locale doesn't support Unicode
+
+**Status: open.** Moved from the README's known issues. Not yet reproduced or tested.
+
+Opening an account database that contains non-ASCII text crashes if the locale doesn't
+support Unicode (e.g. `LANG=C`). Note that nothing in `src/` calls `setlocale`, so
+ncurses and ICU run in the C locale whatever the environment says. The e2e tests set
+`LANG`/`LC_ALL=C.UTF-8` and use ASCII-only fixtures, so they don't cover this. A test
+could add a fixture with non-ASCII titles (the `ru` word list is one source) and open it
+under `LANG=C`.
