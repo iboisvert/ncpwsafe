@@ -44,4 +44,4 @@ ctest --preset=x64-linux-gcc-debug -R AppTest # tests matching a regex
 - Filesystem access goes through the virtual `Filesystem` struct (`Filesystem::instance` by default), which is injected into `PWSafeApp`'s constructor so tests can pass a mock (see `FilesystemMock` in `test/PWSafeApp-tests.cpp`). Prefer this over calling `std::filesystem` directly in code that needs testing.
 - `src/en_CA.dat` and `src/ru.dat` are word lists written as C string literals and `#include`d directly into `GenerateTestDbCommand.cpp`. `--test-db` uses them to generate test databases (`--test-db-lang=en-CA|ru`).
 
-`TODO.md` tracks known bugs and planned features.
+`docs/dev-plan.md` tracks planned features and the to-do backlog (§3), and `docs/ISSUES.md` has detailed write-ups of known bugs.

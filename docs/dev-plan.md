@@ -1,13 +1,16 @@
 # ncpwsafe development plan
 
-This plan covers two features:
+This plan covers two features, plus the project's other planned work:
 
 1. [Password templates](#1-password-templates): named, reusable password generation settings.
 2. [UI brush-up](#2-ui-brush-up): visual grouping, highlighting, and navigation improvements.
+3. [Other work](#3-other-work): known bugs, features, and backlog items that aren't part of the
+   two features above. This replaces the old `TODO.md`.
 
-Each section describes the current state, the proposed design, and the work broken into
-milestones that can be merged on their own. [Open questions](#3-open-questions) at the end
-need a decision before or during implementation.
+Each feature section describes the current state, the proposed design, and the work broken into
+milestones that can be merged on their own. [Open questions](#4-open-questions) at the end
+need a decision before or during implementation. Detailed bug write-ups are in
+[`ISSUES.md`](ISSUES.md).
 
 ---
 
@@ -20,13 +23,12 @@ need a decision before or during implementation.
 - `GeneratePasswordDlg` steps through the compositions (Space) and lengths 4–56 in steps of 4 (`<`/`>`).
 - The CLI command `--generate-password` takes `--password-count`, `--password-length` and
   `--password-policy=1..5`.
-- No settings are saved. Each account's policy is lost when the dialog closes (see `TODO.md`:
-  "Save password policy to account entry", "Diceware passwords", "Fix password policies").
-- **Security issue:** `RandomState` (`src/RandUtils.h`) uses `std::mt19937` with a 32-bit seed, and
-  `MakePassword()` picks characters with `n % N`. The Mersenne Twister is not cryptographically secure:
-  its output can be predicted after 624 observed values, and a 32-bit seed limits it to 2³² possible
-  sequences no matter the password length. The modulo also adds a small bias. This must be fixed as part
-  of this feature (milestone P1).
+- No settings are saved. Each account's policy is lost when the dialog closes (requested
+  items: "Save password policy to account entry", "Diceware passwords", "Fix password policies").
+- **Security issue (fixed, milestone P1):** `MakePassword()` used `RandomState` (`src/RandUtils.h`),
+  a `std::mt19937` with a 32-bit seed, and picked characters with `n % N`. It now draws from
+  `std::random_device` through `std::uniform_int_distribution`, and `RandomState` is only used for test
+  data. See `ISSUES.md` history for details.
 
 ### 1.2 Concepts
 
@@ -255,7 +257,7 @@ password-handling code.
 
 | # | Milestone | Depends on |
 |---|---|---|
-| P1 | `SecureRandom` replaces `RandomState`, which fixes the RNG weakness. Ship this on its own, first. | — |
+| P1 | **Done.** `MakePassword()` uses `std::random_device` instead of `RandomState`, which fixes the RNG weakness. | — |
 | P2 | `PasswordTemplate` (random kind) and built-ins; `GeneratePasswordCommand` uses them; `--password-policy` still works. | P1 |
 | P3 | Passphrase kind and embedded EFF word lists. | P2 |
 | P4 | JSON store, `--template`, `--list-templates`, `--password-gen-config`. Add the JSON dependency. | P2 |
@@ -274,7 +276,7 @@ password-handling code.
   (command bar).
 - The accounts window is a flat, two-column `menu` of titles. Groups (`FT_GROUP`) are not shown as
   groups, which makes large databases hard to scan.
-- The command bar shows only as many commands as fit. `TODO.md` lists "Print page #", a "More"
+- The command bar shows only as many commands as fit. Requested: "Print page #", a "More"
   command, and "F1 Help".
 - A dialog's labels and fields have the same visual weight. Read-only and editable fields look alike.
 
@@ -361,7 +363,7 @@ matches with `search_match`, `Esc` to clear, and a match count in the status sec
 - Vim keys in lists (`j`/`k`, `g`/`G`) in addition to the arrow keys and Home/End/PgUp/PgDn.
 - Type-to-jump: typing a letter in the list moves to the next title starting with it.
 - `Tab` and `Shift-Tab` move between dialog fields; make sure `Enter` on the password field doesn't
-  submit (an existing bug in `TODO.md`).
+  submit (an existing bug, see §3.1).
 - Show quick-copy keys in the list: `u` copies the user name, `p` the password, `l` the URL.
 
 **U-9. Password reveal and clipboard feedback.** Mask the password in dialogs by default (`••••`) and
@@ -430,7 +432,57 @@ This works with the existing `ScopedResizeHandler` stack.
 
 ---
 
-## 3. Open questions
+## 3. Other work
+
+Items from the old `TODO.md` that the two features above don't cover. Items they do cover are listed
+in §3.4.
+
+### 3.1 Bugs
+
+- Crash if the terminal doesn't support UTF-8. The ASCII fallback in §2.5 helps.
+- Enter on the password field of the open-database dialog submits the dialog. To be fixed with U-8.
+- See [`ISSUES.md`](ISSUES.md) for the other open bugs.
+
+### 3.2 Features
+
+- Create a new database.
+- Close the database after a timeout.
+  - Test by putting the computer to sleep.
+- Multiline notes fields.
+  - Needs a `Dialog` enhancement.
+
+### 3.3 Backlog
+
+- Move strings to a string resource file for i18n.
+  - Check the library used by pwsafe-cli.
+- YubiKey support.
+
+### 3.4 Covered by this plan
+
+| Old `TODO.md` item | Where |
+|---|---|
+| Diceware passwords | §1, passphrase kind (P3) |
+| Fix password policies | §1 (P2) |
+| Save password policy to account entry | §1, account links (P6) |
+| Colors | §2.3 theme system (U-1) |
+| Improve command bar: print page #, "More" command | U-5 |
+| F1 Help | U-6 |
+| Display user name in account list if account title not unique | U-4 |
+
+### 3.5 Done
+
+- Export database, and export as CSV
+- Write last opened database to prefs
+- Database copy-on-backup, and backup on save
+- Change master password
+- Fix deleting a record
+- Compatibility with Nicolas Dade's pwsafe databases
+- Generate passwords from the CLI, including N passwords
+- Search
+- Remove the `MenuInfoData` class
+- Secure random password generation (P1)
+
+## 4. Open questions
 
 - **Q1. Several databases.** Should account links be keyed by database path, or is a flat UUID map
   enough? UUIDs are unique across databases in practice, so a flat map works unless databases are
@@ -444,15 +496,11 @@ This works with the existing `ScopedResizeHandler` stack.
   `NCPWSAFE_CONFIG_FILE` (and `AGENTS.md`) say `ncpwsafe.ini`. Settle this before adding a second
   config file.
 
-## 4. Suggested order
+## 5. Suggested order
 
-1. **P1** (RNG fix): small, and it fixes a security issue.
+1. ~~**P1** (RNG fix)~~: done.
 2. **U-1** (theme): every later UI change builds on it.
 3. **P2 → P4** (templates and CLI): delivers the CLI half of the feature without UI work.
 4. **U-5, U-6, U-2/U-4**: the most visible navigation gains.
 5. **P5 → P7**: the template UI, which by then can use the theme.
 6. The remaining U items.
-
-`TODO.md` should be updated to point at this plan, and to remove items it covers: "Diceware passwords",
-"Fix password policies", "Save password policy to account entry", "Colors", "Improve command bar",
-"F1 Help", and "Display user name in account list if account title not unique".
