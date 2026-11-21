@@ -4,7 +4,6 @@
 
 #include <string>
 #include <cassert>
-#include "RandUtils.h"
 
 /**
  * Password policy for an account
@@ -50,7 +49,6 @@ public:
 private:
     Composition composition;
     size_t length;
-    RandomState rand;
 };
 
 #endif

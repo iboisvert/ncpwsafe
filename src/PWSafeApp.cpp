@@ -62,16 +62,53 @@ DialogResult PWSafeApp::Show()
     // prompt for password, try to Load.
     SafeCombinationPromptDlg pwdprompt(*this);
 
+    // If a password was given on the command line and the database is known,
+    // from the command line or the preferences, try them first and only
+    // prompt if they don't work
+    bool try_args = !db_.DbPathname().empty() && !db_.Password().empty();
+    if (!db_.Password().empty() && db_.DbPathname().empty())
+    {
+        MessageBox(*this).Show(win_, "A password was given on the command line, "
+            "but no account database was specified");
+        ZeroString(db_.Password());
+    }
+
     DialogResult dr = DialogResult::CONTINUE;
     while (dr != DialogResult::OK && dr != DialogResult::CANCEL)
     {
-        dr = pwdprompt.Show(win_);
+        std::string db_pathname, password;
+        if (try_args)
+        {
+            try_args = false;
+            db_pathname = db_.DbPathname();
+            password = db_.Password();
+            std::string msg = SafeCombinationPromptDlg::CheckDatabase(db_, db_pathname, password,
+                "The password given on the command line is incorrect");
+            if (msg.empty())
+            {
+                dr = DialogResult::OK;
+            }
+            else
+            {
+                MessageBox(*this).Show(win_, msg.c_str());
+                ZeroString(db_.Password());
+                ZeroString(password);
+                continue;
+            }
+        }
+        else
+        {
+            dr = pwdprompt.Show(win_);
+            if (dr == DialogResult::OK)
+            {
+                db_pathname = pwdprompt.GetFilename();
+                password = pwdprompt.GetPassword();
+            }
+        }
+
         if (dr == DialogResult::OK)
         {
             wrefresh(win_);
-
-            std::string db_pathname = pwdprompt.GetFilename();
-            std::string password = pwdprompt.GetPassword();
 
             db_.DbPathname() = db_pathname;
             db_.Password() = password;
@@ -91,6 +128,8 @@ DialogResult PWSafeApp::Show()
                     std::string msg("An error occurred reading database file ");
                     msg.append(db_pathname.c_str());
                     MessageBox(*this).Show(win_, msg.c_str());
+                    // Prompt again instead of exiting
+                    dr = DialogResult::CONTINUE;
                 }
             }
         }

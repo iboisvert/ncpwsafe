@@ -13,6 +13,7 @@
 #include "libglog.h"
 #endif
 
+#include <cerrno>
 #include <climits>
 #include <cstdarg>
 #include <cstdio>
@@ -66,14 +67,22 @@ static void Usage(const char *progName)
             "  -c,--config=PATHNAME Specify the configuration file\n"
             "                       Default is %s\n"
             "  DATABASE_FILE        The account database file\n"
-            "  -P,--password=STR    Account database password\n"
+            "  -P,--password=STR    Account database password. Deprecated, the password can\n"
+            "                       be seen by other users, use --password-file instead\n"
+            "  --password-file=PATHNAME\n"
+            "                       Read the account database password from the first\n"
+            "                       line of a file\n"
             "  --force              Force overwrite output file\n"
             "\n"
             "Open database options:\n"
             "  -r,--read-only       Open database as read-only\n"
             "\n"
             "Change account database options:\n"
-            "  --new-password=STR   New account database password\n"
+            "  --new-password=STR   New account database password. Deprecated, use\n"
+            "                       --new-password-file instead\n"
+            "  --new-password-file=PATHNAME\n"
+            "                       Read the new account database password from the first\n"
+            "                       line of a file\n"
             "\n"
             "Generate test database options:\n"
             "  --test-db-lang=STR   Language of strings in generated database\n"
@@ -307,6 +316,8 @@ enum
     O_EXPORT_DB,
     O_CHANGE_PASSWORD,
     O_NEW_PASSWORD,
+    O_PASSWORD_FILE,
+    O_NEW_PASSWORD_FILE,
     OPT_FORCE
 };
 
@@ -318,6 +329,7 @@ static constexpr struct option options[] {
     {"test-db-items", required_argument, nullptr, O_TEST_DB_ITEMS},
     {"help", no_argument, nullptr, 'h'},
     {"password", required_argument, nullptr, 'P'}, 
+    {"password-file", required_argument, nullptr, O_PASSWORD_FILE},
     {"read-only", no_argument, nullptr, 'r'},
     {"generate-password", no_argument, nullptr, O_GENERATE_PASSWORD},
     {"password-count", required_argument, nullptr, O_PASSWORD_COUNT},
@@ -327,11 +339,46 @@ static constexpr struct option options[] {
     {"out", required_argument, nullptr, 'o'},
     {"change-password", no_argument, nullptr, O_CHANGE_PASSWORD},
     {"new-password", required_argument, nullptr, O_NEW_PASSWORD},
+    {"new-password-file", required_argument, nullptr, O_NEW_PASSWORD_FILE},
     {"force", no_argument, nullptr, OPT_FORCE},
     {"config", required_argument, nullptr, 'c'},
     {nullptr, 0, nullptr, 0},
 };
 // clang-format on
+
+/**
+ * Overwrite a command-line argument in place, so that it is no longer visible
+ * in /proc/<pid>/cmdline (e.g. to ps). It is visible until then.
+ */
+static void HideArg(char *arg)
+{
+    ZeroMemory(arg, strlen(arg));
+}
+
+/**
+ * If `pathname` is set, read `password` from the file it names.
+ * @param option The name of the option that gives the password directly
+ * @returns `false` if both the option and the file are given, or the file can't be read
+ */
+static bool ReadPasswordFileArg(const char *option, const std::optional<std::string> &pathname,
+    std::optional<std::string> &password)
+{
+    if (!pathname)
+    {
+        return true;
+    }
+    if (password)
+    {
+        return Error("Only one of %s and %s-file may be specified\n", option, option);
+    }
+    std::string value;
+    if (!ReadPasswordFile(*pathname, value))
+    {
+        return Error("Unable to read password file %s: %s\n", pathname->c_str(), strerror(errno));
+    }
+    password = std::move(value);
+    return true;
+}
 
 static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
 {
@@ -406,6 +453,14 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
         case O_NEW_PASSWORD: {
             assert(optarg);
             args.new_password_ = optarg;
+            HideArg(optarg);
+            fprintf(stderr, "Warning: --new-password is deprecated, the password can be seen by other users. "
+                "Use --new-password-file instead.\n");
+            break;
+        }
+        case O_NEW_PASSWORD_FILE: {
+            assert(optarg);
+            args.new_password_file_ = optarg;
             break;
         }
         case O_GENERATE_TEST_DB: {
@@ -430,6 +485,14 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
         case 'P': {
             assert(optarg);
             args.password_ = optarg;
+            HideArg(optarg);
+            fprintf(stderr, "Warning: --password is deprecated, the password can be seen by other users. "
+                "Use --password-file instead.\n");
+            break;
+        }
+        case O_PASSWORD_FILE: {
+            assert(optarg);
+            args.password_file_ = optarg;
             break;
         }
         case 'r': {
@@ -453,6 +516,12 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
         args.database_ = filename;
     }
     else if (count > 1)
+    {
+        return false;
+    }
+
+    if (!ReadPasswordFileArg("--password", args.password_file_, args.password_)
+        || !ReadPasswordFileArg("--new-password", args.new_password_file_, args.new_password_))
     {
         return false;
     }
@@ -483,6 +552,9 @@ int main(int argc, char *argv[])
 
     PWSafeApp app;
     app.Init(input_args);
+    // The passwords have been copied to the app, wipe these copies
+    if (input_args.password_) ZeroString(*input_args.password_);
+    if (input_args.new_password_) ZeroString(*input_args.new_password_);
     const ProgArgs &args = app.GetArgs();
 
     int result = static_cast<int>(RC_SUCCESS);

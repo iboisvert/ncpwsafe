@@ -2,16 +2,17 @@
 #ifndef HAVE_RANDUTILS_H
 #define HAVE_RANDUTILS_H
 
-#include <cstddef>
+#include <algorithm>
+#include <array>
+#include <functional>
 #include <random>
-#include <cstring>
 
+/**
+ * Fast, non-cryptographic pseudo-random number generator, for test data only.
+ * Use `std::random_device` for anything that must be unpredictable, such as passwords.
+ */
 class RandomState
 {
-    static constexpr size_t R = sizeof(typename std::mt19937::result_type)/sizeof(typename std::random_device::result_type);
-    static_assert(static_cast<float>(R) == static_cast<float>(sizeof(typename std::mt19937::result_type))/static_cast<float>(sizeof(typename std::random_device::result_type)));
-
-    std::random_device rd;
     std::mt19937 mt32;
 
 public:
@@ -19,17 +20,18 @@ public:
 
     RandomState()
     {
-        typename std::mt19937::result_type seed;
-        for (size_t i = 0; i <= R; ++i)
-        {
-            *(reinterpret_cast<typename std::random_device::result_type *>(&seed)+i) = rd();
-        }
-        mt32.seed(seed);
+        // Seed the whole engine state, not just the single 32-bit word that
+        // `std::mt19937::seed(result_type)` uses
+        std::random_device rd;
+        std::array<std::random_device::result_type, std::mt19937::state_size> seed_data;
+        std::generate(seed_data.begin(), seed_data.end(), std::ref(rd));
+        std::seed_seq seq(seed_data.begin(), seed_data.end());
+        mt32.seed(seq);
     }
     RandomState(const RandomState &) = delete;
     RandomState &operator=(const RandomState &) = delete;
 
-    typename std::mt19937::result_type operator()()
+    result_type operator()()
     {
         return mt32();
     }

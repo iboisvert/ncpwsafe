@@ -1,6 +1,10 @@
 /* Copyright 2023 Ian Boisvert */
 #include <string>
+#include <cerrno>
+#include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <unistd.h>
 #include <gtest/gtest.h>
 #include "Utils.h"
 
@@ -58,4 +62,98 @@ TEST(UtilTest, TestRtrim)
         char *result = rtrim(buf, buf+sizeof(buf));
         ASSERT_STREQ(" two words", result);
     }
+}
+class ReadPasswordFileTest : public ::testing::Test
+{
+protected:
+    std::string pathname_;
+
+    void SetUp() override
+    {
+        char tmpl[] = "/tmp/ncpwsafe-pwfile-XXXXXX";
+        int fd = mkstemp(tmpl);
+        ASSERT_NE(-1, fd);
+        close(fd);
+        pathname_ = tmpl;
+    }
+    void TearDown() override
+    {
+        unlink(pathname_.c_str());
+    }
+    void Write(const std::string &contents)
+    {
+        std::FILE *f = std::fopen(pathname_.c_str(), "wb");
+        ASSERT_NE(nullptr, f);
+        std::fwrite(contents.data(), 1, contents.size(), f);
+        std::fclose(f);
+    }
+};
+
+TEST_F(ReadPasswordFileTest, ReadsFileWithoutLineEnding)
+{
+    Write("s3cret");
+    std::string password;
+    ASSERT_TRUE(ReadPasswordFile(pathname_, password));
+    EXPECT_EQ("s3cret", password);
+}
+
+TEST_F(ReadPasswordFileTest, RemovesLfAndCrLf)
+{
+    std::string password;
+    Write("s3cret\n");
+    ASSERT_TRUE(ReadPasswordFile(pathname_, password));
+    EXPECT_EQ("s3cret", password);
+    Write("s3cret\r\n");
+    ASSERT_TRUE(ReadPasswordFile(pathname_, password));
+    EXPECT_EQ("s3cret", password);
+}
+
+TEST_F(ReadPasswordFileTest, ReadsFirstLineOnly)
+{
+    Write("s3cret\nsecond line\n");
+    std::string password;
+    ASSERT_TRUE(ReadPasswordFile(pathname_, password));
+    EXPECT_EQ("s3cret", password);
+}
+
+TEST_F(ReadPasswordFileTest, KeepsLeadingAndTrailingSpaces)
+{
+    Write(" s3 cret \n");
+    std::string password;
+    ASSERT_TRUE(ReadPasswordFile(pathname_, password));
+    EXPECT_EQ(" s3 cret ", password);
+}
+
+TEST_F(ReadPasswordFileTest, ReadsPasswordLongerThanBuffer)
+{
+    std::string long_password(1000, 'x');
+    Write(long_password + "\n");
+    std::string password;
+    ASSERT_TRUE(ReadPasswordFile(pathname_, password));
+    EXPECT_EQ(long_password, password);
+}
+
+TEST_F(ReadPasswordFileTest, EmptyFileGivesEmptyPassword)
+{
+    Write("");
+    std::string password = "old";
+    ASSERT_TRUE(ReadPasswordFile(pathname_, password));
+    EXPECT_EQ("", password);
+}
+
+TEST_F(ReadPasswordFileTest, MissingFileFails)
+{
+    std::string password = "unchanged";
+    EXPECT_FALSE(ReadPasswordFile("/nonexistent/ncpwsafe-password", password));
+    EXPECT_EQ(ENOENT, errno);
+    EXPECT_EQ("unchanged", password);
+}
+
+TEST(UtilTest, TestZeroString)
+{
+    std::string str("s3cret");
+    const char *data = str.data();
+    ZeroString(str);
+    EXPECT_TRUE(str.empty());
+    EXPECT_EQ(0, std::memcmp(data, "\0\0\0\0\0\0", 6));
 }
