@@ -6,6 +6,9 @@
 #ifndef _WINDOWS
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <cerrno>
 #include <unistd.h>
 #endif // #ifndef _WINDOWS
 
@@ -22,6 +25,8 @@
 
 // item_new rejects an empty string for the item name
 static constexpr const char *EMPTY_MENU_ITEM = " ";
+
+static constexpr int COMMAND_NOT_FOUND = 127;
 
 #ifndef _WINDOWS
 static const char *XCLIP = "/usr/bin/xclip";
@@ -44,6 +49,7 @@ static const char *XCLIP = "/usr/bin/xclip";
  * 2 if an error occurs creating pipes to map to child process stdin, stdout
  * 3 if fork() fails
  * 4 if DISPLAY is not set
+ * 5 if writing to xclip fails or xclip exits with an error
  */
 static int CopyTextToClipboardUnix(const std::string &text)
 {
@@ -86,12 +92,12 @@ static int CopyTextToClipboardUnix(const std::string &text)
         // redirect stdin
         if (dup2(fd_stdin[READ], STDIN_FILENO) == -1)
         {
-            exit(errno);
+            exit(COMMAND_NOT_FOUND);
         }
         // redirect stdout
         if (dup2(fd_stdout[WRITE], STDOUT_FILENO) == -1)
         {
-            exit(errno);
+            exit(COMMAND_NOT_FOUND);
         }
 
         // all these are for use by parent only
@@ -104,7 +110,7 @@ static int CopyTextToClipboardUnix(const std::string &text)
         // replace this with any exec* function find easier to use ("man exec")
         // clang-format off
         const char *const args[]{
-            XCLIP, 
+            xclip_path, 
             "-in", 
             "-selection", 
             "clipboard", 
@@ -133,11 +139,12 @@ static int CopyTextToClipboardUnix(const std::string &text)
         }
 
         env.push_back(NULL);
-        int result = execve(XCLIP, const_cast<char **>(args), const_cast<char **>(env.data()));
+        execve(xclip_path, const_cast<char **>(args), const_cast<char **>(env.data()));
 
-        // if we get here at all, an error occurred, but we are in the child
-        // process, so just exit
-        exit(result);
+        // if we get here at all, exec failed, but we are in the child
+        // process, so just exit. _exit() skips atexit handlers and stdio
+        // flushing, which belong to the parent
+        _exit(COMMAND_NOT_FOUND);
     }
     else if (pid > 0)
     {
@@ -148,12 +155,37 @@ static int CopyTextToClipboardUnix(const std::string &text)
         close(fd_stdout[READ]);
         close(fd_stdout[WRITE]);
 
-        // Include error check here
-        __attribute__((unused)) ssize_t result = write(fd_stdin[WRITE], text.c_str(), text.size());
+        // Ignore SIGPIPE while writing, so that a child that exits early
+        // (e.g. exec failed) produces a write error instead of killing us
+        struct sigaction sa_ignore{}, sa_old{};
+        sa_ignore.sa_handler = SIG_IGN;
+        sigaction(SIGPIPE, &sa_ignore, &sa_old);
 
-        // done with these in this example program, you would normally keep these
-        // open of course as long as you want to talk to the child
+        bool write_ok = true;
+        for (size_t off = 0; off < text.size();)
+        {
+            ssize_t n = write(fd_stdin[WRITE], text.data() + off, text.size() - off);
+            if (n < 0)
+            {
+                if (errno == EINTR) continue;
+                write_ok = false;
+                break;
+            }
+            off += static_cast<size_t>(n);
+        }
         close(fd_stdin[WRITE]);
+
+        sigaction(SIGPIPE, &sa_old, nullptr);
+
+        // Reap the child so it does not linger as a zombie. xclip forks
+        // into the background to serve the selection, so this returns
+        // as soon as it has read its input
+        int status = 0;
+        while (waitpid(pid, &status, 0) == -1 && errno == EINTR) {}
+        if (!write_ok || !WIFEXITED(status) || WEXITSTATUS(status) != 0)
+        {
+            return 5;
+        }
     }
     else
     {
