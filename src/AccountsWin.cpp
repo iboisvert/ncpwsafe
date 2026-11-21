@@ -348,7 +348,14 @@ void AccountsWin::CreateMenu()
 
     menu_ = new_menu(menu_items_.data());
     set_menu_grey(menu_, A_NORMAL);
+    menu_opts_off(menu_, O_SHOWDESC);
+    set_menu_mark(menu_, nullptr);
 
+    LayoutMenu();
+}
+
+void AccountsWin::LayoutMenu()
+{
     set_menu_win(menu_, win_);
     int beg_y, beg_x, max_y, max_x;
     getbegyx(win_, beg_y, beg_x);
@@ -358,16 +365,9 @@ void AccountsWin::CreateMenu()
     menu_win_ = derwin(win_, menuWin_nlines, menuWin_ncols, /*begin_y*/ 1, /*begin_x*/ 1);
     set_menu_sub(menu_, menu_win_);
 
-    menu_opts_off(menu_, O_SHOWDESC);
-    set_menu_mark(menu_, nullptr);
     set_menu_format(menu_, menuWin_nlines, NCOLS);
 
     post_menu(menu_);
-
-    // TESTING repost with 2 cols to see if it works
-    // status = unpost_menu(menu);
-    // status = set_menu_format(menu, LINES - 2, cols);
-    // status = post_menu(menu);
 }
 
 void AccountsWin::DestroyMenu()
@@ -378,6 +378,35 @@ void AccountsWin::DestroyMenu()
     {
         if (pitem) status = free_item(pitem);
     }
+    menu_items_.clear();
+    if (menu_win_)
+    {
+        delwin(menu_win_);
+        menu_win_ = nullptr;
+    }
+}
+
+void AccountsWin::OnResize()
+{
+    // set_menu_format() resets the current item, save it to restore it after layout
+    ITEM *selection = current_item(menu_);
+
+    unpost_menu(menu_);
+    set_menu_sub(menu_, nullptr);
+    if (menu_win_)
+    {
+        delwin(menu_win_);
+        menu_win_ = nullptr;
+    }
+    werase(win_);
+
+    LayoutMenu();
+
+    if (selection != nullptr)
+    {
+        set_current_item(menu_, selection);
+    }
+    touchwin(win_);
 }
 
 // Copied from ui/wxWidgets/MenuEditHandlers.cpp
@@ -411,8 +440,6 @@ void AccountsWin::EndTUI()
     menu_ = nullptr;
     del_panel(panel_);
     panel_ = nullptr;
-    delwin(menu_win_);
-    menu_win_ = nullptr;
     win_ = nullptr;
 
     curs_set(save_cursor_);
@@ -753,7 +780,11 @@ DialogResult AccountsWin::Show()
     update_panels();
     doupdate();
 
-    DialogResult result = ProcessInput();
+    DialogResult result;
+    {
+        ScopedResizeHandler resize_handler(app_, [this]() { OnResize(); });
+        result = ProcessInput();
+    }
 
     EndTUI();
 
@@ -778,6 +809,11 @@ DialogResult AccountsWin::ProcessInput()
     {
         switch (c)
         {
+        case KEY_RESIZE:
+        {
+            app_.HandleResize();
+            break;
+        }
         // case 'a': {
         //     // Check for Group/Username/Title uniqueness
         //     // if (m_db.Find(m_Item.GetGroup(), m_Item.GetTitle(), m_Item.GetUser()) !=

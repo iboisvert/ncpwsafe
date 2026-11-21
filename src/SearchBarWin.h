@@ -12,8 +12,12 @@ class AccountsWin;
 class SearchBarWin
 {
 public:
-    SearchBarWin(PWSafeApp &app, WINDOW *win, AccountsWin &accounts_win)
-        : app_(app), accounts_win_(accounts_win), win_(win), fields_{nullptr, nullptr}
+    /**
+     * @param layout_win The search bar is displayed in a window with the
+     * same size and position as `layout_win`
+     */
+    SearchBarWin(PWSafeApp &app, WINDOW *layout_win, AccountsWin &accounts_win)
+        : app_(app), accounts_win_(accounts_win), layout_win_(layout_win), fields_{nullptr, nullptr}
     {
     }
 
@@ -32,6 +36,12 @@ private:
     void SetSelection(AccountRecords::const_iterator it);
 
     void InitTUI();
+    /** Create the search bar window and form */
+    void CreateWindows();
+    /** Destroy the search bar form and its subwindow */
+    void DestroyForm();
+    /** Lay out the search bar after the terminal has been resized */
+    void OnResize();
     void EndTUI();
     DialogResult ProcessInput();
 
@@ -42,7 +52,8 @@ private:
     AccountRecords::iterator last_match_;      ///< Item selected after last "Find Next"
     AccountRecords::iterator transient_match_; ///< Item selected while typing query
 
-    WINDOW *win_;
+    WINDOW *layout_win_;
+    WINDOW *win_ = nullptr;
     PANEL *panel_ = nullptr;
     FORM *form_ = nullptr;
     WINDOW *form_win_ = nullptr;

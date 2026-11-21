@@ -66,7 +66,11 @@ DialogResult GeneratePasswordDlg::Show(WINDOW *parent)
     update_panels();
     doupdate();
 
-    DialogResult result = ProcessInput();
+    DialogResult result;
+    {
+        ScopedResizeHandler resize_handler(app_, [this]() { OnResize(); });
+        result = ProcessInput();
+    }
 
     EndTUI();
 
@@ -79,23 +83,41 @@ DialogResult GeneratePasswordDlg::Show(WINDOW *parent)
 
 void GeneratePasswordDlg::InitTUI(const std::string &title)
 {
+    title_ = title;
+
+    win_ = NewWindow();
+    panel_ = new_panel(win_);
+
+    Draw();
+
+    // Reset cursor for input fields
+    save_cursor_ = curs_set(0);
+}
+
+static constexpr int DLG_NLINES = 4, DLG_NCOLS = MAX_PASSWORD_LENGTH;
+
+WINDOW *GeneratePasswordDlg::NewWindow() const
+{
     int beg_y, beg_x, max_y, max_x;
     getbegyx(parent_win_, beg_y, beg_x);
     getmaxyx(parent_win_, max_y, max_x);
-    int nlines = 4, ncols = MAX_PASSWORD_LENGTH;
-    beg_y = (max_y + beg_y - nlines) / 2;
-    beg_x = (max_x + beg_x - ncols) / 2;
+    beg_y = std::max(0, (max_y + beg_y - DLG_NLINES) / 2);
+    beg_x = std::max(0, (max_x + beg_x - DLG_NCOLS) / 2);
 
     // Add 2 to each dimension for border
-    win_ = newwin(nlines + 2, ncols + 4, beg_y, beg_x);
-    panel_ = new_panel(win_);
+    return newwin(DLG_NLINES + 2, DLG_NCOLS + 4, beg_y, beg_x);
+}
+
+void GeneratePasswordDlg::Draw()
+{
+    const int ncols = DLG_NCOLS;
 
     // Enable keypad so curses interprets function keys
     keypad(win_, TRUE);
     box(win_, 0, 0);
 
     wattron(win_, A_BOLD);
-    Label::WriteJustified(win_, /*y*/ 0, /*begin_x*/ 2, ncols + 2, title.c_str(), JUSTIFY_CENTER);
+    Label::WriteJustified(win_, /*y*/ 0, /*begin_x*/ 2, ncols + 2, title_.c_str(), JUSTIFY_CENTER);
     wattroff(win_, A_BOLD);
 
     Label::Write(win_, /*y*/ 1, /*x*/ 2, "Complexity:");
@@ -104,9 +126,29 @@ void GeneratePasswordDlg::InitTUI(const std::string &title)
     m_pwPolicyField = Label(win_, /*y*/ 1, label_begin_x, /*width*/ 32);
     m_pwLengthField = Label(win_, /*y*/ 2, label_begin_x, /*width*/ 10);
     m_passwordField = Label(win_, /*y*/ 4, /*x*/ 2, /*width*/ ncols, A_BOLD, JUSTIFY_CENTER);
+}
 
-    // Reset cursor for input fields
-    save_cursor_ = curs_set(0);
+void GeneratePasswordDlg::OnResize()
+{
+    WINDOW *win = NewWindow();
+    if (win == nullptr)
+    {
+        // The dialog doesn't fit on the screen, leave it as ncurses truncated it.
+        // It will be laid out again when the terminal is made large enough.
+        return;
+    }
+
+    // Replacing the window keeps the panel's position in the panel stack
+    replace_panel(panel_, win);
+    delwin(win_);
+    win_ = win;
+
+    Draw();
+
+    // Redraw the current values without generating a new password
+    m_pwPolicyField.Rewrite(m_pwPolicy.GetName());
+    UpdatePWLength();
+    m_passwordField.Rewrite(password_.c_str());
 }
 
 void GeneratePasswordDlg::EndTUI()
@@ -127,6 +169,10 @@ DialogResult GeneratePasswordDlg::ProcessInput()
     {
         switch (ch)
         {
+        case KEY_RESIZE: {
+            app_.HandleResize();
+            break;
+        }
         case KEY_CTRL('X'): {
             goto done;
         }

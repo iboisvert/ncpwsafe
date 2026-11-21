@@ -62,7 +62,11 @@ private:
      */
     void CreateMenuDataItems();
     void CreateMenu();
+    /** Size the menu to the window and post it */
+    void LayoutMenu();
     void DestroyMenu();
+    /** Lay out the menu after the terminal has been resized */
+    void OnResize();
     void SetCommandBar();
     DialogResult ProcessInput();
 
