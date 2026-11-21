@@ -70,6 +70,13 @@ class NavigationTest(e2elib.TuiTestCase):
         # Everything fits on one page
         self.assertPath(app, [("NPage", "Router"), ("End", "Bookstore"), ("PPage", "Bookstore")])
 
+    def test_down_from_full_last_row(self):
+        # Down from the first column of a full last row used to read past the
+        # end of the menu items and abort
+        app, _, _ = self.open_db(spec="sparse")
+        self.assertPath(app, [("Down", "No user"), ("Down", "No user"), ("Right", "Savings"),
+                              ("Down", "Savings")])
+
     def test_search(self):
         app, _, _ = self.open_db()
         app.send("/")

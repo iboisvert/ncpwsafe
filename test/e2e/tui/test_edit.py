@@ -235,6 +235,16 @@ class EditTest(e2elib.TuiTestCase):
         screen = app.wait_for("Delete account Chequing")
         self.assertIn("Delete account Chequing?", screen)
 
+    def test_delete_on_group_heading_does_nothing(self):
+        # A group heading has no account. DeleteEntry() used to fail an
+        # assertion in Debug builds
+        app, _, _ = self.open_db()
+        app.send("Down")
+        app.wait_highlighted("Banking")
+        app.send("C-d", "Right")
+        app.wait_highlighted("Chequing")
+        self.assertNotIn("Delete account", app.text())
+
     def test_delete_same_title_names_user(self):
         app, _, _ = self.open_db()
         # Add a second "Savings" account for another user

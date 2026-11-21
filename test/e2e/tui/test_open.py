@@ -111,6 +111,14 @@ class OpenTest(e2elib.TuiTestCase):
         app.send("C-x")
         self.assertEqual(app.wait_exit(), e2elib.PRC_ERR_FAIL)
 
+    def test_keys_in_empty_database(self):
+        # With no accounts nothing is selected. These keys used to act on the
+        # missing menu item and abort
+        app, _, _ = self.open_db(spec="empty")
+        app.send("Enter", "C-u", "C-p", "C-d", "PPage", "NPage", "Up", "Down", "Left", "Right",
+                 "Home", "End", "C-x")
+        self.assertEqual(app.wait_exit(), e2elib.PRC_ERR_FAIL)
+
     def test_database_remembered(self):
         app, db, _ = self.open_db()
         app.send("C-x")

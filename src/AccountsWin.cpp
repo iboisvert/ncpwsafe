@@ -475,7 +475,7 @@ static void NavigateDown(MENU *menu, int cols, const std::vector<ITEM *> &items)
     int count = item_count(menu);
     // If menu item below current item is past the end of list or a blank item,
     // select the first non-blank menu item in the row below
-    if (idx + cols > count || IsBlankMenuItem(items[idx + cols]))
+    if (idx + cols >= count || IsBlankMenuItem(items[idx + cols]))
     {
         idx = (idx / cols) * cols + cols;
         while (idx < count)
@@ -526,7 +526,7 @@ static void NavigatePageUp(MENU *menu, int cols, const std::vector<ITEM *> &item
     menu_driver(menu, REQ_SCR_UPAGE);
     int idx = item_index(current_item(menu));
     int count = item_count(menu);
-    if (IsBlankMenuItem(items[idx]))
+    if (idx != ERR && IsBlankMenuItem(items[idx]))
     {
         // Move down rows until a non-blank menu item is found
         idx += cols;
@@ -546,7 +546,7 @@ static void NavigatePageDown(MENU *menu, int cols, const std::vector<ITEM *> &it
 {
     menu_driver(menu, REQ_SCR_DPAGE);
     int idx = item_index(current_item(menu));
-    if (IsBlankMenuItem(items[idx]))
+    if (idx != ERR && IsBlankMenuItem(items[idx]))
     {
         // Move up rows until a non-blank menu item is found
         idx -= cols;
@@ -868,9 +868,10 @@ DialogResult AccountsWin::ProcessInput()
         }
         case KEY_CTRL('D'):
         {
-            if (!read_only)
+            // Nothing is selected in an empty list, and a group heading has no account
+            ITEM *item = current_item(menu_);
+            if (!read_only && item != nullptr && GetAccountRecordFromMenuItem(item) != nullptr)
             {
-                ITEM *item = current_item(menu_);
                 DeleteEntry(item);
             }
             break;
@@ -896,10 +897,10 @@ DialogResult AccountsWin::ProcessInput()
         case KEY_CTRL('U'):
         {
             ITEM *item = current_item(menu_);
-            if (!IsGroupMenuItem(item))
+            if (item != nullptr && !IsGroupMenuItem(item))
             {
                 const AccountRecord *record = GetAccountRecordFromMenuItem(item);
-                const std::string &str = record->GetField(FT_USER);
+                const std::string str = record->GetField(FT_USER, "");
                 if (CopyTextToClipboard(app_, win_, str) > 0)
                 {
                     app_.GetCommandBar().Show(this);
@@ -910,10 +911,10 @@ DialogResult AccountsWin::ProcessInput()
         case KEY_CTRL('P'):
         {
             ITEM *item = current_item(menu_);
-            if (!IsGroupMenuItem(item))
+            if (item != nullptr && !IsGroupMenuItem(item))
             {
                 const AccountRecord *record = GetAccountRecordFromMenuItem(item);
-                const std::string &str = record->GetField(FT_PASSWORD);
+                const std::string str = record->GetField(FT_PASSWORD, "");
                 if (CopyTextToClipboard(app_, win_, str) > 0)
                 {
                     app_.GetCommandBar().Show(this);
@@ -931,6 +932,11 @@ DialogResult AccountsWin::ProcessInput()
         case '\n':
         {
             ITEM *item = current_item(menu_);
+            if (item == nullptr)
+            {
+                // The list is empty
+                break;
+            }
             assert(!IsBlankMenuItem(item));
             if (IsGroupMenuItem(item))
             {

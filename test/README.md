@@ -91,6 +91,7 @@ test/e2e/
     small.tsv        the accounts in the "small" test database
     small.pw         its password
     empty.tsv        a database with no accounts
+    sparse.tsv       accounts with fields left out
   cli/test_*.py      CLI tests
   tui/test_*.py      TUI tests
 ```
