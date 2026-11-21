@@ -61,6 +61,10 @@ if(WIN32)
         ${GETOPT_LINK_LIBRARIES}
         # Clipboard
         user32
+        # SHGetKnownFolderPath(), CoTaskMemFree(), FOLDERID_*
+        shell32
+        ole32
+        uuid
     )
 endif()
 

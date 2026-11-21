@@ -41,6 +41,18 @@ void InitConsole();
  */
 void DisableCrashDumps();
 
+/**
+ * The directory for per-user application data (`%APPDATA%`), UTF-8 encoded.
+ *
+ * The `APPDATA` environment variable is used if it is set, so that it can
+ * be overridden (the end-to-end tests do). Otherwise the folder comes
+ * from `SHGetKnownFolderPath(FOLDERID_RoamingAppData)`, e.g. when ncpwsafe
+ * runs with a minimal environment.
+ *
+ * @returns The directory, or an empty string if it can't be found
+ */
+std::string RoamingAppDataDir();
+
 /** Result codes for `CopyTextToClipboard` */
 enum ClipboardResult
 {

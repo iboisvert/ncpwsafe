@@ -28,14 +28,6 @@ AGENTS.md says "Windows-specific code lives in `src/Win32.{h,cpp}`", but there a
 
 **Fix:** move these into `Win32.{h,cpp}` helpers (e.g. `win32::LocalTime`, `win32::DefaultConfigPath`), or reword the rule to allow small `#ifdef _WIN32` blocks.
 
-## 8. Default config path when `APPDATA` is not set
-
-**Severity:** Minor
-
-On Windows the default config file is `ExpandEnvVars("${APPDATA}/ncpwsafe/ncpwsafe-config.ini")` (`src/ProgArgs.cpp:15`). If `APPDATA` is not set (a service, a scheduled task, a minimal environment), it expands to `/ncpwsafe/ncpwsafe-config.ini` at the root of the current drive. Preferences are then read from `C:\ncpwsafe\`, or saving them fails with access denied. There is no fallback like the `HOME`→`USERPROFILE` one in `ExpandEnvVars`.
-
-**Fix:** fall back to `%USERPROFILE%\AppData\Roaming`, or use `SHGetKnownFolderPath(FOLDERID_RoamingAppData)` in `Win32.cpp`.
-
 ## 9. `ReadPasswordFileTest` temp file is not created exclusively
 
 **Severity:** Minor

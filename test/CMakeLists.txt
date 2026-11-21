@@ -4,6 +4,7 @@ add_executable(unittests
     PWSafeApp-tests.cpp
     Policy-tests.cpp
     Utils-tests.cpp
+    Win32-tests.cpp
 )
 target_link_libraries(unittests 
     libncpwsafe

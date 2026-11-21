@@ -10,6 +10,7 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
+#include <shlobj.h>
 
 #include <climits>
 #include <clocale>
@@ -101,6 +102,35 @@ void DisableCrashDumps()
     _set_abort_behavior(0, _CALL_REPORTFAULT);
     // No "ncpwsafe has stopped working" dialog
     SetErrorMode(GetErrorMode() | SEM_NOGPFAULTERRORBOX);
+}
+
+/** Convert a NUL-terminated UTF-16 string to UTF-8 */
+static std::string ToUtf8(const wchar_t *wstr)
+{
+    int len = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, nullptr, 0, nullptr, nullptr);
+    if (len <= 1)
+        return std::string();
+    std::string str(static_cast<size_t>(len), '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wstr, -1, str.data(), len, nullptr, nullptr);
+    str.resize(static_cast<size_t>(len) - 1);  // Without the NUL
+    return str;
+}
+
+std::string RoamingAppDataDir()
+{
+    const char *appdata = std::getenv("APPDATA");
+    if (appdata && *appdata)
+        return appdata;
+
+    std::string dir;
+    PWSTR wdir = nullptr;
+    if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_DEFAULT, nullptr, &wdir)))
+    {
+        dir = ToUtf8(wdir);
+    }
+    // Must be freed even if SHGetKnownFolderPath fails
+    CoTaskMemFree(wdir);
+    return dir;
 }
 
 /** Place a DWORD value on the (open) clipboard in a registered format */
