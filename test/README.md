@@ -166,6 +166,48 @@ same change as the fix.
 grep -rn -A4 expectedFailure test/e2e
 ```
 
+## Choosing a kind of test
+
+Test each behaviour at the lowest level that can check it, and add a
+higher-level test only for what the lower levels can't reach.
+
+**Unit test (GoogleTest)** when the behaviour lives in one class or
+function and can be checked without a terminal: parsing, validation,
+password generation, sorting and merging records, backup rotation,
+preferences. Unit tests are the default for edge cases and error paths
+(bad input, I/O errors through the `Filesystem` mock), because they are
+cheap to list exhaustively. If the logic is tangled with ncurses, split it
+into a function that doesn't use ncurses, so it can be unit-tested.
+
+**CLI end-to-end test** for anything observable from the command line:
+options and the checks in `ValidateArgs`, exit codes, messages, and the
+effect on files (what was written, what an export contains, backups). Most
+of this is in `main.cpp`, which the unit tests don't link.
+
+**TUI end-to-end test** for user-visible flows that only work when several
+components are put together: key bindings, dialogs and their validation,
+what ends up saved, read-only mode, the clipboard, resize. Cover the main
+path and the failures that matter, and leave the exhaustive edge cases to
+unit tests. TUI tests are the slowest and the most sensitive to wording
+and layout changes. They catch wiring bugs that unit tests miss, such as
+a stale reference between the accounts list and the records (see
+`docs/ISSUES.md`).
+
+**Fixing a bug**: add a test that reproduces it at the lowest level that
+can, and an end-to-end test as well if the bug was only visible through
+the CLI or the UI. To record a bug before it is fixed, add the test with
+`@unittest.expectedFailure` (see [Known bugs](#known-bugs)) and an entry
+in `docs/ISSUES.md`.
+
+**Changing behaviour**: update the tests that cover it in the same change.
+UI changes (keys, messages, dialog titles and fields, command bar entries)
+usually break TUI tests that wait for that text.
+
+**Still manual**: the terminal matrix (8 and 256 colours, `TERM` values,
+`NO_COLOR`, light and dark themes) and suspend and resume. The TUI tests
+only run under tmux with `TERM=screen`. See the manual checklists in
+`docs/dev-plan.md`.
+
 ## Adding tests
 
 - **A unit test**: add a `*-tests.cpp` file to the `unittests` list in
