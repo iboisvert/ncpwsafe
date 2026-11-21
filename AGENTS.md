@@ -16,6 +16,7 @@ cmake --build --preset=x64-linux-gcc-debug
 
 ctest --preset=x64-linux-gcc-debug            # all tests
 ctest --preset=x64-linux-gcc-debug -R AppTest # tests matching a regex
+ctest --preset=x64-linux-gcc-debug -L cli     # end-to-end CLI tests (-L tui: UI tests, -LE e2e: unit tests only)
 ./build/test/unittests --gtest_filter='AccountDbTest.*'   # run the gtest binary directly
 ```
 
@@ -23,6 +24,7 @@ ctest --preset=x64-linux-gcc-debug -R AppTest # tests matching a regex
 
 - System deps via pkg-config: ncurses (+form, menu, panel), icu-uc, nettle, GTest (and libglog if `USE_GLOG`). `libpwsafe` and `libconfini` are pulled with `FetchContent` from the author's GitHub forks at `HEAD` (see `cmake/ResolveDependencies.cmake`), so configuring needs network access. To develop against a local libpwsafe checkout, swap in the commented `SOURCE_DIR` line there.
 - `gtest_discover_tests` sets the working directory to `${CMAKE_BINARY_DIR}/../test`, so tests expect the build directory to be a direct child of the repo root (e.g. `build/`).
+- End-to-end tests need Python 3 (standard library only); the TUI tests also need tmux and are reported as skipped without it.
 - CI (`.github/workflows/build.yml`) runs the `x64-linux-gcc-release` and `x64-linux-clang-release` presets on Ubuntu (configure, build, ctest).
 - Some CMake artifacts (`CMakeCache.txt`, `Makefile`, `config.h`, ...) may be sitting in the repo root from an in-source build. They're gitignored; use `build/`.
 - `config.h` is generated from `config.h.in` into the build dir (app name/version, default config path `$HOME/.config/ncpwsafe/ncpwsafe.ini`, `HAVE_SYS_*` checks).
@@ -42,6 +44,16 @@ ctest --preset=x64-linux-gcc-debug -R AppTest # tests matching a regex
 
 - GoogleTest. To reach private members, classes declare `FRIEND_TEST(...)` under `#ifdef FRIEND_TEST` (see `PWSafeApp.h`, `AccountDb.h`). A new test that needs private access must add a matching `FRIEND_TEST` declaration in the class header.
 - Filesystem access goes through the virtual `Filesystem` struct (`Filesystem::instance` by default), which is injected into `PWSafeApp`'s constructor so tests can pass a mock (see `FilesystemMock` in `test/PWSafeApp-tests.cpp`). Prefer this over calling `std::filesystem` directly in code that needs testing.
+- `test/README.md` documents the tests in detail. Keep it current when changing the test layout or helpers.
+- When adding or changing behaviour, follow "Choosing a kind of test" in `test/README.md`: unit-test logic that can be checked without a terminal, and use CLI or TUI end-to-end tests for what only shows through the command line or the UI. For a bug, add a test that reproduces it at the lowest level that can, plus an end-to-end test if the bug only showed through the CLI or UI.
+- **End-to-end tests** live in `test/e2e/`: `cli/test_*.py` run the CLI commands, `tui/test_*.py` drive the ncurses UI in a private detached tmux server (`tmuxdriver.TmuxApp`). Each file is one CTest test named `cli.<name>`/`tui.<name>` (labels `e2e` plus `cli` or `tui`), registered by a glob in `test/e2e/CMakeLists.txt`. They're Python `unittest`, standard library only; base classes and helpers are in `test/e2e/e2elib.py`.
+  - Test databases are built per test by the `e2e-mkdb` helper (`test/e2e/mkdb.cpp`) from `fixtures/*.tsv`. They aren't committed, and the tests don't use `--test-db`, which is Debug-only. Check results with `--export-db` (`assertDbContains`).
+  - Each test case gets a temp directory under `/tmp` that is also `$HOME`, so preferences and backups stay out of the real home directory.
+  - In TUI tests, wait for the screen (`wait_for`, `wait_gone`, `wait_highlighted`) after sending keys; never sleep. `highlighted()` returns the reverse-video text (the selected menu item). Line drawing appears as ACS letters (`lqk`, `x`, `mqj`) because `TERM=screen`.
+  - The clipboard is a stub that `NCPWSAFE_XCLIP` points to. xclip runs with only `DISPLAY`/`XAUTHORITY` in its environment, so the stub has its output path written into it.
+  - A script that can't run (no tmux, Release build for `--test-db`) exits 77, which CTest reports as skipped.
+  - Tests of known bugs are `@unittest.expectedFailure`, with a comment describing the bug. Remove the decorator in the same change that fixes the bug.
+  - UI changes (key bindings, messages, dialog titles or fields) usually need matching changes to the TUI tests.
 - `src/en_CA.dat` and `src/ru.dat` are word lists written as C string literals and `#include`d directly into `GenerateTestDbCommand.cpp`. `--test-db` uses them to generate test databases (`--test-db-lang=en-CA|ru`).
 
 `docs/dev-plan.md` tracks planned features and the to-do backlog (§3), and `docs/ISSUES.md` has detailed write-ups of known bugs.

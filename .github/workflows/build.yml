@@ -31,7 +31,7 @@ jobs:
       if: ${{ matrix.os == 'ubuntu-latest' }}
       run: |
         sudo apt-get update -y
-        sudo apt-get install -y libncurses-dev libicu-dev nettle-dev libgtest-dev
+        sudo apt-get install -y libncurses-dev libicu-dev nettle-dev libgtest-dev python3 tmux
 
     - name: Configure CMake
       run: cmake --preset=${{ matrix.preset }}
@@ -40,4 +40,4 @@ jobs:
       run: cmake --build --preset=${{ matrix.preset }}
 
     - name: Test
-      run: ctest --preset=${{ matrix.preset }}
+      run: ctest --preset=${{ matrix.preset }} --output-on-failure
