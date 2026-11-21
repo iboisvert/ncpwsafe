@@ -450,6 +450,20 @@ in §3.4.
   - Test by putting the computer to sleep.
 - Multiline notes fields.
   - Needs a `Dialog` enhancement.
+- Update the CI/CD pipeline (`.github/workflows/build.yml`) for product releases.
+  - Today the workflow only builds and tests. It publishes no executables; the Windows
+    "Upload executable" step was removed until this work is done.
+  - Build release executables for Linux and Windows on version tags (`v*`) and attach them to a
+    GitHub release.
+  - Build a Linux executable with statically linked dependencies (ncurses with form/menu/panel,
+    ICU, nettle, libpwsafe, libconfini), so it runs on distros other than the CI runner's Ubuntu.
+    The Windows build already links its vcpkg dependencies statically (`x64-windows-static-md`).
+    - glibc is hard to link fully statically, so consider building against musl (for example, in
+      an Alpine container) or linking everything except glibc statically.
+    - ICU's data library is large. Check the binary size, and whether the ICU features ncpwsafe uses
+      can work with a reduced data set.
+    - Probably needs a new release preset (and toolchain settings) in `CMakePresets.json`.
+    - `xclip` is still needed at runtime for clipboard copy; say so in the release notes.
 
 ### 3.3 Backlog
 
