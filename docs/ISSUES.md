@@ -1,18 +1,5 @@
 # Issues
 
-## 3. Leftover in-source CMake build artifacts in the repo root
-
-**Status: partly cleaned up.** `CMakeCache.txt` and most of the root files are gone,
-which removes the risk to `build/`. Still left: `CMakeFiles/` and `config.h` in the
-root, and `CMakeFiles/`, `Makefile`, `cmake_install.cmake`, `CTestTestfile.cmake` and
-`cmake_test_discovery_*.json` under `test/`.
-
-The repo root contained files from an in-source CMake configure (`CMakeCache.txt`,
-`CMakeFiles/`, `Makefile`, `cmake_install.cmake`, `CTestTestfile.cmake`,
-`CPackConfig.cmake`, `CPackSourceConfig.cmake`, `config.h`), along with similar files
-under `test/`. They are gitignored, but a stale `CMakeCache.txt` in the source dir can
-interfere with out-of-source builds in `build/`. The rest can be deleted.
-
 ## 4. Message boxes wider than the terminal are not shown
 
 **Status: open.**

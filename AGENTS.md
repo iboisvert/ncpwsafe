@@ -26,7 +26,7 @@ ctest --preset=x64-linux-gcc-debug -L cli     # end-to-end CLI tests (-L tui: UI
 - `gtest_discover_tests` sets the working directory to `${CMAKE_BINARY_DIR}/../test`, so tests expect the build directory to be a direct child of the repo root (e.g. `build/`).
 - End-to-end tests need Python 3 (standard library only); the TUI tests also need tmux and are reported as skipped without it.
 - CI (`.github/workflows/build.yml`) runs the `x64-linux-gcc-release` and `x64-linux-clang-release` presets on Ubuntu (configure, build, ctest).
-- Some CMake artifacts (`CMakeCache.txt`, `Makefile`, `config.h`, ...) may be sitting in the repo root from an in-source build. They're gitignored; use `build/`.
+- `CMakeLists.txt` rejects in-source builds (they leave `CMakeCache.txt`, `Makefile`s, `config.h` etc. in the source tree); use `build/`.
 - `config.h` is generated from `config.h.in` into the build dir (app name/version, default config path `$HOME/.config/ncpwsafe/ncpwsafe.ini`, `HAVE_SYS_*` checks).
 
 ## Architecture

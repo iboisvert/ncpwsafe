@@ -1,4 +1,11 @@
 cmake_minimum_required(VERSION 3.21)
+
+# An in-source build leaves CMakeCache.txt, Makefiles etc. all over the source
+# tree, and a stale CMakeCache.txt there interferes with builds in build/
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
+    message(FATAL_ERROR "In-source builds are not supported, use a preset or -B build. "
+        "Remove CMakeCache.txt and CMakeFiles/ from the source directory.")
+endif()
 project(ncpwsafe 
     VERSION 0.1 
     DESCRIPTION "An ncurses terminal program that manages encrypted password databases"
