@@ -221,7 +221,7 @@ static bool ValidateArgs(InputProgArgs &args)
             result = false;
         else
         {
-            if (*args.password_policy_ > PasswordPolicy::Composition::COUNT)
+            if (*args.password_policy_ < 1 || *args.password_policy_ > PasswordPolicy::Composition::COUNT)
             {
                 result = Error("Invalid policy for generated passwords\n");
             }
@@ -413,17 +413,18 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
         }
         case O_PASSWORD_POLICY: {
             assert(optarg);
+            // A 1-based policy number, or a policy name. Anything else is rejected by ValidateArgs()
             char *pstr = optarg, *pend;
             size_t policy = strtoul(pstr, &pend, 10);
-            if (policy == 0 && pend == pstr)
+            if (pend == pstr || *pend != '\0')
             {
-                policy = (size_t)-1;
+                policy = 0;
                 for (size_t i = 0; i < PasswordPolicy::Composition::COUNT; ++i)
                 {
                     const char *policyName = PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(i));
-                    if (strncmp(policyName, optarg, strlen(policyName)) == 0)
+                    if (strcmp(policyName, optarg) == 0)
                     {
-                        policy = i;
+                        policy = i + 1;
                         break;
                     }
                 }

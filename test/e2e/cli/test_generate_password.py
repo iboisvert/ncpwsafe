@@ -1,7 +1,6 @@
 """CLI: --generate-password."""
 import re
 import sys
-import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -51,11 +50,9 @@ class GeneratePasswordTest(e2elib.E2ETestCase):
                 for pw in passwords:
                     self.assertRegex(pw, rf"^{charset}{{40}}$")
 
-    @unittest.expectedFailure
     def test_policy_by_name(self):
-        # BUG: ParseArgs stores the 0-based index of a policy given by name, but
-        # main() treats --password-policy as 1-based, so a name selects the
-        # policy before it (and "alpha/digit/symbol" selects index -1)
+        # ParseArgs used to store the 0-based index of a policy given by name,
+        # which main() took as 1-based, so a name selected the policy before it
         for number, (name, charset) in POLICIES.items():
             with self.subTest(policy=name):
                 header, passwords = self.generate(f"--password-policy={name}", "--password-count=5")
@@ -83,13 +80,19 @@ class GeneratePasswordTest(e2elib.E2ETestCase):
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("Invalid policy for generated passwords", proc.stderr)
 
-    @unittest.expectedFailure
     def test_policy_zero_rejected(self):
-        # BUG: ValidateArgs only rejects policies > COUNT, so 0 is accepted and
-        # main() indexes the policy table at -1
+        # 0 used to be accepted, and main() indexed the policy table at -1
         proc = self.run_ncpwsafe("--generate-password", "--password-policy=0")
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("Invalid policy for generated passwords", proc.stderr)
+
+    def test_policy_with_trailing_text_rejected(self):
+        # Names used to be matched as a prefix of the argument
+        for policy in ("2x", "alpha/digit-and-more"):
+            with self.subTest(policy=policy):
+                proc = self.run_ncpwsafe("--generate-password", f"--password-policy={policy}")
+                self.assertNotEqual(proc.returncode, 0)
+                self.assertIn("Invalid policy for generated passwords", proc.stderr)
 
 
 if __name__ == "__main__":

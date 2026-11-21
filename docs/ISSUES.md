@@ -1,17 +1,5 @@
 # Issues
 
-## 8. `--password-policy` by name selects the wrong policy, and 0 is accepted
-
-**Status: open.** Tests: `test_policy_by_name` and `test_policy_zero_rejected` in
-`test/e2e/cli/test_generate_password.py` (expected failures).
-
-- When the policy is given by name, `ParseArgs` stores the 0-based index of the matching
-  name. `main()` treats `--password-policy` as 1-based (`args.password_policy_ - 1`), so
-  a name selects the policy listed before it. `alpha/digit/symbol` gives index -1, which
-  is out of bounds for `COMPOSITION_NAME` and `POLICY_CHARSET`. Store `i + 1`.
-- `ValidateArgs` only rejects values `> PasswordPolicy::Composition::COUNT`, so
-  `--password-policy=0` is accepted and also indexes at -1. Reject values `< 1` too.
-
 ## 9. `--change-password` exits 0 when it fails
 
 **Status: open.** Test: `test_wrong_password_exit_code` in
