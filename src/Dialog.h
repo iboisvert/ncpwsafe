@@ -107,6 +107,13 @@ public:
     void SetField(PwsFieldType ft, const std::string &value);
     /** Gets the value of the field with the given `FieldType` */
     const std::string &GetValue(PwsFieldType ft) const;
+    /**
+     * Gets the current, possibly unsaved, contents of the field with the given
+     * `FieldType`. Unlike `GetValue()`, this can be called while the dialog is
+     * processing input, e.g. from an input delegate.
+     * \note Callers should `ZeroMemory()` the result if it holds a secret
+     */
+    std::string GetCurrentValue(PwsFieldType ft);
 
 private:
     friend int DefaultInputHandler(Dialog &);

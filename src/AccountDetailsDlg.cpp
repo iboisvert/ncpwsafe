@@ -84,21 +84,24 @@ bool AccountDetailsDlg::InputHandler(Dialog &dialog, int ch, DialogResult &/*res
         FIELD *field = dialog.GetField(FT_PASSWORD);
         set_field_opts(field, field_opts(field) ^ O_PUBLIC);
     }
+    // Copy from the form fields, not account_rec_: the fields hold
+    // edits (and ^C password changes) that are not yet saved
     else if (ch == KEY_CTRL('U'))
     {
-        const char *user = account_rec_.GetField(FT_USER);
-        if (user)
+        const std::string user = dialog.GetCurrentValue(FT_USER);
+        if (!user.empty())
         {
             CopyTextToClipboard(app_, dialog.GetParentWindow(), user);
         }
     }
     else if (ch == KEY_CTRL('P'))
     {
-        const char *password = account_rec_.GetField(FT_PASSWORD);
-        if (password)
+        std::string password = dialog.GetCurrentValue(FT_PASSWORD);
+        if (!password.empty())
         {
             CopyTextToClipboard(app_, dialog.GetParentWindow(), password);
         }
+        ZeroMemory(password.data(), password.size());
     }
     return false;
 }
