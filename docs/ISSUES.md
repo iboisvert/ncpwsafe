@@ -1,63 +1,42 @@
 # Issues
 
-## Random number generation (`src/RandUtils.h`, `src/Policy.cpp`)
+## README build instructions point to the wrong binary path
 
-**Status: fixed.** See [Fix](#fix) below.
+**Status: open.**
 
-Before the fix, `RandomState` wraps a `std::mt19937` engine that is seeded once from
-`std::random_device`. `PasswordPolicy::MakePassword` uses it to generate passwords,
-and `GenerateTestDbCommand` uses it to generate test data.
+`README.md` says to run `./build/src/ncpwsafe`, but `src/CMakeLists.txt` sets
+`RUNTIME_OUTPUT_DIRECTORY` to `${CMAKE_BINARY_DIR}/bin`. The binary is actually at
+`./build/bin/ncpwsafe`.
 
-### Generated passwords have at most 2^32 possible values
+## Core-dump/ptrace protection is enabled in Debug builds, not Release
 
-`RandomState` builds a seed of type `std::mt19937::result_type` (`uint_fast32_t`) from
-`std::random_device` words and passes it to `mt32.seed()`. `mt19937` is a 32-bit-word
-engine, and `seed(value)` keeps only `value mod 2^32`. On platforms where
-`uint_fast32_t` is 64 bits (glibc on x86-64), the second `random_device` word is
-discarded. On every platform the engine therefore starts from one of only 2^32
-states.
+**Status: open.**
 
-A password from a freshly constructed `PasswordPolicy` can therefore be only one of
-about 4 billion strings, whatever its length and character set. An attacker who knows
-the algorithm can enumerate them all.
+In `src/main.cpp`, `DisableCoreDump()` calls `prctl(PR_SET_DUMPABLE, 0)` only inside
+`#ifndef NDEBUG`. That turns it on in Debug builds and leaves it off in Release builds.
+The comment at the call site ("Don't allow ptrace or gdump on release build") says the
+opposite. As written, Release builds can still be ptraced and can write core dumps that
+may contain decrypted passwords. Debug builds block debugger attach.
 
-### `mt19937` is not a cryptographically secure generator
+## Leftover in-source CMake build artifacts in the repo root
 
-The internal state of a Mersenne Twister can be reconstructed from 624 consecutive
-outputs, after which every later output can be predicted. It shouldn't be used to
-generate passwords.
+**Status: partly cleaned up.** `CMakeCache.txt` and most of the root files are gone,
+which removes the risk to `build/`. Still left: `CMakeFiles/` and `config.h` in the
+root, and `CMakeFiles/`, `Makefile`, `cmake_install.cmake`, `CTestTestfile.cmake` and
+`cmake_test_discovery_*.json` under `test/`.
 
-### Modulo bias in `PasswordPolicy::MakePassword`
+The repo root contained files from an in-source CMake configure (`CMakeCache.txt`,
+`CMakeFiles/`, `Makefile`, `cmake_install.cmake`, `CTestTestfile.cmake`,
+`CPackConfig.cmake`, `CPackSourceConfig.cmake`, `config.h`), along with similar files
+under `test/`. They are gitignored, but a stale `CMakeCache.txt` in the source dir can
+interfere with out-of-source builds in `build/`. The rest can be deleted.
 
-Characters are chosen with `charset[n % N]`. Unless `N` divides 2^32 evenly, the
-characters at the start of the charset are chosen slightly more often than the
-others.
+## Message boxes wider than the terminal are not shown
 
-### Strict-aliasing violation when filling the seed
+**Status: open.**
 
-The constructor writes `std::random_device::result_type` (`unsigned int`) values
-through a `reinterpret_cast` pointer into a `std::mt19937::result_type`. Where those
-are different types (`unsigned long` on glibc x86-64), this is undefined behaviour.
-`std::memcpy` is the well-defined alternative. On MSVC both types are `unsigned int`,
-so this doesn't apply there.
-
-### Unclear divisibility check
-
-The `static_assert` that the size of `std::mt19937::result_type` is an exact multiple
-of the size of `std::random_device::result_type` compares the integer quotient with a
-floating-point division. `sizeof(A) % sizeof(B) == 0` would state the intent more
-clearly.
-
-### Fix
-
-- `PasswordPolicy::MakePassword` no longer uses `RandomState`. It draws characters
-  directly from `std::random_device` with `std::uniform_int_distribution<size_t>(0, N - 1)`.
-  On MSVC and glibc, `random_device` reads from the operating system's cryptographically
-  secure generator, and the distribution removes the modulo bias.
-- `RandomState` is now documented as being for test data only. It seeds the whole
-  `mt19937` state through a `std::seed_seq` filled with `std::mt19937::state_size`
-  `random_device` words, which removes the `reinterpret_cast`, the divisibility
-  `static_assert`, and the seed-loop overrun.
-- `test/Policy-tests.cpp` checks password length, character sets, that the whole
-  charset is used, that passwords don't repeat, and that separate `RandomState`
-  instances produce different sequences.
+`MessageBox::InitTUI` sizes the window to fit the longest line of the message. If that
+is wider than the terminal (e.g. "File <long pathname> does not exist"), `newwin` fails,
+`wgetch(NULL)` returns `ERR`, and `ProcessInput` returns immediately, so the message is
+never seen. Long lines should be wrapped or truncated to fit the terminal. Also,
+`ProcessInput` treats any `ERR` from `wgetch` as closing the box.
