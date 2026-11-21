@@ -60,6 +60,15 @@ if(NOT MSVC)
     add_link_options(
         "$<$<AND:$<CONFIG:DEBUG>,$<BOOL:${NCPWSAFE_DEBUG_SANITIZE}>>:${NCPWSAFE_SANITIZE_FLAGS}>"
     )
+elseif(NCPWSAFE_DEBUG_SANITIZE)
+    # CMake's default MSVC Debug flags have /RTC1, which cl rejects with /fsanitize=address (D8016),
+    # and link.exe ignores /INCREMENTAL with ASan. Only affects this directory and below,
+    # the dependencies are not built with ASan
+    foreach(lang C CXX)
+        string(REGEX REPLACE "(^| )[/-]RTC[1csu]*" "" CMAKE_${lang}_FLAGS_DEBUG "${CMAKE_${lang}_FLAGS_DEBUG}")
+    endforeach()
+    string(REGEX REPLACE "(^| )[/-]INCREMENTAL(:[A-Za-z]+)?" "" CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG}")
+    string(APPEND CMAKE_EXE_LINKER_FLAGS_DEBUG " /INCREMENTAL:NO")
 endif()
 
 add_subdirectory(src)

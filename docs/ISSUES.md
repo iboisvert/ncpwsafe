@@ -7,14 +7,6 @@ Known open issues. Severity is one of:
 
 Issues 1–9 were found by a code review of the Windows MSVC port (branch `dev/build-win-msvc`, 2026-11-21).
 
-## 2. `NCPWSAFE_DEBUG_SANITIZE` does not build with MSVC
-
-**Severity:** Important
-
-`cmake/toolchain-windows-msvc.cmake:14` sets `NCPWSAFE_SANITIZE_FLAGS` to `/fsanitize=address`, and `CMakeLists.txt` adds it to Debug compiles. CMake's default MSVC Debug flags include `/RTC1`, which MSVC does not accept together with `/fsanitize=address`. `cmake --preset x64-windows-msvc-debug -DNCPWSAFE_DEBUG_SANITIZE=ON` followed by a build stops with `cl : Command line error D8016: '/RTC1' and '/fsanitize=address' command-line options are incompatible`.
-
-**Fix:** in the MSVC toolchain, remove `/RTC1` from `CMAKE_<LANG>_FLAGS_DEBUG(_INIT)` when sanitizing (and link with `/INCREMENTAL:NO`), or reject the option on MSVC.
-
 ## 3. No crash-dump protection in Windows Release builds
 
 **Severity:** Important
