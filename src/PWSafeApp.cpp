@@ -62,9 +62,16 @@ DialogResult PWSafeApp::Show()
     // prompt for password, try to Load.
     SafeCombinationPromptDlg pwdprompt(*this);
 
-    // If the database and password were given on the command line,
-    // try them first and only prompt if they don't work
+    // If a password was given on the command line and the database is known,
+    // from the command line or the preferences, try them first and only
+    // prompt if they don't work
     bool try_args = !db_.DbPathname().empty() && !db_.Password().empty();
+    if (!db_.Password().empty() && db_.DbPathname().empty())
+    {
+        MessageBox(*this).Show(win_, "A password was given on the command line, "
+            "but no account database was specified");
+        ZeroString(db_.Password());
+    }
 
     DialogResult dr = DialogResult::CONTINUE;
     while (dr != DialogResult::OK && dr != DialogResult::CANCEL)
@@ -75,15 +82,17 @@ DialogResult PWSafeApp::Show()
             try_args = false;
             db_pathname = db_.DbPathname();
             password = db_.Password();
-            if (db_.CheckPassword())
+            std::string msg = SafeCombinationPromptDlg::CheckDatabase(db_, db_pathname, password,
+                "The password given on the command line is incorrect");
+            if (msg.empty())
             {
                 dr = DialogResult::OK;
             }
             else
             {
-                MessageBox(*this).Show(win_, "Unable to open the account database with the password "
-                    "given on the command line");
-                db_.Password().clear();
+                MessageBox(*this).Show(win_, msg.c_str());
+                ZeroString(db_.Password());
+                ZeroString(password);
                 continue;
             }
         }

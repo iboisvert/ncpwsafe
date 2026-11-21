@@ -24,6 +24,15 @@ public:
         return password_;
     }
 
+    /**
+     * Check that the account database at `db_pathname` exists and can be opened
+     * with `password`. Sets the pathname and password of `db`.
+     * @param incorrect_password_msg The message returned if the password is incorrect
+     * @returns An empty string on success, otherwise a message describing the problem
+     */
+    static std::string CheckDatabase(AccountDb &db, const std::string &db_pathname, const std::string &password,
+        const char *incorrect_password_msg = "Incorrect password");
+
 private:
     PWSafeApp &app_;
 

@@ -22,6 +22,9 @@ void ZeroFieldsBuffer(FIELD **fields);
 
 void ZeroMemory(void *p, size_t len);
 
+/** Overwrite the contents of `str` with zeros, then clear it */
+void ZeroString(std::string &str);
+
 constexpr std::array<char, 5> WS{'\0', ' ', '\n', '\r', '\t'};
 template <typename It>
 inline It rtrim(It begin, It end)

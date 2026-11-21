@@ -12,6 +12,12 @@ void ZeroMemory(void *p, size_t len)
     fmemset(p, 0, len);
 }
 
+void ZeroString(std::string &str)
+{
+    ZeroMemory(str.data(), str.size());
+    str.clear();
+}
+
 void ZeroFieldsBuffer(FIELD **fields)
 {
     int rows, cols;
