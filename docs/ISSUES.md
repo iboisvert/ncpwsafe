@@ -15,14 +15,6 @@ Issues 1–9 were found by a code review of the Windows MSVC port (branch `dev/b
 
 **Fix:** `setlocale(LC_CTYPE, ".UTF-8")`.
 
-## 6. `Win32.cpp` is not in the `SRC` list
-
-**Severity:** Minor
-
-`src/CMakeLists.txt:59` adds `Win32.cpp` with a conditional `target_sources(libncpwsafe PRIVATE Win32.cpp)`, not through the `SRC` list as AGENTS.md requires for new `.cpp` files. The file is already wrapped in `#ifdef _WIN32`, so the condition is not needed.
-
-**Fix:** add `Win32.cpp` to `SRC`.
-
 ## 7. Windows-specific code outside `Win32.{h,cpp}`
 
 **Severity:** Minor

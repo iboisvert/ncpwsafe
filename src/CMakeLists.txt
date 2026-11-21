@@ -22,6 +22,7 @@ list(APPEND SRC
     SafeCombinationPromptDlg.cpp
     SearchBarWin.cpp
     Utils.cpp
+    Win32.cpp
 )
 
 add_library(libncpwsafe OBJECT ${SRC})
@@ -56,7 +57,6 @@ target_link_directories(libncpwsafe PUBLIC
     ${ICU_LIBRARY_DIRS}
 )
 if(WIN32)
-    target_sources(libncpwsafe PRIVATE Win32.cpp)
     target_link_libraries(libncpwsafe
         ${GETOPT_LINK_LIBRARIES}
         # Clipboard
