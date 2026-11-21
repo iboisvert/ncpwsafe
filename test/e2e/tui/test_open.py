@@ -1,5 +1,7 @@
 """TUI: opening an account database."""
+import os
 import sys
+import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -105,6 +107,22 @@ class OpenTest(e2elib.TuiTestCase):
         app.send("Enter")
         app.wait_for("Enter View")
         self.assertAccountsShown(app)
+
+    @unittest.skipIf(os.getuid() == 0, "/proc/<pid> files are owned by root anyway")
+    @unittest.skipUnless(Path("/proc/self/task").is_dir(), "needs Linux /proc")
+    def test_core_dumps_disabled_in_release(self):
+        # Release builds call prctl(PR_SET_DUMPABLE, 0) so the decrypted
+        # database can't be read with ptrace or from a core dump. The kernel
+        # then makes the process's /proc/<pid> files owned by root. Debug
+        # builds stay dumpable so a debugger can attach
+        app, _, _ = self.open_db()
+        pid = app.pid()
+        self.assertIsNotNone(pid)
+        owner = os.stat(f"/proc/{pid}/status").st_uid
+        if e2elib.IS_DEBUG_BUILD:
+            self.assertEqual(owner, os.getuid())
+        else:
+            self.assertEqual(owner, 0)
 
     def test_config_option(self):
         config = self.tmp / "custom.ini"

@@ -174,6 +174,18 @@ class TmuxApp:
     def wait_highlighted(self, text, timeout=DEFAULT_TIMEOUT):
         self.wait_until(lambda: text in self.highlighted(), f"{text!r} to be highlighted", timeout)
 
+    def pid(self):
+        """The process id of the program, or None if it isn't running.
+
+        The program is a child of the shell started in the tmux pane."""
+        shell_pid = self.tmux("display-message", "-p", "-t", "main", "#{pane_pid}").stdout.strip()
+        try:
+            with open(f"/proc/{shell_pid}/task/{shell_pid}/children") as f:
+                children = f.read().split()
+        except OSError:
+            return None
+        return int(children[0]) if children else None
+
     def exit_code(self):
         """The program's exit code, or None while it is running."""
         try:

@@ -134,6 +134,7 @@ Every test case gets:
 | `wait_for(text)`, `wait_gone(text)`, `wait_highlighted(text)`, `wait_until(fn, what)` | Poll until the screen matches, or fail with a dump of the screen after 10 s |
 | `resize(cols, rows)` | Resize the window. ncpwsafe gets `SIGWINCH`/`KEY_RESIZE` |
 | `wait_exit()` | Wait for ncpwsafe to exit and return its exit code |
+| `pid()` | The process id of ncpwsafe, e.g. to inspect `/proc/<pid>` |
 
 Always wait for something on screen after sending keys, rather than
 sleeping. When a key should do nothing, send a key that does something

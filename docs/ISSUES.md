@@ -1,15 +1,5 @@
 # Issues
 
-## 2. Core-dump/ptrace protection is enabled in Debug builds, not Release
-
-**Status: open.**
-
-In `src/main.cpp`, `DisableCoreDump()` calls `prctl(PR_SET_DUMPABLE, 0)` only inside
-`#ifndef NDEBUG`. That turns it on in Debug builds and leaves it off in Release builds.
-The comment at the call site ("Don't allow ptrace or gdump on release build") says the
-opposite. As written, Release builds can still be ptraced and can write core dumps that
-may contain decrypted passwords. Debug builds block debugger attach.
-
 ## 3. Leftover in-source CMake build artifacts in the repo root
 
 **Status: partly cleaned up.** `CMakeCache.txt` and most of the root files are gone,

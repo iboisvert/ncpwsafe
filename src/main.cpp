@@ -30,15 +30,14 @@
 using std::fprintf;
 using std::srand;
 
+/**
+ * Prevent ptrace and the creation of core dumps, which could expose decrypted passwords.
+ * Only in Release builds, so that a debugger can attach to Debug builds.
+ */
 static bool DisableCoreDump()
 {
-#ifndef NDEBUG
-#ifdef HAVE_SYS_PRCTL_H
-    // prevent ptrace and creation of core dumps
+#if defined(NDEBUG) && defined(HAVE_SYS_PRCTL_H)
     return prctl(PR_SET_DUMPABLE, 0) == 0;
-#else
-    return true;
-#endif
 #else
     return true;
 #endif
@@ -537,9 +536,12 @@ int main(int argc, char *argv[])
     google::InitGoogleLogging(argv[0]);
 #endif
     
-    // Don't allow ptrace or gdump on release build
+    // Don't allow ptrace or core dumps in Release builds
     if (!DisableCoreDump())
-        return 0;
+    {
+        fprintf(stderr, "Unable to disable core dumps: %s\n", strerror(errno));
+        return PRC_ERR_FAIL;
+    }
 
     InputProgArgs input_args;
     if (!ParseArgs(argc, argv, input_args))
