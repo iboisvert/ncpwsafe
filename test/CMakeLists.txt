@@ -1,6 +1,7 @@
 add_executable(unittests
     AccountDb-tests.cpp
     PWSafeApp-tests.cpp
+    Policy-tests.cpp
     Utils-tests.cpp
 )
 target_link_libraries(unittests 

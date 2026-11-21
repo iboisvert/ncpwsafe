@@ -25,67 +25,48 @@ bool SafeCombinationPromptDlg::InputHandler(Dialog &dialog, int &ch, DialogResul
     return false;
 }
 
-bool SafeCombinationPromptDlg::ValidateForm(const Dialog &dialog)
+std::string SafeCombinationPromptDlg::CheckDatabase(AccountDb &db, const std::string &db_pathname,
+    const std::string &password, const char *incorrect_password_msg)
 {
-    std::string db_pathname = dialog.GetValue(FT_FILEPATH);
-    std::string password = dialog.GetValue(FT_PASSWORD);
-
     if (db_pathname.empty())
     {
-        MessageBox(app_).Show(parent_win_, "Account database file is required");
+        return "Account database file is required";
+    }
+    if (!fs::Exists(db_pathname))
+    {
+        return std::string("File ").append(db_pathname).append(" does not exist");
+    }
+    if (fs::FileSize(db_pathname) == 0)
+    {
+        return std::string("An error occurred opening file ").append(db_pathname).append(".\nCheck that the file is valid.");
+    }
+
+    db.DbPathname() = db_pathname;
+    db.Password() = password;
+
+    int rc = PRC_SUCCESS;
+    if (!db.CheckPassword(&rc))
+    {
+        if (rc == RC_ERR_INCORRECT_PASSWORD)
+        {
+            return incorrect_password_msg;
+        }
+        return "Incorrect passkey, not a PasswordSafe database, or a corrupt database.";
+    }
+    return "";
+}
+
+bool SafeCombinationPromptDlg::ValidateForm(const Dialog &dialog)
+{
+    std::string msg = CheckDatabase(app_.GetDb(), dialog.GetValue(FT_FILEPATH), dialog.GetValue(FT_PASSWORD));
+    if (!msg.empty())
+    {
+        MessageBox(app_).Show(parent_win_, msg.c_str());
         redrawwin(dialog.GetWindow());
         SetCommandBarWin();
         return false;
     }
-    else
-    {
-        bool exists = fs::Exists(db_pathname);
-        if (exists)
-        {
-            uintmax_t len = fs::FileSize(db_pathname);
-            if (len == 0)
-            {
-                std::string msg("An error occurred opening file ");
-                msg.append(db_pathname).append(".\nCheck that the file is valid.");
-                MessageBox(app_).Show(parent_win_, msg.c_str());
-                redrawwin(dialog.GetWindow());
-                SetCommandBarWin();
-                return false;
-            }
-        }
-        else
-        {
-            std::string msg("File ");
-            msg.append(db_pathname).append(" does not exist");
-            MessageBox(app_).Show(parent_win_, msg.c_str());
-            redrawwin(dialog.GetWindow());
-            SetCommandBarWin();
-            return false;
-        } // !exists
-    }
-
-    AccountDb &db = app_.GetDb();
-    db.DbPathname() = db_pathname;
-    db.Password() = password;
-
-    int rc;
-    if (!app_.GetDb().CheckPassword(&rc))
-    {
-        if (rc == RC_ERR_INCORRECT_PASSWORD)
-        {
-            MessageBox(app_).Show(parent_win_, "Incorrect password");
-            redrawwin(dialog.GetWindow());
-            SetCommandBarWin();
-        }
-        else
-        {
-            MessageBox(app_).Show(parent_win_, "Incorrect passkey, not a PasswordSafe database, or a corrupt database.");
-            redrawwin(dialog.GetWindow());
-            SetCommandBarWin();
-        }
-    }
-
-    return rc == PRC_SUCCESS;
+    return true;
 }
 
 void SafeCombinationPromptDlg::SetCommandBarWin()

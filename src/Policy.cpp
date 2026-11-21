@@ -1,6 +1,7 @@
 /* Copyright 2023 Ian Boisvert */
 #include "Policy.h"
 #include <cstring>
+#include <random>
 
 static const char * const COMPOSITION_NAME[] {
     "alpha/digit/symbol",
@@ -46,12 +47,14 @@ std::string PasswordPolicy::MakePassword()
 {
     const char * charset = POLICY_CHARSET[static_cast<int>(composition)];
     size_t N = strlen(charset);
+    // Passwords must be unpredictable, so draw from the OS cryptographic generator
+    // rather than a seeded engine. The distribution picks characters without modulo bias.
+    std::random_device rd;
+    std::uniform_int_distribution<size_t> dist(0, N - 1);
     std::string pw(length, 0);
     for (size_t i = 0; i < length; ++i)
     {
-        RandomState::result_type n = rand();
-        char c = charset[n%N];
-        pw[i] = c;
+        pw[i] = charset[dist(rd)];
     }
     return pw;
 }

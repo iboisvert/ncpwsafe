@@ -1,5 +1,7 @@
 /* Copyright 2022 Ian Boisvert */
 #include "Utils.h"
+#include <cerrno>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
@@ -10,6 +12,56 @@ volatile memset_func fmemset = memset;
 void ZeroMemory(void *p, size_t len)
 {
     fmemset(p, 0, len);
+}
+
+void ZeroString(std::string &str)
+{
+    ZeroMemory(str.data(), str.size());
+    str.clear();
+}
+
+bool ReadPasswordFile(const std::string &pathname, std::string &password)
+{
+    std::FILE *f = std::fopen(pathname.c_str(), "rb");
+    if (f == nullptr)
+    {
+        return false;
+    }
+    // Unbuffered, so that no copy of the password is left in a stdio buffer
+    std::setvbuf(f, nullptr, _IONBF, 0);
+
+    std::string result;
+    // Most passwords fit without reallocating, which would leave copies on the heap
+    result.reserve(256);
+    char buf[256];
+    bool eol = false;
+    size_t n;
+    while (!eol && (n = std::fread(buf, 1, sizeof(buf), f)) > 0)
+    {
+        if (const char *nl = static_cast<const char *>(std::memchr(buf, '\n', n)))
+        {
+            n = static_cast<size_t>(nl - buf);
+            eol = true;
+        }
+        result.append(buf, n);
+    }
+    ZeroMemory(buf, sizeof(buf));
+
+    bool ok = !std::ferror(f);
+    int saved_errno = errno;
+    std::fclose(f);
+
+    if (ok)
+    {
+        if (!result.empty() && result.back() == '\r')
+        {
+            result.pop_back();
+        }
+        password.swap(result);
+    }
+    ZeroString(result);
+    errno = saved_errno;
+    return ok;
 }
 
 void ZeroFieldsBuffer(FIELD **fields)
