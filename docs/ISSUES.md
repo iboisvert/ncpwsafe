@@ -1,14 +1,5 @@
 # Issues
 
-## 7. Search doesn't match queries containing capital letters
-
-**Status: open.** Test: `test_search_mixed_case` in `test/e2e/tui/test_navigation.py`
-(expected failure).
-
-`AccountRecord::FieldContainsCaseInsensitive` (`src/AccountRecord.cpp`) lowercases the
-field value but not the query, so "book" finds Bookstore but "Book" finds nothing.
-Lowercase `sub` too, or use ICU case folding on both.
-
 ## 8. `--password-policy` by name selects the wrong policy, and 0 is accepted
 
 **Status: open.** Tests: `test_policy_by_name` and `test_policy_zero_rejected` in

@@ -1,6 +1,5 @@
 """TUI: moving the selection in the accounts list, and search."""
 import sys
-import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -128,10 +127,9 @@ class NavigationTest(e2elib.TuiTestCase):
         app.wait_gone("Search:")
         self.assertEqual(app.highlighted(), ["Router"])
 
-    @unittest.expectedFailure
     def test_search_mixed_case(self):
-        # BUG: AccountRecord::FieldContainsCaseInsensitive() lower-cases the
-        # field but not the query, so a query with a capital never matches
+        # The query used to be compared without lower-casing it, so a query
+        # with a capital never matched
         app, _, _ = self.open_db()
         app.send("/")
         app.wait_for("Search:")

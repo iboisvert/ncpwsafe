@@ -1,5 +1,6 @@
 add_executable(unittests
     AccountDb-tests.cpp
+    AccountRecord-tests.cpp
     PWSafeApp-tests.cpp
     Policy-tests.cpp
     Utils-tests.cpp

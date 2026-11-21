@@ -44,9 +44,10 @@ bool AccountRecord::FieldContainsCaseInsensitive(uint8_t field_type, const std::
     const char *field = GetField(field_type);
     if (field)
     {
-        icu::UnicodeString val(field);
-        icu::UnicodeString sub(substr.c_str());
-        if (val.toLower().indexOf(sub) != -1)
+        // Case fold both strings, so the query matches whatever the case of either
+        icu::UnicodeString val = icu::UnicodeString::fromUTF8(field);
+        icu::UnicodeString sub = icu::UnicodeString::fromUTF8(substr);
+        if (val.foldCase().indexOf(sub.foldCase()) != -1)
         {
             return true;
         }
