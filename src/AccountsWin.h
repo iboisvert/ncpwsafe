@@ -46,8 +46,8 @@ private:
     bool DiscardChanges();
     /** View or edit an account entry */
     DialogResult ShowAccountRecord(AccountRecord &itemData);
-    /** Replace a menu entry */
-    void UpdateMenu(ITEM *menu_item, const AccountRecord &old_record, const AccountRecord &new_record);
+    /** Save an edited account and update the menu */
+    void UpdateMenu(AccountRecord old_record, const AccountRecord &new_record);
     /** Add a new account entry */
     DialogResult AddNewEntry();
     /** Delete an account entry */

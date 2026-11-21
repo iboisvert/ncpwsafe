@@ -569,23 +569,33 @@ static bool EqualMenuData(const AccountRecord &a, const AccountRecord &b)
         && FieldCompare(FT_USER, a, b);
 }
 
-void AccountsWin::UpdateMenu(ITEM *menu_item, const AccountRecord &old_record, const AccountRecord &new_record)
+void AccountsWin::UpdateMenu(const AccountRecord old_record, const AccountRecord &new_record)
 {
+    // `old_record` is a copy: Save() sorts the records, so a reference to the old record
+    // could refer to another account afterwards
     AccountRecords &records = app_.GetDb().Records();
-    AccountRecords::iterator it = records.Save(new_record);
-    if (!FieldCompare(FT_UUID, *it, old_record))
+    const std::string uuid = records.Save(new_record)->GetField(FT_UUID, "");
+
+    bool rebuild = !EqualMenuData(old_record, new_record);
+    if (uuid != old_record.GetField(FT_UUID, ""))
     {
-        AssignAccountRecord(menu_item, *it);
+        // Saved as a new record, remove the old one
         records.Delete(old_record);
+        rebuild = true;
     }
-    if (!EqualMenuData(old_record, new_record))
+    if (rebuild)
     {
+        // The records have moved, the menu items point to the wrong records
         DestroyMenu();
         CreateMenu();
     }
 
     // Reset selection
-    SetSelection(*it);
+    AccountRecords::iterator it = records.Find(FT_UUID, uuid);
+    if (it != records.end())
+    {
+        SetSelection(*it);
+    }
 }
 
 /** View or edit an account entry */
@@ -932,7 +942,7 @@ DialogResult AccountsWin::ProcessInput()
                 AccountRecord copy{*record};
                 if (ShowAccountRecord(copy) == DialogResult::OK && !read_only)
                 {
-                    UpdateMenu(item, *record, copy);
+                    UpdateMenu(*record, copy);
                 }
             }
 

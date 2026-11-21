@@ -1,19 +1,5 @@
 # Issues
 
-## 5. Editing an account's group or title deletes a different account
-
-**Status: open.** Test: `test_edit_account_moves_group` in `test/e2e/tui/test_edit.py`
-(expected failure).
-
-In `AccountsWin::ProcessInput`, Enter on an account passes `*record`, a reference into
-the `AccountRecords` vector, to `UpdateMenu` as `old_record`. `UpdateMenu` calls
-`records.Save(new_record)`, which re-sorts the vector. When the group or title changes,
-the record moves, so `old_record` now refers to whichever account took its slot. The
-UUID comparison then fails, and `records.Delete(old_record)` deletes that other account.
-Saving writes the loss to the file. For example, with the e2e `small` fixture, moving
-Bookstore from Shopping to Banking deletes Work mail. Copy the old record (or its UUID)
-before calling `Save`.
-
 ## 7. Search doesn't match queries containing capital letters
 
 **Status: open.** Test: `test_search_mixed_case` in `test/e2e/tui/test_navigation.py`
