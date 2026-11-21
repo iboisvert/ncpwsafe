@@ -13,6 +13,7 @@
 
 #include <climits>
 #include <clocale>
+#include <cstdint>
 #include <cstdlib>
 
 namespace win32
@@ -44,6 +45,31 @@ void InitConsole()
 
     // UCRT supports UTF-8 locales since Windows 10 1803
     std::setlocale(LC_ALL, ".UTF-8");
+}
+
+/** Unhandled exception filter: ends the process before WER can write a crash dump */
+static LONG WINAPI TerminateOnUnhandledException(EXCEPTION_POINTERS *info)
+{
+    TerminateProcess(GetCurrentProcess(), info->ExceptionRecord->ExceptionCode);
+    return EXCEPTION_EXECUTE_HANDLER;
+}
+
+/** Invalid C runtime parameter handler: ends the process instead of reporting to WER */
+static void __cdecl TerminateOnInvalidParameter(const wchar_t *, const wchar_t *, const wchar_t *,
+                                                unsigned int, uintptr_t)
+{
+    // STATUS_INVALID_CRUNTIME_PARAMETER, the exit code the default handler uses
+    TerminateProcess(GetCurrentProcess(), 0xC0000417);
+}
+
+void DisableCrashDumps()
+{
+    SetUnhandledExceptionFilter(TerminateOnUnhandledException);
+    _set_invalid_parameter_handler(TerminateOnInvalidParameter);
+    // abort() raises SIGABRT and exits, without the WER fault report
+    _set_abort_behavior(0, _CALL_REPORTFAULT);
+    // No "ncpwsafe has stopped working" dialog
+    SetErrorMode(GetErrorMode() | SEM_NOGPFAULTERRORBOX);
 }
 
 /** Place a DWORD value on the (open) clipboard in a registered format */

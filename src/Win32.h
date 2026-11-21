@@ -27,6 +27,18 @@ namespace win32
  */
 void InitConsole();
 
+/**
+ * Keep Windows Error Reporting from writing crash dumps, which could
+ * expose decrypted passwords.
+ *
+ * Unhandled exceptions, `abort()` and invalid C runtime parameters end the
+ * process immediately instead of being reported to WER. Fail-fast exceptions
+ * (e.g. `/GS` stack buffer overruns) can't be intercepted and are still
+ * reported. This does not stop another process of the same user from
+ * reading this process's memory (e.g. Task Manager's "Create memory dump file").
+ */
+void DisableCrashDumps();
+
 /** Result codes for `CopyTextToClipboard` */
 enum ClipboardResult
 {

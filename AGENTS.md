@@ -39,7 +39,7 @@ ctest --preset=x64-linux-gcc-debug -L cli     # end-to-end CLI tests (-L tui: UI
 - **Terminal resize**: every modal loop must handle `KEY_RESIZE` by calling `app_.HandleResize()`, and must register its own relayout for the length of the loop with `ScopedResizeHandler resize_handler(app_, [this]() { OnResize(); });`. Handlers form a stack and run bottom-to-top so stacked panels lay out in order. Follow this pattern in any new window or dialog.
 - **Text encoding**: account text is UTF-8. `main()` calls `SetUtf8CtypeLocale()`, which uses a UTF-8 `LC_CTYPE` (falling back to `C.UTF-8`) even when the user's locale isn't UTF-8, because the wide ncurses libraries need it to show and edit non-ASCII text. Convert to ICU with `icu::UnicodeString::fromUTF8`.
 - **Prefs**: a `Prefs::Instance()` singleton backed by an INI file (libconfini), with typed `Get<T>`/`Set<T>`.
-- **Secrets hygiene**: `Dialog::RandomizeBuffers()` scrambles form buffers and `Utils.cpp` zeroes memory through a volatile `memset` pointer. Keep these when touching password-handling code. `main.cpp` calls `prctl(PR_SET_DUMPABLE, 0)` to block ptrace and core dumps in Release builds only (`NDEBUG`), so a debugger can still attach to Debug builds.
+- **Secrets hygiene**: `Dialog::RandomizeBuffers()` scrambles form buffers and `Utils.cpp` zeroes memory through a volatile `memset` pointer. Keep these when touching password-handling code. In Release builds only (`NDEBUG`), so a debugger can still attach to Debug builds, `main.cpp` calls `prctl(PR_SET_DUMPABLE, 0)` to block ptrace and core dumps, or on Windows `win32::DisableCrashDumps()` to keep Windows Error Reporting from writing crash dumps.
 
 ## Testing conventions
 
