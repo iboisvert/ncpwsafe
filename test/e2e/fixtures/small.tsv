@@ -1,0 +1,8 @@
+# group	title	user	password	notes
+	Router	admin	pw-router-6
+	Wiki	wikiuser	pw-wiki-7	The team wiki
+Banking	Chequing	alice	pw-cheq-1	Main account
+Banking	Savings	alice	pw-sav-2
+Email	Personal mail	alice@example.com	pw-mail-3
+Email	Work mail	asmith	pw-work-4	VPN required
+Shopping	Bookstore	bob	pw-book-5
