@@ -3,14 +3,14 @@
  * AccountsWin implements the main scrolling list of
  * account entries.
  */
-#ifndef _WINDOWS
+#ifndef _WIN32
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <signal.h>
 #include <cerrno>
 #include <unistd.h>
-#endif // #ifndef _WINDOWS
+#endif // #ifndef _WIN32
 
 #include "AccountDetailsDlg.h"
 #include "AccountsWin.h"
@@ -20,15 +20,17 @@
 #include "MessageBox.h"
 #include "PWSafeApp.h"
 #include "Utils.h"
+#ifdef _WIN32
+#include "Win32.h"
+#endif
 
 // TODO IMB 2022-11-21 Display page "x/y" bottom right corner
 
 // item_new rejects an empty string for the item name
 static constexpr const char *EMPTY_MENU_ITEM = " ";
 
+#ifndef _WIN32
 static constexpr int COMMAND_NOT_FOUND = 127;
-
-#ifndef _WINDOWS
 static const char *XCLIP = "/usr/bin/xclip";
 
 // This code adapted from
@@ -199,12 +201,12 @@ static int CopyTextToClipboardUnix(const std::string &text)
     }
     return 0;
 }
-#endif // #ifndef _WINDOWS
+#endif // #ifndef _WIN32
 
 /** Copy to clipboard, report errors */
 int CopyTextToClipboard(PWSafeApp &app, WINDOW *win, const std::string &text)
 {
-#ifndef _WINDOWS
+#ifndef _WIN32
     int result = CopyTextToClipboardUnix(text);
     if (result == 4)
     {
@@ -216,7 +218,12 @@ int CopyTextToClipboard(PWSafeApp &app, WINDOW *win, const std::string &text)
     }
     return result;
 #else
-    return -1;
+    int result = win32::CopyTextToClipboard(text);
+    if (result != win32::CLIPBOARD_OK)
+    {
+        MessageBox(app).Show(win, "An error occurred copying data to the clipboard");
+    }
+    return result;
 #endif
 }
 

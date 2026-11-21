@@ -7,7 +7,8 @@ database formats.
 Be sure to make a backup of your account password database 
 before using this application.
 
-`xclip` is required to copy data to the clipboard from the CLI,
+On Linux, `xclip` is required to copy data to the clipboard from the CLI.
+On Windows, the Windows clipboard is used directly.
 
 ## Get Started
 
@@ -17,6 +18,34 @@ $ cmake -DCMAKE_BUILD_TYPE:STRING=Debug -B build
 $ cmake --build build
 $ ./build/bin/ncpwsafe
 ```
+
+### Windows
+
+ncpwsafe builds natively on Windows with MSVC and the Windows SDK.
+Dependencies are installed by [vcpkg](https://vcpkg.io) from `vcpkg.json`.
+ncurses is built from the overlay port in `ports/ncurses`, which adds MSVC
+support to the upstream vcpkg port using the ncurses Windows console driver.
+
+Requirements:
+- Visual Studio 2022 or later, or the Build Tools for Visual Studio, with the
+  "Desktop development with C++" workload (MSVC, the Windows SDK, CMake, and Ninja)
+- vcpkg; the copy bundled with Visual Studio works, or set `VCPKG_ROOT`
+  to a clone of https://github.com/microsoft/vcpkg
+
+From a Developer PowerShell or Developer Command Prompt for Visual Studio (x64):
+```
+> cmake --preset x64-windows-msvc-debug
+> cmake --build --preset x64-windows-msvc-debug
+> ctest --preset x64-windows-msvc-debug
+> .\build\bin\ncpwsafe.exe
+```
+Use the `x64-windows-msvc-release` presets for a release build.
+The first configure builds all dependencies from source and takes a while.
+
+The executable is statically linked against its dependencies,
+so `ncpwsafe.exe` can be copied and run on its own.
+On Windows the configuration file is `%APPDATA%\ncpwsafe\ncpwsafe-config.ini`,
+and `${HOME}` in preference values falls back to `%USERPROFILE%`.
 
 ## Testing
 

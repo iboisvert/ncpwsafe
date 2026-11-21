@@ -4,18 +4,23 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <unistd.h>
 #include <clocale>
-#include <langinfo.h>
+#include <filesystem>
 #include <optional>
+#include <random>
+#include <system_error>
+#ifndef _WIN32
+#include <langinfo.h>
+#endif
 #include <gtest/gtest.h>
+#include "TestUtils.h"
 #include "Utils.h"
 
 
 TEST(UtilTest, TestExpandEnvVars)
 {
-    setenv("FOO", "foo", 1);
-    setenv("BAR", "bar", 1);
+    SetEnv("FOO", "foo");
+    SetEnv("BAR", "bar");
     ASSERT_STREQ("foo", ExpandEnvVars("${FOO}").c_str());
     ASSERT_STREQ("abcfooxyz", ExpandEnvVars("abc${FOO}xyz").c_str());
     ASSERT_STREQ("abcfoobarxyz", ExpandEnvVars("abc${FOO}${BAR}xyz").c_str());
@@ -73,15 +78,18 @@ protected:
 
     void SetUp() override
     {
-        char tmpl[] = "/tmp/ncpwsafe-pwfile-XXXXXX";
-        int fd = mkstemp(tmpl);
-        ASSERT_NE(-1, fd);
-        close(fd);
-        pathname_ = tmpl;
+        // Portable replacement for mkstemp(), which MSVC doesn't have
+        std::random_device rd;
+        std::string name = "ncpwsafe-pwfile-" + std::to_string(rd()) + "-" + std::to_string(rd());
+        pathname_ = (std::filesystem::temp_directory_path() / name).string();
+        std::FILE *f = std::fopen(pathname_.c_str(), "wb");
+        ASSERT_NE(nullptr, f);
+        std::fclose(f);
     }
     void TearDown() override
     {
-        unlink(pathname_.c_str());
+        std::error_code ec;
+        std::filesystem::remove(pathname_, ec);
     }
     void Write(const std::string &contents)
     {
@@ -203,6 +211,9 @@ TEST(UtilTest, TestWrapTextLongWord)
     EXPECT_EQ((Lines{"a", "b"}), WrapText("ab", 0));
 }
 
+// The locale tests use POSIX setenv() and nl_langinfo(); on Windows
+// main() sets a UTF-8 locale with win32::InitConsole() instead
+#ifndef _WIN32
 /** Sets LC_ALL for a test, and puts back the environment and LC_CTYPE afterwards */
 class Utf8LocaleTest : public ::testing::Test
 {
@@ -273,3 +284,5 @@ TEST_F(Utf8LocaleTest, PrintableTextCLocale)
     EXPECT_EQ("????", PrintableText("Банк"));
     EXPECT_EQ("Bell??", PrintableText("Bell\aé"));
 }
+
+#endif  // #ifndef _WIN32

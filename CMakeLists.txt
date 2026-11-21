@@ -49,12 +49,18 @@ endif()
 add_compile_definitions(
     "$<$<CONFIG:RELEASE>:NDEBUG>"
 )
+if(MSVC)
+    add_compile_definitions(WIN32_LEAN_AND_MEAN NOMINMAX)
+endif()
 add_compile_options(
     "$<$<AND:$<CONFIG:DEBUG>,$<BOOL:${NCPWSAFE_DEBUG_SANITIZE}>>:${NCPWSAFE_SANITIZE_FLAGS}>"
 )
-add_link_options(
-    "$<$<AND:$<CONFIG:DEBUG>,$<BOOL:${NCPWSAFE_DEBUG_SANITIZE}>>:${NCPWSAFE_SANITIZE_FLAGS}>"
-)
+if(NOT MSVC)
+    # MSVC adds the ASan runtime from the /fsanitize compile option, link.exe doesn't take it
+    add_link_options(
+        "$<$<AND:$<CONFIG:DEBUG>,$<BOOL:${NCPWSAFE_DEBUG_SANITIZE}>>:${NCPWSAFE_SANITIZE_FLAGS}>"
+    )
+endif()
 
 add_subdirectory(src)
 if(BUILD_TESTING)

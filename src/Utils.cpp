@@ -113,6 +113,13 @@ std::string ExpandEnvVars(const std::string &str)
 
             std::string env_var{str, start_pos+2, end_pos-(start_pos+2)};
             const char *value = getenv(env_var.c_str());
+#ifdef _WIN32
+            // HOME is not normally set on Windows
+            if (!value && env_var == "HOME")
+            {
+                value = getenv("USERPROFILE");
+            }
+#endif
             if (value)
             {
                 expanded.append(value);

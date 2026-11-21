@@ -399,7 +399,11 @@ ResultCode PWSafeApp::BackupDbImpl()
 
     time_t now = time(nullptr);
     struct tm tm;
+#ifdef _WIN32
+    localtime_s(&tm, &now);
+#else
     localtime_r(&now, &tm);
+#endif
 
     constexpr size_t buflen = 128;
     char buf[buflen];
