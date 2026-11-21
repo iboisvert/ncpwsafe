@@ -52,9 +52,7 @@ class EditTest(e2elib.TuiTestCase):
         """Move the selection to the account `title` (search for it)."""
         app.send("/")
         app.wait_for("Search:")
-        # Lower case: search doesn't match queries with capitals, see
-        # test_navigation.test_search_mixed_case
-        app.type(title.lower())
+        app.type(title)
         app.send("Enter")
         app.wait_gone("Search:")
         app.wait_highlighted(title)
