@@ -1,6 +1,8 @@
 /* Copyright 2022 Ian Boisvert */
 
 #include <algorithm>
+#include <climits>
+#include <cwchar>
 
 #include "Dialog.h"
 #include "MessageBox.h"
@@ -29,6 +31,8 @@ const DialogField *Dialog::GetActiveField() const
 void Dialog::ConstructFields()
 {
     fields_.clear();
+    sections_.clear();
+    text_areas_.clear();
     max_field_width_ = 0;
     // Fields are contained by a subwindow that is
     // moved to align with labels
@@ -37,7 +41,15 @@ void Dialog::ConstructFields()
     {
         if (df.m_width > max_field_width_) max_field_width_ = df.m_width;
 
-        FIELD *field = new_field(/*height*/ 1, df.m_width, row++, /*leftcol*/ 0, /*offscreen*/ 0, /*nbuffers*/ 0);
+        if (!df.m_section.empty())
+        {
+            // A blank row between sections, then the heading
+            if (row > 0) ++row;
+            sections_.emplace_back(row++, df.m_section);
+        }
+        const int height = std::max(1, df.m_height);
+        FIELD *field = new_field(height, df.m_width, row, /*leftcol*/ 0, /*offscreen*/ 0, /*nbuffers*/ 0);
+        row += height;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-value"
         assert(("Unexpected field null", field));
@@ -45,10 +57,29 @@ void Dialog::ConstructFields()
         set_field_userptr(field, const_cast<DialogField *>(&df));
         field_opts_on(field, df.m_fieldOptsOn);
         field_opts_off(field, df.m_fieldOptsOff);
-        set_field_back(field, A_UNDERLINE);
-        set_field_buffer(field, /*buf*/ 0, df.m_value.c_str());
+        set_field_back(field, app_.GetTheme().Attr(Role::FIELD));
+        if (df.m_masked)
+        {
+            set_field_fore(field, app_.GetTheme().Attr(Role::SECRET));
+        }
+        if (height > 1)
+        {
+            // The text is drawn over the field and edited by its TextArea, the field stays empty
+            field_opts_on(field, O_STATIC);
+            field_opts_off(field, O_EDIT);
+            text_areas_.emplace(field, TextArea(df.m_value));
+        }
+        else
+        {
+            set_field_buffer(field, /*buf*/ 0, df.m_value.c_str());
+            // A field holds what a terminal would show of its value: line breaks, tabs,
+            // control characters and trailing spaces don't survive. The status is set again
+            // when the field changes, until then FieldValue() gives the value itself.
+            set_field_status(field, FALSE);
+        }
         fields_.push_back(field);
     }
+    content_rows_ = row;
     // End of fields marker
     fields_.push_back(NULL);
 }
@@ -92,7 +123,8 @@ void Dialog::CalcGeometry(int &nlines, int &ncols, int &begin_y, int &begin_x, i
     int max_y, max_x, beg_x, beg_y;
     getmaxyx(parent_win_, max_y, max_x);
     getbegyx(parent_win_, beg_y, beg_x);
-    int content_nlines = fields_.size();
+    // A blank row under the fields
+    int content_nlines = content_rows_ + 1;
     int content_ncols = max_field_width_ + label_width + 1;
     begin_y = std::max(0, (max_y - content_nlines + beg_y) / 2);
     begin_x = std::max(0, (max_x - content_ncols + beg_x) / 2);
@@ -120,6 +152,7 @@ void Dialog::InitTUI(const std::string &title)
     }
 
     form_driver(form_, REQ_END_LINE);
+    DrawTextAreas();
 
     // Reset cursor for input fields
     save_cursor_ = curs_set(1);
@@ -130,9 +163,10 @@ void Dialog::CreateForm(int label_width)
     // Enable keypad so curses interprets function keys
     keypad(win_, TRUE);
     box(win_, 0, 0);
-    wattron(win_, A_BOLD);
 
-    Label::WriteJustified(win_, /*y*/ 0, /*begin_x*/ 2, getmaxx(win_), title_.c_str(), JUSTIFY_CENTER);
+    const Theme &theme = app_.GetTheme();
+    const std::string title = " " + title_ + " ";
+    Label::Write(win_, /*y*/ 0, /*begin_x*/ 2, getmaxx(win_), title.c_str(), theme.Attr(Role::TITLE), JUSTIFY_CENTER);
 
     int label_begin_x = 2, form_begin_y = 2, form_begin_x = label_width + label_begin_x + 1;
     form_ = new_form(fields_.data());
@@ -141,6 +175,9 @@ void Dialog::CreateForm(int label_width)
     assert(("Unexpected form null", form_));
 #pragma GCC diagnostic pop
     form_opts_off(form_, O_BS_OVERLOAD);
+    set_form_userptr(form_, this);
+    set_field_init(form_, &Dialog::FieldInit);
+    set_field_term(form_, &Dialog::FieldTerm);
     set_form_win(form_, win_);
     int form_nlines, form_ncols;
     scale_form(form_, &form_nlines, &form_ncols);
@@ -148,13 +185,66 @@ void Dialog::CreateForm(int label_width)
     set_form_sub(form_, form_win_);
     post_form(form_);
 
-    int row = 2;
-    for (const DialogField &df : dialog_fields_)
+    for (size_t i = 0; i + 1 < fields_.size(); ++i)
     {
-        Label::Write(win_, row++, label_begin_x, df.m_label.c_str());
+        int rows, cols, frow, fcol, nrow, nbuf;
+        field_info(fields_[i], &rows, &cols, &frow, &fcol, &nrow, &nbuf);
+        const DialogField &df = dialog_fields_[i];
+        Label::Write(win_, form_begin_y + frow, label_begin_x, /*width*/ 0, df.m_label.c_str(), theme.Attr(Role::LABEL));
     }
 
-    wattroff(win_, A_BOLD);
+    // "Section ─────────"
+    const int rule_end = getmaxx(win_) - 2;
+    for (const auto &[row, section] : sections_)
+    {
+        const int y = form_begin_y + row;
+        Label::Write(win_, y, label_begin_x, /*width*/ 0, section.c_str(), theme.Attr(Role::HEADING));
+        const int rule_x = label_begin_x + DisplayWidth(section) + 1;
+        if (rule_x < rule_end)
+        {
+            mvwhline(win_, y, rule_x, ACS_HLINE | theme.Attr(Role::MUTED), rule_end - rule_x);
+        }
+    }
+
+    DrawMasks();
+    DrawTextAreas();
+}
+
+void Dialog::FieldInit(FORM *form)
+{
+    const Dialog *dialog = static_cast<const Dialog *>(form_userptr(form));
+    set_field_back(current_field(form), dialog->app_.GetTheme().Attr(Role::FIELD_FOCUS));
+}
+
+void Dialog::FieldTerm(FORM *form)
+{
+    const Dialog *dialog = static_cast<const Dialog *>(form_userptr(form));
+    set_field_back(current_field(form), dialog->app_.GetTheme().Attr(Role::FIELD));
+}
+
+void Dialog::DrawMasks()
+{
+    if (form_win_ == nullptr)
+        return;
+    const Theme &theme = app_.GetTheme();
+    // Always 8, so the mask doesn't give away the length
+    std::string mask;
+    for (int i = 0; i < 8; ++i)
+        mask.append(theme.Sym(Symbol::BULLET));
+    for (size_t i = 0; i + 1 < fields_.size(); ++i)
+    {
+        FIELD *field = fields_[i];
+        if (!dialog_fields_[i].m_masked || (field_opts(field) & O_PUBLIC) != 0)
+            continue;
+        const char *buf = field_buffer(field, 0);
+        if (buf == nullptr || std::string_view(buf).find_first_not_of(' ') == std::string_view::npos)
+            continue;  // Empty: nothing to hide
+        int rows, cols, frow, fcol, nrow, nbuf;
+        field_info(field, &rows, &cols, &frow, &fcol, &nrow, &nbuf);
+        ScopedAttr secret(form_win_, theme.Attr(Role::SECRET) | theme.Attr(Role::FIELD));
+        mvwaddstr(form_win_, frow, fcol, mask.c_str());
+    }
+    wsyncup(form_win_);
 }
 
 void Dialog::OnResize()
@@ -193,6 +283,7 @@ void Dialog::OnResize()
         set_current_field(form_, field);
     }
     form_driver(form_, REQ_END_LINE);
+    DrawTextAreas();
 }
 
 void Dialog::EndTUI()
@@ -230,6 +321,20 @@ static std::string GetFieldValue(const FIELD *field)
     return buf;
 }
 
+std::string Dialog::FieldValue(const FIELD *field) const
+{
+    auto area = text_areas_.find(field);
+    if (area != text_areas_.end())
+    {
+        return area->second.Text();
+    }
+    if (!field_status(field))
+    {
+        return reinterpret_cast<const DialogField *>(field_userptr(field))->m_value;
+    }
+    return GetFieldValue(field);
+}
+
 /** Copy data from form fields to values array */
 void Dialog::SaveData()
 {
@@ -238,7 +343,7 @@ void Dialog::SaveData()
     {
         const FIELD *field = fields_[i];
         const PwsFieldType ft = reinterpret_cast<const DialogField*>(field_userptr(field))->m_fieldType;
-        values_[ft] = GetFieldValue(field);
+        values_[ft] = FieldValue(field);
     }
 }
 
@@ -254,6 +359,8 @@ DialogResult Dialog::ProcessInput()
             app_.HandleResize();
             continue;
         }
+        // A message is shown until the next key
+        app_.ClearMessage();
 
         if (input_delegate_(*this, ch, result))
         {
@@ -261,8 +368,18 @@ DialogResult Dialog::ProcessInput()
             goto done;
         }
 
+        if (TextArea *area = CurrentTextArea(); area != nullptr && TextAreaInput(*area, ch, wch))
+        {
+            DrawTextAreas();
+            continue;
+        }
+
         switch (ch)
         {
+        case KEY_CTRL('G'): {
+            app_.GetCommandBar().ShowHelp(win_);
+            break;
+        }
         // Possibly add "apply" command ^A to apply changes and continue editing
         case KEY_CTRL('S'): {
             if (!read_only_)
@@ -305,6 +422,10 @@ DialogResult Dialog::ProcessInput()
             /* Go to the end of the present buffer */
             /* Leaves nicely at the last character */
             form_driver(form_, REQ_END_LINE);
+            if (TextArea *area = CurrentTextArea())
+            {
+                area->First();
+            }
             break;
         }
         case KEY_BTAB:
@@ -312,6 +433,10 @@ DialogResult Dialog::ProcessInput()
             /* Go to previous field */
             form_driver(form_, REQ_PREV_FIELD);
             form_driver(form_, REQ_END_LINE);
+            if (TextArea *area = CurrentTextArea())
+            {
+                area->Last();
+            }
             break;
         }
         case KEY_LEFT: {
@@ -359,6 +484,8 @@ DialogResult Dialog::ProcessInput()
             break;
         }
         }
+        DrawMasks();
+        DrawTextAreas();
     }
 
 done:
@@ -378,6 +505,117 @@ bool Dialog::DiscardChanges()
 void Dialog::RandomizeBuffers()
 {
     ZeroFieldsBuffer(fields_.data());
+    for (auto &[field, area] : text_areas_)
+    {
+        area.Clear();
+    }
+}
+
+TextArea *Dialog::CurrentTextArea()
+{
+    if (form_ == nullptr)
+    {
+        return nullptr;
+    }
+    auto area = text_areas_.find(current_field(form_));
+    return area != text_areas_.end() ? &area->second : nullptr;
+}
+
+bool Dialog::TextAreaInput(TextArea &area, int ch, wchar_t wch)
+{
+    int rows, cols, frow, fcol, nrow, nbuf;
+    field_info(current_field(form_), &rows, &cols, &frow, &fcol, &nrow, &nbuf);
+    switch (ch)
+    {
+    case KEY_LEFT:
+        area.Left();
+        return true;
+    case KEY_RIGHT:
+        area.Right();
+        return true;
+    case KEY_HOME:
+        area.Home();
+        return true;
+    case KEY_END:
+        area.End();
+        return true;
+    case KEY_UP:
+        return area.Up(cols);
+    case KEY_DOWN:
+        return area.Down(cols);
+    case '\n':
+    case KEY_ENTER:
+        // Enter goes to the next field in a read-only dialog
+        if (read_only_)
+            return false;
+        area.NewLine();
+        return true;
+    case KEY_BACKSPACE:
+        if (!read_only_)
+            area.Backspace();
+        return true;
+    case KEY_DC:
+        if (!read_only_)
+            area.Delete();
+        return true;
+    case KEY_WIDE_CHAR:
+        if (!read_only_)
+        {
+            char buf[MB_LEN_MAX];
+            std::mbstate_t state{};
+            const size_t n = std::wcrtomb(buf, wch, &state);
+            if (n != static_cast<size_t>(-1))
+                area.Insert(std::string_view(buf, n));
+        }
+        return true;
+    default:
+        if (ch >= ' ' && ch < 0x7f)
+        {
+            if (!read_only_)
+                area.Insert(std::string(1, static_cast<char>(ch)));
+            return true;
+        }
+        return false;
+    }
+}
+
+void Dialog::DrawTextAreas()
+{
+    if (form_ == nullptr || form_win_ == nullptr || text_areas_.empty())
+        return;
+    const Theme &theme = app_.GetTheme();
+    const FIELD *current = current_field(form_);
+    int cursor_y = -1, cursor_x = -1;
+    for (auto &[field, area] : text_areas_)
+    {
+        int rows, cols, frow, fcol, nrow, nbuf;
+        field_info(field, &rows, &cols, &frow, &fcol, &nrow, &nbuf);
+        const bool focus = field == current;
+        const int top = area.ScrollTop(cols, rows);
+        const std::vector<TextArea::Row> layout = area.Layout(cols);
+        ScopedAttr attrs(form_win_, theme, focus ? Role::FIELD_FOCUS : Role::FIELD);
+        for (int y = 0; y < rows; ++y)
+        {
+            const size_t i = static_cast<size_t>(top + y);
+            const std::string text = i < layout.size() ? area.RowText(layout[i]) : std::string{};
+            mvwaddstr(form_win_, frow + y, fcol, text.c_str());
+            for (int x = DisplayWidth(text); x < cols; ++x)
+                waddch(form_win_, ' ');
+        }
+        if (focus)
+        {
+            int row, col;
+            area.CursorPosition(cols, row, col);
+            cursor_y = frow + row - top;
+            // At the end of a full row the cursor stays on its last column
+            cursor_x = fcol + std::min(col, cols - 1);
+        }
+    }
+    if (cursor_y >= 0)
+        wmove(form_win_, cursor_y, cursor_x);
+    wsyncup(form_win_);
+    if (cursor_y >= 0)
+        wcursyncup(form_win_);
 }
 
 FIELD *Dialog::GetField(PwsFieldType ft) const
@@ -398,7 +636,17 @@ void Dialog::SetField(PwsFieldType ft, const std::string &value)
 {
     FIELD *field = GetField(ft);
     assert(field != nullptr);
-    if (field != nullptr)
+    if (field == nullptr)
+    {
+        return;
+    }
+    auto area = text_areas_.find(field);
+    if (area != text_areas_.end())
+    {
+        area->second.SetText(value);
+        DrawTextAreas();
+    }
+    else
     {
         set_field_buffer(field, /*buf*/0, value.c_str());
     }
@@ -415,5 +663,5 @@ std::string Dialog::GetCurrentValue(PwsFieldType ft)
     form_driver(form_, REQ_VALIDATION);
     FIELD *field = GetField(ft);
     assert(field != nullptr);
-    return field != nullptr ? GetFieldValue(field) : std::string{};
+    return field != nullptr ? FieldValue(field) : std::string{};
 }

@@ -10,6 +10,8 @@ e2elib.require_tmux()
 
 TITLE = "Change Account Database Password"
 NEW_PASSWORD = "a brand new passphrase"
+# The command bar while the dialog is open
+DIALOG_KEYS = ("^S Save and close", "^X Cancel")
 
 
 def digest(path):
@@ -17,6 +19,10 @@ def digest(path):
 
 
 class ChangeDbPasswordTest(e2elib.TuiTestCase):
+
+    def assertDialogCommandBar(self, app):
+        app.wait_until(lambda: all(k in app.screen()[-1] for k in DIALOG_KEYS), "the dialog's command bar")
+        self.assertNotIn("Enter View", app.screen()[-1])
 
     def fill(self, app, current, new, confirm):
         app.send("C-c")
@@ -54,8 +60,9 @@ class ChangeDbPasswordTest(e2elib.TuiTestCase):
         app.wait_for("Account database password is incorrect")
         app.send("Enter")
         app.wait_gone("password is incorrect")
-        # Still in the dialog
+        # Still in the dialog, with its command bar back
         self.assertIn(TITLE, app.text())
+        self.assertDialogCommandBar(app)
         app.send("C-x")
         app.wait_gone(TITLE)
         self.assertEqual(digest(db), before)
@@ -67,6 +74,7 @@ class ChangeDbPasswordTest(e2elib.TuiTestCase):
         app.wait_for("New passwords do not match")
         app.send("Enter")
         app.wait_gone("do not match")
+        self.assertDialogCommandBar(app)
         app.send("C-x")
         app.wait_gone(TITLE)
         self.assertEqual(digest(db), before)
@@ -79,6 +87,7 @@ class ChangeDbPasswordTest(e2elib.TuiTestCase):
         app.send("n")
         app.wait_gone("Password is empty")
         self.assertIn(TITLE, app.text())
+        self.assertDialogCommandBar(app)
         app.send("C-x")
         app.wait_gone(TITLE)
         self.assertEqual(digest(db), before)
@@ -88,9 +97,12 @@ class ChangeDbPasswordTest(e2elib.TuiTestCase):
         before = digest(db)
         app.send("C-c")
         app.wait_for(TITLE)
+        self.assertDialogCommandBar(app)
         app.send("C-x")
         app.wait_gone(TITLE)
         self.assertEqual(digest(db), before)
+        # The accounts list's command bar is back
+        app.wait_until(lambda: "Enter View" in app.screen()[-1], "the accounts list's command bar")
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@
 #include <string>
 #include "libpwsafe.h"
 #include "libncurses.h"
+#include "TextArea.h"
 
 class PWSafeApp;
 
@@ -27,6 +28,18 @@ struct DialogField
     int m_width;
     int m_fieldOptsOn;
     int m_fieldOptsOff;
+    /** If not empty, a section heading shown above this field */
+    std::string m_section = {};
+    /**
+     * A secret that isn't edited in the form: while the field isn't `O_PUBLIC`,
+     * a fixed number of bullets is shown in it, rather than nothing
+     */
+    bool m_masked = false;
+    /**
+     * Rows. A field of more than one row is a `TextArea`: it keeps line breaks,
+     * and the text that isn't edited stays as it is
+     */
+    int m_height = 1;
 };
 
 class Dialog;
@@ -137,6 +150,25 @@ private:
     bool DiscardChanges();
     /** Scramble curses field buffers */
     void RandomizeBuffers();
+    /** Draw the bullets of masked fields that are hidden, see `DialogField::m_masked` */
+    void DrawMasks();
+    /** Draw the text of multi-line fields over them, and the cursor if one has it */
+    void DrawTextAreas();
+    /** The text area of the field with the cursor, `nullptr` if it isn't multi-line */
+    TextArea *CurrentTextArea();
+    /**
+     * Edit or move in the text area of the current field.
+     * @returns `false` if the key is for the dialog, e.g. Down on the last row
+     */
+    bool TextAreaInput(TextArea &area, int ch, wchar_t wch);
+    /**
+     * The value of a field: the text of its text area; the value it was given if it
+     * hasn't changed since; otherwise its contents (see `ConstructFields()`)
+     */
+    std::string FieldValue(const FIELD *field) const;
+    /** Form hooks: highlight the field that has the cursor */
+    static void FieldInit(FORM *form);
+    static void FieldTerm(FORM *form);
 
     PWSafeApp &app_;
 
@@ -147,6 +179,12 @@ private:
     Callback discard_changes_callback_;
     std::map<PwsFieldType, std::string> values_;
     int max_field_width_;
+    /** Rows taken by the fields and section headings */
+    int content_rows_ = 0;
+    /** The row of each section heading, and its title */
+    std::vector<std::pair<int, std::string>> sections_;
+    /** The text of each multi-line field, see `DialogField::m_height` */
+    std::map<const FIELD *, TextArea> text_areas_;
     std::string title_;
 
     WINDOW *parent_win_ = nullptr;

@@ -7,6 +7,7 @@
  * SPEC_FILE has one account per line, tab-separated:
  *   group <TAB> title <TAB> user <TAB> password <TAB> notes
  * Trailing fields may be omitted, empty fields are left unset.
+ * In a field, \n, \r, \t and \\ stand for a line feed, carriage return, tab and backslash.
  * Blank lines and lines starting with '#' are ignored.
  *
  * The database is written with libpwsafe, the same code path as ncpwsafe,
@@ -34,6 +35,28 @@ static std::vector<std::string> Split(const std::string &line, char sep)
         pos = idx + 1;
     }
     return fields;
+}
+
+/** Replace the escapes \n, \r, \t and \\ (see above) */
+static std::string Unescape(const std::string &value)
+{
+    std::string out;
+    for (size_t i = 0; i < value.size(); ++i)
+    {
+        if (value[i] == '\\' && i + 1 < value.size())
+        {
+            switch (value[++i])
+            {
+            case 'n': out += '\n'; continue;
+            case 'r': out += '\r'; continue;
+            case 't': out += '\t'; continue;
+            case '\\': out += '\\'; continue;
+            default: --i; break;
+            }
+        }
+        out += value[i];
+    }
+    return out;
 }
 
 int main(int argc, char *argv[])
@@ -68,7 +91,7 @@ int main(int argc, char *argv[])
         AccountRecord rec;
         for (size_t i = 0; i < values.size() && i < sizeof(FIELDS); ++i)
         {
-            rec.SetField(FIELDS[i], values[i].c_str());
+            rec.SetField(FIELDS[i], Unescape(values[i]).c_str());
         }
         db.Records().Save(rec);
     }

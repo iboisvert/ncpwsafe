@@ -15,12 +15,14 @@ import e2elib  # noqa: E402
 
 e2elib.require_tmux()
 
-# The accounts list for fixtures/unicode.tsv, two columns. The first item is
+# The accounts list for fixtures/unicode.tsv. The first account is
 # non-ASCII, and ASCII accounts come after non-ASCII ones:
-#   Café           Router
-#
-#   Банк
-#   Wiki           Сберегательный счёт
+#   ▾ (no group)  ────  2
+#      Café                 josé
+#      Router               admin
+#   ▾ Банк  ────  2
+#      Wiki                 wikiuser
+#      Сберегательный счёт  алиса
 ACCOUNTS = ["Café", "Router", "Банк", "Wiki", "Сберегательный счёт"]
 
 
@@ -32,8 +34,8 @@ class UnicodeTest(e2elib.TuiTestCase):
 
     def assertAccountsShown(self, app):
         screen = app.text()
-        self.assertRegex(screen, r"x Café +Router +x")
-        self.assertRegex(screen, r"x Банк +x\nx Wiki +Сберегательный счёт +x")
+        self.assertRegex(screen, r"x ▾ \(no group\)  q+  2 x\nx    Café +josé +x\nx    Router +admin +x")
+        self.assertRegex(screen, r"x ▾ Банк  q+  2 x\nx    Wiki +wikiuser +x\nx    Сберегательный счёт +алиса +x")
         self.assertEqual(app.highlighted(), ["Café"])
 
     def test_accounts_shown_utf8_locale(self):
@@ -98,12 +100,12 @@ class UnicodeTest(e2elib.TuiTestCase):
         app.wait_gone("Delete account")
 
     def test_title_with_control_character(self):
-        # ncurses refuses to create a menu item it can't print. The account
-        # is listed with the character replaced
+        # ncurses used to refuse to create a menu item it can't print. The account
+        # is listed with the character replaced. No account has a group, so there are no headings
         app, _, _ = self.open_db(spec="control-chars")
-        self.assertRegex(app.text(), r"x Bell\? +Router +x")
+        self.assertRegex(app.text(), r"x Bell\? +user +x\nx Router +admin +x")
         self.assertEqual(app.highlighted(), ["Bell?"])
-        app.send("Right")
+        app.send("Down")
         app.wait_highlighted("Router")
 
     def test_type_non_ascii_c_locale(self):

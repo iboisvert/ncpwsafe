@@ -39,6 +39,19 @@ _OTHER_ESC = re.compile(r"\x1b[^\[]|\x1b\[[0-9;?]*[A-Za-ln-z]|[\x0e\x0f]")
 # In a UTF-8 locale ncurses draws lines with Unicode box drawing characters on
 # the "screen" terminal, show them as the ACS letters it uses otherwise
 _BOX_TO_ACS = str.maketrans("┌┐└┘─│├┤┬┴┼", "lkmjqxtuwvn")
+# A gap of two or more spaces separates the columns of a list row
+_COLUMN_GAP = re.compile(r" {2,}")
+# The markers of expanded and collapsed group headings in the accounts list
+_HEADING_MARKERS = ("\u25be ", "\u25b8 ")  # ▾ ▸
+
+
+def _row_name(run):
+    """The name in a selected list row: its first column, without a heading marker."""
+    name = _COLUMN_GAP.split(run.strip())[0]
+    for marker in _HEADING_MARKERS:
+        if name.startswith(marker):
+            return name[len(marker):]
+    return name
 
 
 class TimeoutError(AssertionError):
@@ -118,10 +131,14 @@ class TmuxApp:
         return "\n".join(self.screen())
 
     def highlighted(self, include_command_bar=False):
-        """Text drawn in reverse video (e.g. the selected menu item), one entry per run.
+        """The names of the rows drawn in reverse video, i.e. the selection, one entry per run.
 
-        The command bar on the bottom row is also reverse video, it is left
-        out unless `include_command_bar`.
+        A name is the first column of the run, the text before a gap of two or
+        more spaces: for an account, its title without the user name; for a group
+        heading, the group without the ▾/▸ marker, rule and count.
+
+        The command bar keys on the bottom row are also reverse video, they are
+        left out unless `include_command_bar`.
         """
         runs = []
         lines = self._capture(True).split("\n")[:self.rows]
@@ -135,13 +152,18 @@ class TmuxApp:
                     current.append(line[pos:m.start()])
                 pos = m.end()
                 codes = [c for c in re.split("[;:]", m.group(1)) if c] or ["0"]
+                # The state after the whole sequence counts: "0;7" stays in reverse video
+                now_reverse = reverse
                 for code in codes:
                     if code == "7":
-                        reverse = True
+                        now_reverse = True
                     elif code in ("0", "27"):
-                        if reverse and "".join(current).strip():
-                            runs.append("".join(current).strip())
-                        reverse, current = False, []
+                        now_reverse = False
+                if reverse and not now_reverse:
+                    if "".join(current).strip():
+                        runs.append(_row_name("".join(current)))
+                    current = []
+                reverse = now_reverse
         return runs
 
     def wait_for(self, pattern, timeout=DEFAULT_TIMEOUT, regex=False):

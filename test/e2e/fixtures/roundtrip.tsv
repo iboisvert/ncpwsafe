@@ -1,0 +1,13 @@
+# Accounts with values a one-row form field can't show as they are, and notes
+# that take more rows than the notes field, see test_edit.py and test_clipboard.py.
+# \n, \r, \t and \\ are escapes (see mkdb.cpp)
+# group	title	user	password	notes
+	Plain	alice	pw-plain	One line
+	MultiLine	alice	pw-multi	line one\nline two
+	CrLf	alice	pw-crlf	line one\r\nline two
+	BlankFirst	alice	pw-blank	\nafter a blank line
+	Return	alice	pw-return	abc\rdef
+	TrailSpace	alice	pw-trail 	notes 
+	Tab	alice	pw-tab	a\tb
+	Long	alice	pw-long	one\ntwo\nthree\nfour\nfive
+	Wide	alice	pw-wide	日本語日本語日本語日本語日本語日本語日本語日本語

@@ -3,13 +3,17 @@
 
 #include "libncurses.h"
 #include "Dialog.h"
+#include "AccountList.h"
 #include "AccountRecord.h"
-#include <deque>
-#include <set>
 #include <string>
 
 class PWSafeApp;
 
+/**
+ * The main window: the list of accounts, grouped under a heading for each group.
+ * Headings can be collapsed and expanded. The rows and the selection are kept
+ * by `AccountList`, this class draws them and handles input.
+ */
 class AccountsWin
 {
 public:
@@ -18,40 +22,23 @@ public:
     /** Show the password item list */
     DialogResult Show();
 
-    void SetSelection(const AccountRecord &cid) const;
+    /** Select an account, expanding its group if it is collapsed */
+    void SetSelection(const AccountRecord &record);
     /** The selected account, `nullptr` if a group heading is selected */
     const AccountRecord *GetSelection() const;
-    /** The selected menu item, an account or a group heading */
-    ITEM *GetCurrentItem() const
+    /** The selected row, an account or a group heading */
+    AccountList::Position GetPosition() const
     {
-        return current_item(menu_);
+        return list_.GetPosition();
     }
-    /** Select a menu item returned by `GetCurrentItem()`, the menu must not have changed since */
-    void SetCurrentItem(ITEM *item) const
-    {
-        if (item != nullptr) set_current_item(menu_, item);
-    }
+    /** Select a position returned by `GetPosition()`, the accounts must not have changed since */
+    void SetPosition(const AccountList::Position &position);
 
 private:
     /* Command bar display mask */
     static constexpr int CBOPTS_READONLY = 1;
-    /** Number of columns in which accounts will be displayed */
-    static constexpr int NCOLS = 2;
-
-    /** 
-     * Get an AccountRecord ptr from the user pointer of a menu ITEM.
-     * The AccountRecord must be const because `set` doesn't allow 
-     * modifying keys
-     */
-    static AccountRecord *GetAccountRecordFromMenuItem(const ITEM *menu_item)
-    {
-        return reinterpret_cast<AccountRecord *>(item_userptr(menu_item));
-    }
-
-    static void AssignAccountRecord(ITEM *menu_item, AccountRecord &record)
-    {
-        set_item_userptr(menu_item, reinterpret_cast<void *>(&record));
-    }
+    /** The list starts below a blank row */
+    static constexpr int FIRST_ROW = 1;
 
     /** Save changes to database */
     bool Save();
@@ -59,40 +46,39 @@ private:
     bool DiscardChanges();
     /** View or edit an account entry */
     DialogResult ShowAccountRecord(AccountRecord &itemData);
-    /** Save an edited account and update the menu */
-    void UpdateMenu(AccountRecord old_record, const AccountRecord &new_record);
+    /** Save an edited account and update the list */
+    void UpdateList(AccountRecord old_record, const AccountRecord &new_record);
     /** Add a new account entry */
     DialogResult AddNewEntry();
     /** Delete an account entry */
-    DialogResult DeleteEntry(const ITEM *item);
-    ITEM *FindItem(const AccountRecord &cid) const;
+    DialogResult DeleteEntry(const AccountRecord &record);
+    /** Select the account with the given UUID */
+    void SelectUuid(const std::string &uuid);
 
     void InitTUI();
     void EndTUI();
-    /**
-     * Construct a list of sorted MenuItemsData.
-     * This list is used later to construct the menu ITEMs
-     */
-    void CreateMenuDataItems();
-    void CreateMenu();
-    /** Size the menu to the window and post it */
-    void LayoutMenu();
-    void DestroyMenu();
-    /** Lay out the menu after the terminal has been resized */
+    /** Rebuild the list rows from the account records */
+    void Rebuild();
+    /** Number of rows available for the list */
+    int ListHeight() const;
+    /** Width of the title column, from the longest title */
+    int TitleColumnWidth(int width) const;
+    /** Draw the visible rows, and the selection in the title bar */
+    void Draw();
+    /** The selection, for the title bar: "Banking › Chequing  3/7" */
+    std::string StatusText() const;
+    void DrawHeading(int y, const AccountList::Row &row, bool selected);
+    void DrawAccount(int y, const AccountList::Row &row, bool selected, int title_width);
+    /** Lay out the list after the terminal has been resized */
     void OnResize();
     void SetCommandBar();
     DialogResult ProcessInput();
 
     PWSafeApp &app_;
-    // std::string db_pathname_;
 
     WINDOW *win_ = nullptr;
-    WINDOW *menu_win_ = nullptr;
-    MENU *menu_ = nullptr;
     PANEL *panel_ = nullptr;
-    std::vector<ITEM *> menu_items_;
-    /** Item names that aren't account fields, see NewMenuItem() */
-    std::deque<std::string> menu_item_names_;
+    AccountList list_;
     int save_cursor_ = 0;
 };
 

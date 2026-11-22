@@ -21,7 +21,7 @@ class ClipboardTest(e2elib.TuiTestCase):
         app.wait_until(lambda: self.clipboard() == expected, f"clipboard to contain {expected!r}")
 
     def select_chequing(self, app):
-        app.send("Down", "Down")
+        app.send("Down", "Down", "Down")
         app.wait_highlighted("Chequing")
 
     def test_copy_user(self):
@@ -38,9 +38,22 @@ class ClipboardTest(e2elib.TuiTestCase):
         # The password is never shown
         self.assertNotIn("pw-cheq-1", app.text())
 
+    def test_copy_shows_message_until_next_key(self):
+        app, _, _ = self.open_db()
+        self.select_chequing(app)
+        app.send("C-p")
+        self.wait_clipboard(app, "pw-cheq-1")
+        # In the bottom border of the list
+        screen = app.wait_for("Copied the password of Chequing")
+        self.assertIn("Copied the password of Chequing", app.screen()[-2])
+        self.assertNotIn("pw-cheq-1", screen)
+        app.send("Down")
+        app.wait_highlighted("Savings")
+        app.wait_gone("Copied the password")
+
     def test_copy_on_group_does_nothing(self):
         app, _, _ = self.open_db()
-        app.send("Down")
+        app.send("Down", "Down")
         app.wait_highlighted("Banking")
         app.send("C-u", "C-p", "Right")
         app.wait_highlighted("Chequing")
@@ -50,7 +63,6 @@ class ClipboardTest(e2elib.TuiTestCase):
         # An account without a user or password used to abort, constructing a
         # std::string from the missing (null) field
         app, _, _ = self.open_db(spec="sparse")
-        app.send("Down")
         app.wait_highlighted("No user")
         app.send("C-u")
         self.wait_clipboard(app, "")
@@ -67,6 +79,21 @@ class ClipboardTest(e2elib.TuiTestCase):
         self.wait_clipboard(app, "pw-cheq-1")
         app.send("C-u")
         self.wait_clipboard(app, "alice")
+
+    def test_copy_in_details_dialog_keeps_value(self):
+        # The dialog copies the stored value of a field that wasn't edited,
+        # not what a form field shows of it (here without the trailing space)
+        app, _, _ = self.open_db(spec="roundtrip")
+        app.send("/")
+        app.wait_for("Search:")
+        app.type("TrailSpace")
+        app.send("Enter")
+        app.wait_gone("Search:")
+        app.wait_highlighted("TrailSpace")
+        app.send("Enter")
+        app.wait_for("View Account")
+        app.send("C-p")
+        self.wait_clipboard(app, "pw-trail ")
 
     def test_copy_unsaved_edit(self):
         # The dialog copies what is in the fields, not the saved account

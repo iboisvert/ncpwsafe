@@ -23,16 +23,21 @@ class ReadOnlyTest(e2elib.TuiTestCase):
         for action in ("^A Add", "^D Delete", "^S Save", "^C Change password"):
             self.assertNotIn(action, bar)
 
+    def test_title_shows_read_only(self):
+        app, _, _ = self.open_db("-r")
+        self.assertIn("small.dat [read-only]", app.screen()[0])
+
     def test_editing_keys_do_nothing(self):
         app, db, pw = self.open_db("-r")
         before = digest(db)
+        app.send("Down")  # Wiki
         app.send("Down")  # Banking
         app.send("Down")  # Chequing
         app.wait_highlighted("Chequing")
         for key in ("C-a", "C-d", "C-c", "C-s"):
             app.send(key)
         # A key the app handles, to know the ones before it were processed
-        app.send("Right")
+        app.send("Down")
         app.wait_highlighted("Savings")
         screen = app.text()
         for dialog in ("View Account", "Delete account", "Change Account Database Password"):
@@ -47,7 +52,7 @@ class ReadOnlyTest(e2elib.TuiTestCase):
     def test_details_are_read_only(self):
         app, db, _ = self.open_db("-r")
         before = digest(db)
-        app.send("Down", "Down")
+        app.send("Down", "Down", "Down")
         app.wait_highlighted("Chequing")
         app.send("Enter")
         screen = app.wait_for("View Account")

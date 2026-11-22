@@ -293,6 +293,31 @@ TEST_F(Utf8LocaleTest, PrintableTextUtf8)
     EXPECT_EQ("?", PrintableText(""));
 }
 
+TEST_F(Utf8LocaleTest, DisplayWidthUtf8)
+{
+    if (!setlocale(LC_CTYPE, "C.UTF-8")) GTEST_SKIP() << "C.UTF-8 locale is not installed";
+    EXPECT_EQ(0, DisplayWidth(""));
+    EXPECT_EQ(6, DisplayWidth("Router"));
+    EXPECT_EQ(4, DisplayWidth("Café"));
+    // Wide characters take two columns
+    EXPECT_EQ(6, DisplayWidth("日本語"));
+    // Not valid UTF-8, a column for each bad byte
+    EXPECT_EQ(3, DisplayWidth("a\xff" "b"));
+}
+
+TEST_F(Utf8LocaleTest, FitTextUtf8)
+{
+    if (!setlocale(LC_CTYPE, "C.UTF-8")) GTEST_SKIP() << "C.UTF-8 locale is not installed";
+    EXPECT_EQ("Router", FitText("Router", 6, "…"));
+    EXPECT_EQ("Rout…", FitText("Router", 5, "…"));
+    EXPECT_EQ("Caf…", FitText("Café crème", 4, "…"));
+    EXPECT_EQ("Ro~", FitText("Router", 3, "~"));
+    // A wide character that doesn't fit is left out whole
+    EXPECT_EQ("日…", FitText("日本語", 4, "…"));
+    EXPECT_EQ("", FitText("Router", 0, "…"));
+    EXPECT_EQ("…", FitText("Router", 1, "…"));
+}
+
 TEST_F(Utf8LocaleTest, PrintableTextCLocale)
 {
     setlocale(LC_CTYPE, "C");

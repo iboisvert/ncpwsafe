@@ -41,6 +41,8 @@ class CommandBarWin
 {
 public:
     static const std::vector<Action> YES_NO;
+    /** Shown at the end of the command bar when the actions don't all fit */
+    static const Action MORE;
 
     CommandBarWin(PWSafeApp &app, WINDOW *win) : app_(app), win_(win)
     {
@@ -69,8 +71,11 @@ public:
      */
     void Redraw();
 
-    // Generate help screen from list of actions
-    // void ShowHelp()
+    /**
+     * Show every action of the command bar with its description over `parent`,
+     * until a key is pressed. Call for ^G.
+     */
+    void ShowHelp(WINDOW *parent);
 
     /** Draw the actions in `win` and refresh `win` */
     static void ShowActions(const PWSafeApp &app, WINDOW *win, const std::vector<Action> &actions, int opts = -1);

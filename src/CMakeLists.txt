@@ -3,6 +3,7 @@ list(APPEND SRC
     AccountRecord.cpp
     AccountRecords.cpp
     AccountDetailsDlg.cpp
+    AccountList.cpp
     AccountsWin.cpp
     ChangeDbPasswordCommand.cpp
     ChangeDbPasswordDlg.cpp
@@ -14,6 +15,7 @@ list(APPEND SRC
     GeneratePasswordDlg.cpp
     GeneratePasswordCommand.cpp
     GenerateTestDbCommand.cpp
+    HelpWin.cpp
     MessageBox.cpp
     Policy.cpp
     Prefs.cpp
@@ -21,6 +23,8 @@ list(APPEND SRC
     PWSafeApp.cpp
     SafeCombinationPromptDlg.cpp
     SearchBarWin.cpp
+    TextArea.cpp
+    Theme.cpp
     Utils.cpp
     Win32.cpp
 )

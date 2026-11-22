@@ -116,16 +116,16 @@ void GeneratePasswordDlg::Draw()
     keypad(win_, TRUE);
     box(win_, 0, 0);
 
-    wattron(win_, A_BOLD);
-    Label::WriteJustified(win_, /*y*/ 0, /*begin_x*/ 2, ncols + 2, title_.c_str(), JUSTIFY_CENTER);
-    wattroff(win_, A_BOLD);
+    const Theme &theme = app_.GetTheme();
+    const std::string title = " " + title_ + " ";
+    Label::Write(win_, /*y*/ 0, /*begin_x*/ 2, ncols + 2, title.c_str(), theme.Attr(Role::TITLE), JUSTIFY_CENTER);
 
-    Label::Write(win_, /*y*/ 1, /*x*/ 2, "Complexity:");
-    Label::Write(win_, /*y*/ 2, /*x*/ 2, "Length:");
+    Label::Write(win_, /*y*/ 1, /*x*/ 2, /*width*/ 0, "Complexity:", theme.Attr(Role::LABEL));
+    Label::Write(win_, /*y*/ 2, /*x*/ 2, /*width*/ 0, "Length:", theme.Attr(Role::LABEL));
     const int label_begin_x = 14;
     m_pwPolicyField = Label(win_, /*y*/ 1, label_begin_x, /*width*/ 32);
     m_pwLengthField = Label(win_, /*y*/ 2, label_begin_x, /*width*/ 10);
-    m_passwordField = Label(win_, /*y*/ 4, /*x*/ 2, /*width*/ ncols, A_BOLD, JUSTIFY_CENTER);
+    m_passwordField = Label(win_, /*y*/ 4, /*x*/ 2, /*width*/ ncols, theme.Attr(Role::SECRET), JUSTIFY_CENTER);
 }
 
 void GeneratePasswordDlg::OnResize()

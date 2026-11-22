@@ -1,6 +1,7 @@
 /* Copyright 2020 Ian Boisvert */
 #include <time.h>
 #include <algorithm>
+#include <filesystem>
 
 #ifdef HAVE_GLOG
 #include "libglog.h"
@@ -168,7 +169,7 @@ void PWSafeApp::InitTUI()
 {
     /* Initialize curses */
     root_win_ = initscr();
-    // start_color();
+    theme_.Init(prefs_.Get<std::string>(Prefs::THEME, ""));
     raw();
     noecho();
     // IMB 2022-12-13 htop uses F3/S-F3 to find next/prev, like in
@@ -199,10 +200,6 @@ void PWSafeApp::InitTUI()
 
     DrawFrame();
 
-    // Draw command bar
-    wattron(commandbar_win_, A_REVERSE | A_DIM);
-    mvwhline(commandbar_win_, /*y*/ 0, beg_x, /*ch*/ ' ', ncols);
-    wattroff(commandbar_win_, A_REVERSE | A_DIM);
 }
 
 /** Draw the border and title of the accounts list */
@@ -210,9 +207,103 @@ void PWSafeApp::DrawFrame()
 {
     werase(accounts_win_);
     box(accounts_win_, /*verch*/ 0, /*horch*/ 0);
-    Label::WriteJustified(accounts_win_, /*y*/ 0, /*x*/ 0, getmaxx(accounts_win_), APPNAME_VERSION, JUSTIFY_CENTER);
+    DrawTitle();
+    DrawFooter();
     // accounts_win_ is a subwindow of stdscr, which is the bottom panel
     touchwin(root_win_);
+}
+
+void PWSafeApp::SetStatus(const std::string &status)
+{
+    status_ = status;
+    // Also redrawn when the status hasn't changed, for the modified mark
+    DrawTitle();
+}
+
+/**
+ * Draw the title bar in the top border of the accounts list:
+ * "┌── ncpwsafe 0.1 ── file.dat * ───── status ──┐"
+ */
+void PWSafeApp::DrawTitle()
+{
+    if (accounts_win_ == nullptr)
+        return;
+    const int width = getmaxx(accounts_win_);
+    // Keep the border's corners and two lines at each end
+    const int first = 3, last = width - 3;
+    if (last <= first)
+        return;
+    mvwhline(accounts_win_, /*y*/ 0, /*x*/ 1, ACS_HLINE, width - 2);
+
+    const char *ellipsis = theme_.Sym(Symbol::ELLIPSIS);
+    int x = first;
+    auto put = [&](const std::string &text, Role role) {
+        const std::string fitted = FitText(text, last - x, ellipsis);
+        ScopedAttr attrs(accounts_win_, theme_, role);
+        mvwaddstr(accounts_win_, 0, x, fitted.c_str());
+        x += DisplayWidth(fitted);
+    };
+
+    put(std::string(" ") + APPNAME_VERSION + " ", Role::TITLE);
+
+    const std::string &pathname = db_.DbPathname();
+    if (!pathname.empty() && x + 2 < last)
+    {
+        x += 2;
+        put(" " + PrintableText(std::filesystem::path(pathname).filename().string().c_str()) + " ", Role::NORMAL);
+        if (db_.ReadOnly())
+            put("[read-only] ", Role::WARNING);
+        else if (db_.IsDirty())
+            put("* ", Role::WARNING);
+    }
+
+    // The status goes at the right, if there is room for it after a gap
+    const std::string status = " " + status_ + " ";
+    const int status_width = DisplayWidth(status);
+    if (!status_.empty() && x + 2 + status_width <= last)
+    {
+        ScopedAttr attrs(accounts_win_, theme_, Role::NORMAL);
+        mvwaddstr(accounts_win_, 0, last - status_width, status.c_str());
+    }
+    // accounts_win_ is a subwindow of stdscr, the bottom panel: mark the change in stdscr
+    wsyncup(accounts_win_);
+}
+
+void PWSafeApp::DrawFooter()
+{
+    if (accounts_win_ == nullptr)
+        return;
+    const int width = getmaxx(accounts_win_), y = getmaxy(accounts_win_) - 1;
+    if (width < 8 || y < 1)
+        return;
+    mvwhline(accounts_win_, y, 1, ACS_HLINE, width - 2);
+    if (!message_.empty())
+    {
+        const std::string text = std::string(" ") + theme_.Sym(Symbol::CHECK) + " " + message_ + " ";
+        ScopedAttr attrs(accounts_win_, theme_, message_role_);
+        mvwaddstr(accounts_win_, y, 3, FitText(text, width - 6, theme_.Sym(Symbol::ELLIPSIS)).c_str());
+    }
+    wsyncup(accounts_win_);
+}
+
+void PWSafeApp::SetMessage(const std::string &message, Role role)
+{
+    message_ = message;
+    message_role_ = role;
+    DrawFooter();
+    update_panels();
+    doupdate();
+}
+
+void PWSafeApp::ClearMessage()
+{
+    if (!message_.empty())
+    {
+        message_.clear();
+        DrawFooter();
+        update_panels();
+        doupdate();
+    }
 }
 
 /**
