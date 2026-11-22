@@ -1,0 +1,19 @@
+# The made-up accounts of the README screenshots (docs/images/make-screenshots.py).
+# Never put real data here. The password file is small.pw.
+# group	title	user	password	notes
+	Home router	admin	pw-router-6	Model in the hall closet
+	Home wiki	jdoe	pw-wiki-7
+Banking	Chequing	jordan.doe	pw-cheq-1	Branch 00123, account 4567890\nOverdraft limit set to 500\nSecurity questions: see the paper copy in the safe
+Banking	Credit card	jordan.doe	pw-card-2
+Banking	Savings	jordan.doe	pw-sav-3
+Email	Personal mail	jordan.doe@example.com	pw-mail-4
+Email	Work mail	jdoe@example.org	pw-work-5	VPN required
+Shopping	Bookstore	jdoe	pw-book-8
+Shopping	Grocery delivery	jordan.doe@example.com	pw-groc-9
+Shopping	Hardware store	jdoe	pw-hard-10
+Travel	Airline	JD1234567	pw-air-11	Frequent flyer number on the card
+Travel	Hotel rewards	jordan.doe@example.com	pw-hotel-12
+Work	Build server	jdoe	pw-build-13
+Work	Timesheets	jdoe	pw-time-14
+Work	VPN	jdoe	pw-vpn-15	Token app on the phone
+Work	Team wiki	jdoe@example.org	pw-teamwiki-16

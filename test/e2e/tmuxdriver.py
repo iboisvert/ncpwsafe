@@ -122,6 +122,10 @@ class TmuxApp:
             args.append("-e")
         return self.tmux(*args).stdout
 
+    def capture(self):
+        """The screen as tmux shows it, with its SGR escape sequences (colours, bold, reverse video)."""
+        return self._capture(True)
+
     def screen(self):
         """The screen as a list of lines (line drawing appears as ACS letters: lqk x mqj)."""
         lines = [_OTHER_ESC.sub("", line).translate(_BOX_TO_ACS) for line in self._capture(False).split("\n")]

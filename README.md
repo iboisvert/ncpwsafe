@@ -3,6 +3,10 @@ An ncurses terminal program that manages encrypted account password database fil
 that are compatible with the V1 and V2 [Password Safe](https://www.pwsafe.org/)
 database formats.
 
+![The accounts list of ncpwsafe in a terminal: accounts under collapsible group headings (Banking, Email, Shopping collapsed, Travel, Work), each with its user name, the selected account highlighted, the database name and the selection's position in the title bar, and the keys in a command bar at the bottom](docs/images/accounts-list.png)
+
+![The account details dialog of ncpwsafe over the accounts list: the group, title, user, URL and email fields, the password masked with bullets, and notes on three lines](docs/images/edit-account.png)
+
 **This is alpha-quality code at best, use at your own risk.**
 Be sure to make a backup of your account password database 
 before using this application.
