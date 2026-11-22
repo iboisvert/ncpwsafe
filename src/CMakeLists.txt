@@ -57,7 +57,6 @@ target_include_directories(libncpwsafe PUBLIC
     ${ICU_INCLUDE_DIRS}
 )
 target_link_directories(libncpwsafe PUBLIC 
-    ${NETTLE_LIBRARY_DIRS}
     ${NCURSES_LIBRARY_DIRS}
     ${ICU_LIBRARY_DIRS}
 )

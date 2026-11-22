@@ -6,6 +6,6 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
         git pkg-config cmake make gcc g++ clang clang-tidy gdb \
-        libncurses-dev libicu-dev nettle-dev libgtest-dev libgoogle-glog-dev libssl-dev \
+        libncurses-dev libicu-dev libgtest-dev libgoogle-glog-dev libssl-dev \
         xclip \
     && rm -rf /var/lib/apt/lists/*

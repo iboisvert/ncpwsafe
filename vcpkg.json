@@ -7,10 +7,6 @@
     "gtest",
     "icu",
     "ncurses",
-    {
-      "name": "nettle",
-      "platform": "!windows"
-    },
     "openssl"
   ],
   "features": {
