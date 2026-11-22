@@ -225,10 +225,10 @@ class TuiTestCase(E2ETestCase):
         self.app.start([NCPWSAFE, *args])
         return self.app
 
-    def open_db(self, *args, spec="small"):
+    def open_db(self, *args, spec="small", cols=None, rows=None):
         """Build a database and open it with --password-file, wait for the accounts list."""
         db, pw = self.make_db(spec)
-        app = self.start("--password-file", pw, *args, db)
+        app = self.start("--password-file", pw, *args, db, cols=cols, rows=rows)
         app.wait_for("Enter View")
         return app, db, pw
 

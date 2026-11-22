@@ -12,6 +12,8 @@
 #include <unistd.h>
 #endif // #ifndef _WIN32
 
+#include <algorithm>
+
 #include "AccountDetailsDlg.h"
 #include "AccountsWin.h"
 #include "ChangePasswordDlg.h"
@@ -23,11 +25,6 @@
 #ifdef _WIN32
 #include "Win32.h"
 #endif
-
-// TODO IMB 2022-11-21 Display page "x/y" bottom right corner
-
-// item_new rejects an empty string for the item name
-static constexpr const char *EMPTY_MENU_ITEM = " ";
 
 #ifndef _WIN32
 static constexpr int COMMAND_NOT_FOUND = 127;
@@ -243,243 +240,159 @@ AccountsWin::AccountsWin(PWSafeApp &app, WINDOW *win) : app_(app), win_(win)
     // clang-format on
 }
 
-ITEM *AccountsWin::FindItem(const AccountRecord &record) const
+void AccountsWin::SetSelection(const AccountRecord &record)
 {
-    ITEM *pitem = nullptr;
-    auto it = std::find_if(
-        menu_items_.begin(), menu_items_.end(), [&record](const ITEM *pitem)
-        { return item_userptr(pitem) == &record; });
-    if (it != menu_items_.end())
-    {
-        pitem = *it;
-    }
-    return pitem;
-}
-
-void AccountsWin::SetSelection(const AccountRecord &record) const
-{
-    ITEM *pitem = FindItem(record);
-    if (pitem != nullptr)
-    {
-        set_current_item(menu_, pitem);
-    }
-    DecorateGroupItems();
+    list_.SelectRecord(record);
+    Draw();
 }
 
 const AccountRecord *AccountsWin::GetSelection() const
 {
-    AccountRecord *pcid = nullptr;
-    ITEM *item = current_item(menu_);
-    if (item != nullptr)
+    return list_.SelectedRecord();
+}
+
+void AccountsWin::SetPosition(const AccountList::Position &position)
+{
+    list_.SetPosition(position);
+    Draw();
+}
+
+void AccountsWin::Rebuild()
+{
+    list_.Build(app_.GetDb().Records());
+}
+
+void AccountsWin::SelectUuid(const std::string &uuid)
+{
+    AccountRecords &records = app_.GetDb().Records();
+    AccountRecords::iterator it = records.Find(FT_UUID, uuid);
+    if (it != records.end())
     {
-        pcid = reinterpret_cast<AccountRecord *>(item_userptr(item));
+        list_.SelectRecord(*it);
     }
-    return pcid;
 }
 
-/**
- * Create a menu item for `name`. ncurses rejects a name it can't print, e.g. one with a
- * control character, or non-ASCII text when no UTF-8 locale is available. The item is
- * then named with `PrintableText(name)`, which is kept in `names` because ncurses
- * doesn't copy it.
- */
-static ITEM *NewMenuItem(const char *name, const char *description, std::deque<std::string> &names)
+int AccountsWin::ListHeight() const
 {
-    ITEM *item = new_item(name, description);
-    if (item == nullptr)
+    return std::max(0, getmaxy(win_) - FIRST_ROW);
+}
+
+int AccountsWin::TitleColumnWidth(int width) const
+{
+    int longest = 0;
+    for (const AccountList::Row &row : list_.Rows())
     {
-        names.push_back(PrintableText(name));
-        item = new_item(names.back().c_str(), description);
+        if (row.record != nullptr)
+        {
+            longest = std::max(longest, DisplayWidth(PrintableText(row.record->GetField(FT_TITLE, ""))));
+        }
     }
-    assert(item != nullptr);
-    return item;
+    const int indent = list_.HasHeadings() ? 4 : 1;
+    // At least two spaces between the title and the user name
+    const int max_width = std::max(12, (width - indent) * 3 / 5);
+    return std::clamp(longest + 2, 12, max_width);
 }
 
-static ITEM *CreateBlankMenuItem()
+void AccountsWin::DrawHeading(int y, const AccountList::Row &row, bool selected)
 {
-    ITEM *item = new_item(EMPTY_MENU_ITEM, 0);
-    item_opts_off(item, O_SELECTABLE);
-    return item;
+    const Theme &theme = app_.GetTheme();
+    const int width = getmaxx(win_);
+    const attr_t selection = theme.Attr(Role::SELECTION);
+    auto attrs = [&](Role role) { return selected ? selection : theme.Attr(role); };
+
+    if (selected)
+    {
+        mvwhline(win_, y, 0, ' ' | selection, width);
+    }
+
+    // " ▾ Banking  ──────  2 ", with at least two spaces around the rule
+    const std::string count = std::to_string(row.count);
+    const int count_x = width - static_cast<int>(count.size()) - 1;
+    const std::string name = row.group.empty() ? "(no group)" : PrintableText(row.group.c_str());
+    const std::string fitted = FitText(name, std::max(1, count_x - 2 - 3), theme.Sym(Symbol::ELLIPSIS));
+
+    SetAttrs(win_, attrs(Role::HEADING));
+    mvwaddstr(win_, y, 1, theme.Sym(row.collapsed ? Symbol::COLLAPSED : Symbol::EXPANDED));
+    waddch(win_, ' ');
+    waddstr(win_, fitted.c_str());
+
+    SetAttrs(win_, selected ? selection : A_NORMAL);
+    const int rule_x = 3 + DisplayWidth(fitted) + 2;
+    const int rule_len = count_x - 2 - rule_x;
+    if (rule_len > 0)
+    {
+        mvwhline(win_, y, rule_x, ACS_HLINE | attrs(Role::MUTED), rule_len);
+    }
+    SetAttrs(win_, attrs(Role::MUTED));
+    mvwaddstr(win_, y, count_x, count.c_str());
+    SetAttrs(win_, A_NORMAL);
 }
 
-static bool IsBlankMenuItem(const ITEM *item)
+void AccountsWin::DrawAccount(int y, const AccountList::Row &row, bool selected, int title_width)
 {
-    assert(item);
-    return item_userptr(item) == nullptr && item_name(item) == EMPTY_MENU_ITEM;
+    const Theme &theme = app_.GetTheme();
+    const int width = getmaxx(win_);
+    const attr_t selection = theme.Attr(Role::SELECTION);
+    const char *ellipsis = theme.Sym(Symbol::ELLIPSIS);
+
+    if (selected)
+    {
+        mvwhline(win_, y, 0, ' ' | selection, width);
+    }
+
+    const int indent = list_.HasHeadings() ? 4 : 1;
+    const std::string title = FitText(PrintableText(row.record->GetField(FT_TITLE, "")), title_width - 2, ellipsis);
+    SetAttrs(win_, selected ? selection : A_NORMAL);
+    mvwaddstr(win_, y, indent, title.c_str());
+
+    const char *user = row.record->GetField(FT_USER, "");
+    const int user_x = indent + title_width;
+    if (*user != '\0' && user_x < width - 1)
+    {
+        // The user name isn't bold in the selection
+        SetAttrs(win_, selected ? selection & ~A_BOLD : theme.Attr(Role::MUTED));
+        mvwaddstr(win_, y, user_x, FitText(PrintableText(user), width - user_x - 1, ellipsis).c_str());
+    }
+    SetAttrs(win_, A_NORMAL);
 }
 
-static bool IsGroupMenuItem(const ITEM *item)
+void AccountsWin::Draw()
 {
-    assert(item);
-    return item_userptr(item) == nullptr && item_name(item) != EMPTY_MENU_ITEM;
-}
-
-void AccountsWin::DecorateGroupItems() const
-{
-    if (menu_ == nullptr || menu_win_ == nullptr)
+    if (win_ == nullptr)
         return;
-    const attr_t attrs = app_.GetTheme().Attr(Role::HEADING);
-    int rows, cols;
-    menu_format(menu_, &rows, &cols);
-    const int top = top_row(menu_), count = item_count(menu_);
-    if (count <= 0 || top < 0)
-        return;  // An empty list
-    const ITEM *current = current_item(menu_);
-    for (int row = 0; row < rows; ++row)
+    werase(win_);
+
+    const Theme &theme = app_.GetTheme();
+    const int width = getmaxx(win_);
+    const auto &rows = list_.Rows();
+    if (rows.empty())
     {
-        // Group headings are always in the first column, see CreateMenu()
-        const int idx = (top + row) * cols;
-        if (idx >= count || menu_items_[idx] == nullptr)
-            break;
-        const ITEM *item = menu_items_[idx];
-        if (item != current && IsGroupMenuItem(item))
-        {
-            mvwchgat(menu_win_, row, /*x*/ 0, DisplayWidth(item_name(item)), attrs & ~A_COLOR,
-                     static_cast<short>(PAIR_NUMBER(attrs)), nullptr);
-        }
+        const char *hint = app_.GetDb().ReadOnly() ? "No accounts" : "No accounts, press ^A to add one";
+        ScopedAttr muted(win_, theme, Role::MUTED);
+        mvwaddstr(win_, FIRST_ROW, 1, FitText(hint, width - 2, theme.Sym(Symbol::ELLIPSIS)).c_str());
+        return;
     }
-    wsyncup(menu_win_);
-}
 
-void AccountsWin::CreateMenu()
-{
-    menu_items_.clear();
-
-    auto &records = app_.GetDb().Records();
-    const char *lastGroup = "";
-
-    ITEM *item;
-    int itemIndex = 0;
-    // Accounts are sorted by group and title
-    for (AccountRecord &record : records)
+    const int height = ListHeight();
+    const int top = list_.ScrollTop(height);
+    const int title_width = TitleColumnWidth(width);
+    for (int y = 0; y < height && top + y < static_cast<int>(rows.size()); ++y)
     {
-        const char *group = record.GetField(FT_GROUP, "");
-        if (strcmp(lastGroup, group) != 0)
-        {
-            lastGroup = group;
-
-            // Align groups on column 0
-            while ((itemIndex % NCOLS) != 0)
-            {
-                item = CreateBlankMenuItem();
-                ++itemIndex;
-                menu_items_.push_back(item);
-            }
-
-            // Insert blank row before group, unless group is first menu item
-            if (itemIndex > 0)
-            {
-                for (int i = 0; i < NCOLS; ++i)
-                {
-                    item = CreateBlankMenuItem();
-                    ++itemIndex;
-                    menu_items_.push_back(item);
-                }
-            }
-
-            item = NewMenuItem(group, nullptr, menu_item_names_);
-            ++itemIndex;
-            menu_items_.push_back(item);
-
-            // Align first account in group on column 0
-            while ((itemIndex % NCOLS) != 0)
-            {
-                item = CreateBlankMenuItem();
-                ++itemIndex;
-                menu_items_.push_back(item);
-            }
-        }
-
-        const char *title = record.GetField(FT_TITLE, EMPTY_MENU_ITEM);
-        const char *user = record.GetField(FT_USER, EMPTY_MENU_ITEM);
-        item = NewMenuItem(title, user, menu_item_names_);
-        ++itemIndex;
-        AssignAccountRecord(item, record);
-        menu_items_.push_back(item);
-    }
-    menu_items_.push_back(nullptr);
-
-    menu_ = new_menu(menu_items_.data());
-    set_menu_grey(menu_, A_NORMAL);
-    set_menu_fore(menu_, app_.GetTheme().Attr(Role::SELECTION));
-    menu_opts_off(menu_, O_SHOWDESC);
-    set_menu_mark(menu_, nullptr);
-
-    LayoutMenu();
-}
-
-void AccountsWin::LayoutMenu()
-{
-    set_menu_win(menu_, win_);
-    int beg_y, beg_x, max_y, max_x;
-    getbegyx(win_, beg_y, beg_x);
-    getmaxyx(win_, max_y, max_x);
-    int nlines = max_y - beg_y + 1, ncols = max_x - beg_x;
-    int menuWin_nlines = nlines - 1, menuWin_ncols = ncols - 2;
-    menu_win_ = derwin(win_, menuWin_nlines, menuWin_ncols, /*begin_y*/ 1, /*begin_x*/ 1);
-    set_menu_sub(menu_, menu_win_);
-
-    set_menu_format(menu_, menuWin_nlines, NCOLS);
-
-    post_menu(menu_);
-    DecorateGroupItems();
-}
-
-void AccountsWin::DestroyMenu()
-{
-    [[maybe_unused]] int status = unpost_menu(menu_);
-    status = free_menu(menu_);
-    for (ITEM *pitem : menu_items_)
-    {
-        if (pitem) status = free_item(pitem);
-    }
-    menu_items_.clear();
-    menu_item_names_.clear();
-    if (menu_win_)
-    {
-        delwin(menu_win_);
-        menu_win_ = nullptr;
+        const int index = top + y;
+        const AccountList::Row &row = rows[static_cast<size_t>(index)];
+        const bool selected = index == list_.Selected();
+        if (row.kind == AccountList::RowKind::HEADING)
+            DrawHeading(FIRST_ROW + y, row, selected);
+        else
+            DrawAccount(FIRST_ROW + y, row, selected, title_width);
     }
 }
 
 void AccountsWin::OnResize()
 {
-    // set_menu_format() resets the current item, save it to restore it after layout
-    ITEM *selection = current_item(menu_);
-
-    unpost_menu(menu_);
-    set_menu_sub(menu_, nullptr);
-    if (menu_win_)
-    {
-        delwin(menu_win_);
-        menu_win_ = nullptr;
-    }
-    werase(win_);
-
-    LayoutMenu();
-
-    if (selection != nullptr)
-    {
-        set_current_item(menu_, selection);
-    }
-    DecorateGroupItems();
+    Draw();
     touchwin(win_);
 }
-
-// Copied from ui/wxWidgets/MenuEditHandlers.cpp
-// void PasswordSafeFrame::DoCopyPassword(AccountRecord &item)
-// {
-//   if (!item.IsDependent())
-//     Clipboard::GetInstance()->SetData(item.GetPassword());
-//   else
-//   {
-//     const CUUID &base = item.GetBaseUUID();
-//     const std::string &passwd = m_db.GetEntry(m_db.Find(base)).GetPassword();
-//     Clipboard::GetInstance()->SetData(passwd);
-//   }
-//   UpdateLastClipboardAction(AccountRecord::FieldType::PASSWORD);
-//   UpdateAccessTime(item);
-// }
 
 void AccountsWin::InitTUI()
 {
@@ -493,8 +406,6 @@ void AccountsWin::InitTUI()
 
 void AccountsWin::EndTUI()
 {
-    DestroyMenu();
-    menu_ = nullptr;
     del_panel(panel_);
     panel_ = nullptr;
     win_ = nullptr;
@@ -502,157 +413,21 @@ void AccountsWin::EndTUI()
     curs_set(save_cursor_);
 }
 
-static void NavigateUp(MENU *menu, int cols, const std::vector<ITEM *> &items)
-{
-    int idx = item_index(current_item(menu));
-    // If menu item above current item is before start of list or a blank item,
-    // select the first non-blank menu item to the left in the row above
-    if (idx - cols < 0 || IsBlankMenuItem(items[idx - cols]))
-    {
-        idx = (idx / cols) * cols - cols;
-        while (idx > -1)
-        {
-            if (!IsBlankMenuItem(items[idx]))
-            {
-                set_current_item(menu, items[idx]);
-                break;
-            }
-            idx -= cols;
-        }
-    }
-    else
-    {
-        set_current_item(menu, items[idx - cols]);
-    }
-}
-
-static void NavigateDown(MENU *menu, int cols, const std::vector<ITEM *> &items)
-{
-    int idx = item_index(current_item(menu));
-    int count = item_count(menu);
-    // If menu item below current item is past the end of list or a blank item,
-    // select the first non-blank menu item in the row below
-    if (idx + cols >= count || IsBlankMenuItem(items[idx + cols]))
-    {
-        idx = (idx / cols) * cols + cols;
-        while (idx < count)
-        {
-            if (!IsBlankMenuItem(items[idx]))
-            {
-                set_current_item(menu, items[idx]);
-                break;
-            }
-            ++idx;
-        }
-    }
-    else
-    {
-        set_current_item(menu, items[idx + cols]);
-    }
-}
-
-static void NavigateRight(MENU *menu, int /*cols*/, const std::vector<ITEM *> &items)
-{
-    int idx = item_index(current_item(menu));
-    int count = item_count(menu);
-    while (++idx < count)
-    {
-        if (!IsBlankMenuItem(items[idx]))
-        {
-            set_current_item(menu, items[idx]);
-            break;
-        }
-    }
-}
-
-static void NavigateLeft(MENU *menu, int /*cols*/, const std::vector<ITEM *> &items)
-{
-    int idx = item_index(current_item(menu));
-    while (--idx > -1)
-    {
-        if (!IsBlankMenuItem(items[idx]))
-        {
-            set_current_item(menu, items[idx]);
-            break;
-        }
-    }
-}
-
-static void NavigatePageUp(MENU *menu, int cols, const std::vector<ITEM *> &items)
-{
-    menu_driver(menu, REQ_SCR_UPAGE);
-    int idx = item_index(current_item(menu));
-    int count = item_count(menu);
-    if (idx != ERR && IsBlankMenuItem(items[idx]))
-    {
-        // Move down rows until a non-blank menu item is found
-        idx += cols;
-        while (idx < count)
-        {
-            if (!IsBlankMenuItem(items[idx]))
-            {
-                set_current_item(menu, items[idx]);
-                break;
-            }
-            idx += cols;
-        }
-    }
-}
-
-static void NavigatePageDown(MENU *menu, int cols, const std::vector<ITEM *> &items)
-{
-    menu_driver(menu, REQ_SCR_DPAGE);
-    int idx = item_index(current_item(menu));
-    if (idx != ERR && IsBlankMenuItem(items[idx]))
-    {
-        // Move up rows until a non-blank menu item is found
-        idx -= cols;
-        while (idx > -1)
-        {
-            if (!IsBlankMenuItem(items[idx]))
-            {
-                set_current_item(menu, items[idx]);
-                break;
-            }
-            idx -= cols;
-        }
-    }
-}
-
-static bool EqualMenuData(const AccountRecord &a, const AccountRecord &b)
-{
-    return FieldCompare(FT_GROUP, a, b)
-        && FieldCompare(FT_TITLE, a, b)
-        && FieldCompare(FT_USER, a, b);
-}
-
-void AccountsWin::UpdateMenu(const AccountRecord old_record, const AccountRecord &new_record)
+void AccountsWin::UpdateList(const AccountRecord old_record, const AccountRecord &new_record)
 {
     // `old_record` is a copy: Save() sorts the records, so a reference to the old record
     // could refer to another account afterwards
     AccountRecords &records = app_.GetDb().Records();
     const std::string uuid = records.Save(new_record)->GetField(FT_UUID, "");
-
-    bool rebuild = !EqualMenuData(old_record, new_record);
     if (uuid != old_record.GetField(FT_UUID, ""))
     {
         // Saved as a new record, remove the old one
         records.Delete(old_record);
-        rebuild = true;
-    }
-    if (rebuild)
-    {
-        // The records have moved, the menu items point to the wrong records
-        DestroyMenu();
-        CreateMenu();
     }
 
-    // Reset selection
-    AccountRecords::iterator it = records.Find(FT_UUID, uuid);
-    if (it != records.end())
-    {
-        SetSelection(*it);
-    }
+    // The records may have moved, the rows point to the wrong records
+    Rebuild();
+    SelectUuid(uuid);
 }
 
 /** View or edit an account entry */
@@ -685,21 +460,9 @@ DialogResult AccountsWin::AddNewEntry()
     if (result == DialogResult::OK)
     {
         const AccountRecord &new_record = details.GetItem();
-        AccountRecords::iterator record_iter = db.Records().Save(new_record);
-
-        DestroyMenu();
-        CreateMenu();
-
-        // Reset selection
-        const std::string &new_uuid = record_iter->GetField(FT_UUID);
-        auto menu_iter = std::find_if(menu_items_.begin(), menu_items_.end(), [&new_uuid](const ITEM *pitem) { 
-            return item_userptr(pitem) && reinterpret_cast<AccountRecord *>(item_userptr(pitem))->GetField(FT_UUID) == new_uuid; 
-        });
-        assert(menu_iter != menu_items_.end());
-        if (menu_iter != menu_items_.end())
-        {
-            set_current_item(menu_, *menu_iter);
-        }
+        const std::string new_uuid = db.Records().Save(new_record)->GetField(FT_UUID, "");
+        Rebuild();
+        SelectUuid(new_uuid);
     }
 
     SetCommandBar();
@@ -707,41 +470,35 @@ DialogResult AccountsWin::AddNewEntry()
     return result;
 }
 
-/** Display an account item dialog */
-DialogResult AccountsWin::DeleteEntry(const ITEM *pitem)
+/** Delete an account, after asking */
+DialogResult AccountsWin::DeleteEntry(const AccountRecord &record)
 {
     AccountDb &db = app_.GetDb();
-
-    const AccountRecord *prec = reinterpret_cast<AccountRecord *>(item_userptr(pitem));
-    assert(prec != nullptr);
-    if (!prec)
-    {
-        return DialogResult::NO;
-    }
 
     app_.GetCommandBar().Show(CommandBarWin::YES_NO);
 
     auto &records = db.Records();
     // Name the user only if another account has the same title
-    bool unique = std::none_of(records.begin(), records.end(), [prec](const AccountRecord &record) {
-        return &record != prec && FieldCompare(FT_TITLE, record, *prec);
+    bool unique = std::none_of(records.begin(), records.end(), [&record](const AccountRecord &other) {
+        return &other != &record && FieldCompare(FT_TITLE, other, record);
     });
-    std::string msg = std::string("Delete account ").append(prec->GetField(FT_TITLE));
-    if (!unique && prec->GetField(FT_USER))
+    std::string msg = std::string("Delete account ").append(record.GetField(FT_TITLE));
+    if (!unique && record.GetField(FT_USER))
     {
-        msg.append(" with user ").append(prec->GetField(FT_USER));
+        msg.append(" with user ").append(record.GetField(FT_USER));
     }
     msg.append("?");
 
     DialogResult result = MessageBox(app_).Show(win_, msg.c_str(), &YesNoKeyHandler);
     if (result == DialogResult::YES)
     {
-        AccountRecords &records = db.Records();
-        AccountRecords::iterator it = records.Find(FT_UUID, prec->GetField(FT_UUID));
+        AccountRecords::iterator it = records.Find(FT_UUID, record.GetField(FT_UUID));
+        const int index = list_.Selected();
         if (it != records.end() && records.Delete(it))
         {
-            DestroyMenu();
-            CreateMenu();
+            // Select the row that took the deleted account's place
+            Rebuild();
+            list_.SelectIndex(index);
         }
     }
 
@@ -832,18 +589,15 @@ bool AccountsWin::DiscardChanges()
     return retval;
 }
 
+
 /** Show the password item list */
 DialogResult AccountsWin::Show()
 {
     SetCommandBar();
 
-    // TODO check through items for items that have same group and title
-    // if matching items found, enable display of username
-
     InitTUI();
-    werase(win_);
-
-    CreateMenu();
+    Rebuild();
+    Draw();
 
     update_panels();
     doupdate();
@@ -855,8 +609,6 @@ DialogResult AccountsWin::Show()
     }
 
     EndTUI();
-
-    win_ = nullptr;
 
     return result;
 }
@@ -882,21 +634,6 @@ DialogResult AccountsWin::ProcessInput()
             app_.HandleResize();
             break;
         }
-        // case 'a': {
-        //     // Check for Group/Username/Title uniqueness
-        //     // if (m_db.Find(m_Item.GetGroup(), m_Item.GetTitle(), m_Item.GetUser()) !=
-        //     //     m_Core.GetEntryEndIter())
-        //     // {
-        //     //   wxMessageDialog msg(
-        //     //       this,
-        //     //       _("An entry or shortcut with the same Group, Title and Username already exists."),
-        //     //       _("Error"),
-        //     //       wxOK | wxICON_ERROR);
-        //     //   msg.ShowModal();
-        //     //   return;
-        //     // }
-        //     break;
-        // }
         case KEY_CTRL('A'):
         {
             if (!read_only)
@@ -926,10 +663,10 @@ DialogResult AccountsWin::ProcessInput()
         case KEY_CTRL('D'):
         {
             // Nothing is selected in an empty list, and a group heading has no account
-            ITEM *item = current_item(menu_);
-            if (!read_only && item != nullptr && GetAccountRecordFromMenuItem(item) != nullptr)
+            const AccountRecord *record = list_.SelectedRecord();
+            if (!read_only && record != nullptr)
             {
-                DeleteEntry(item);
+                DeleteEntry(*record);
             }
             break;
         }
@@ -952,26 +689,12 @@ DialogResult AccountsWin::ProcessInput()
             break;
         }
         case KEY_CTRL('U'):
-        {
-            ITEM *item = current_item(menu_);
-            if (item != nullptr && !IsGroupMenuItem(item))
-            {
-                const AccountRecord *record = GetAccountRecordFromMenuItem(item);
-                const std::string str = record->GetField(FT_USER, "");
-                if (CopyTextToClipboard(app_, win_, str) > 0)
-                {
-                    app_.GetCommandBar().Show(this);
-                }
-            }
-            break;
-        }
         case KEY_CTRL('P'):
         {
-            ITEM *item = current_item(menu_);
-            if (item != nullptr && !IsGroupMenuItem(item))
+            const AccountRecord *record = list_.SelectedRecord();
+            if (record != nullptr)
             {
-                const AccountRecord *record = GetAccountRecordFromMenuItem(item);
-                const std::string str = record->GetField(FT_PASSWORD, "");
+                const std::string str = record->GetField(c == KEY_CTRL('U') ? FT_USER : FT_PASSWORD, "");
                 if (CopyTextToClipboard(app_, win_, str) > 0)
                 {
                     app_.GetCommandBar().Show(this);
@@ -981,90 +704,59 @@ DialogResult AccountsWin::ProcessInput()
         }
         case '/':
         {
-            using std::placeholders::_1;
             app_.DoSearch();
             app_.GetCommandBar().Show(this);
             break;
         }
+        case ' ':
+        {
+            list_.Toggle();
+            break;
+        }
         case '\n':
         {
-            ITEM *item = current_item(menu_);
-            if (item == nullptr)
+            const AccountRecord *record = list_.SelectedRecord();
+            if (record == nullptr)
             {
-                // The list is empty
+                // A group heading, or the list is empty
+                list_.Toggle();
                 break;
             }
-            assert(!IsBlankMenuItem(item));
-            if (IsGroupMenuItem(item))
+            AccountRecord copy{*record};
+            if (ShowAccountRecord(copy) == DialogResult::OK && !read_only)
             {
-                // DisplayGroup(*record);
+                UpdateList(*record, copy);
             }
-            else
-            {
-                const AccountRecord *record = GetAccountRecordFromMenuItem(item);
-                assert(record != nullptr);
-                AccountRecord copy{*record};
-                if (ShowAccountRecord(copy) == DialogResult::OK && !read_only)
-                {
-                    UpdateMenu(*record, copy);
-                }
-            }
-
             break;
         }
-
         case KEY_HOME:
-        {
-            menu_driver(menu_, REQ_FIRST_ITEM);
+            list_.MoveFirst();
             break;
-        }
-
         case KEY_END:
-        {
-            menu_driver(menu_, REQ_LAST_ITEM);
+            list_.MoveLast();
             break;
-        }
-
         case KEY_UP:
-        {
-            NavigateUp(menu_, NCOLS, menu_items_);
+            list_.MoveUp();
             break;
-        }
-
         case KEY_DOWN:
-        {
-            NavigateDown(menu_, NCOLS, menu_items_);
+            list_.MoveDown();
             break;
-        }
-
-        case KEY_RIGHT:
-        {
-            NavigateRight(menu_, NCOLS, menu_items_);
-            break;
-        }
-
         case KEY_LEFT:
-        {
-            NavigateLeft(menu_, NCOLS, menu_items_);
+            list_.Left();
             break;
-        }
-
+        case KEY_RIGHT:
+            list_.Right();
+            break;
         case KEY_PPAGE:
-        {
-            NavigatePageUp(menu_, NCOLS, menu_items_);
+            list_.MovePageUp(ListHeight() - 1);
             break;
-        }
-
         case KEY_NPAGE:
-        {
-            NavigatePageDown(menu_, NCOLS, menu_items_);
+            list_.MovePageDown(ListHeight() - 1);
             break;
-        }
-
         default:
             break;
         }
-        DecorateGroupItems();
+        Draw();
     }
 
 done:

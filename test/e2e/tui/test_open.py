@@ -15,11 +15,12 @@ class OpenTest(e2elib.TuiTestCase):
     def assertAccountsShown(self, app):
         screen = app.text()
         self.assertIn("ncpwsafe 0.1", app.screen()[0])
-        # Groups, then accounts two to a row, sorted by group and title
-        self.assertRegex(screen, r"x Router +Wiki +x")
-        self.assertRegex(screen, r"x Banking +x\nx Chequing +Savings +x")
-        self.assertRegex(screen, r"x Email +x\nx Personal mail +Work mail +x")
-        self.assertRegex(screen, r"x Shopping +x\nx Bookstore +x")
+        # A heading for each group with its number of accounts, then the group's accounts
+        # with their user names, sorted by group and title. Accounts without a group come first
+        self.assertRegex(screen, r"x ▾ \(no group\)  q+  2 x\nx    Router +admin +x\nx    Wiki +wikiuser +x")
+        self.assertRegex(screen, r"x ▾ Banking  q+  2 x\nx    Chequing +alice +x\nx    Savings +alice +x")
+        self.assertRegex(screen, r"x ▾ Email  q+  2 x\nx    Personal mail +alice@example\.com +x\nx    Work mail +asmith +x")
+        self.assertRegex(screen, r"x ▾ Shopping  q+  1 x\nx    Bookstore +bob +x")
 
     def test_open_with_password_file(self):
         app, _, _ = self.open_db()

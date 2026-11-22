@@ -155,7 +155,7 @@ Every test case gets:
 | `send("C-a")`, `send("Down", "Enter")` | Send keys, using tmux key names (`Enter`, `Escape`, `BSpace`, `DC`, `Up`, `Home`, `NPage`, `C-x`, ...) |
 | `type("text")` | Type literal text |
 | `screen()`, `text()` | The screen as lines, or as one string. Line drawing shows as the ACS letters `lqk`, `x`, `mqj`, also when ncurses draws it with Unicode box drawing characters |
-| `highlighted()` | Text in reverse video, i.e. the selected menu item. The command bar is left out |
+| `highlighted()` | The names of the rows in reverse video, i.e. the selection: the first column of the row (an account's title, or a group heading without its `▾`/`▸` marker, rule and count). The command bar is left out |
 | `wait_for(text)`, `wait_gone(text)`, `wait_highlighted(text)`, `wait_until(fn, what)` | Poll until the screen matches, or fail with a dump of the screen after 10 s |
 | `resize(cols, rows)` | Resize the window. ncpwsafe gets `SIGWINCH`/`KEY_RESIZE` |
 | `wait_exit()` | Wait for ncpwsafe to exit and return its exit code |

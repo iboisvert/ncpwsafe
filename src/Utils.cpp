@@ -8,6 +8,7 @@
 #include <clocale>
 #include <cwchar>
 #include <cwctype>
+#include <algorithm>
 #include <initializer_list>
 #ifdef HAVE_LANGINFO_H
 #include <langinfo.h>
@@ -178,6 +179,47 @@ int DisplayWidth(std::string_view text)
     return width;
 }
 
+std::string FitText(std::string_view text, int width, const char *ellipsis)
+{
+    if (width <= 0)
+        return std::string();
+    if (DisplayWidth(text) <= width)
+        return std::string(text);
+
+    const int ellipsis_width = DisplayWidth(ellipsis);
+    const int avail = std::max(0, width - ellipsis_width);
+    int used = 0;
+    std::mbstate_t state{};
+    const char *p = text.data(), *end = text.data() + text.size();
+    while (p < end)
+    {
+        wchar_t wc;
+        size_t n = std::mbrtowc(&wc, p, static_cast<size_t>(end - p), &state);
+        int w = 1;
+        if (n == static_cast<size_t>(-1) || n == static_cast<size_t>(-2))
+        {
+            state = std::mbstate_t{};
+            n = 1;
+        }
+        else
+        {
+            if (n == 0)
+                n = 1;
+#ifndef _WIN32
+            w = std::max(0, wcwidth(wc));
+#endif
+        }
+        if (used + w > avail)
+            break;
+        used += w;
+        p += n;
+    }
+    std::string result(text.data(), static_cast<size_t>(p - text.data()));
+    if (ellipsis_width <= width)
+        result.append(ellipsis);
+    return result;
+}
+
 /** Number of bytes in the first `n` characters of UTF-8 text */
 static size_t Utf8PrefixBytes(std::string_view text, size_t n)
 {
@@ -251,14 +293,14 @@ std::vector<std::string> WrapText(const std::string &text, size_t width)
     return lines;
 }
 
-/** `true` if the character set of the LC_CTYPE locale is UTF-8 */
-static bool IsUtf8Ctype()
+bool IsUtf8Ctype()
 {
 #ifdef HAVE_LANGINFO_H
     const char *codeset = nl_langinfo(CODESET);
     return codeset && (strcasecmp(codeset, "UTF-8") == 0 || strcasecmp(codeset, "utf8") == 0);
 #else
-    return false;
+    // e.g. the UCRT ".UTF-8" locale on Windows
+    return MB_CUR_MAX > 1;
 #endif
 }
 

@@ -1,6 +1,7 @@
 /* Copyright 2026 Ian Boisvert */
 #include "Theme.h"
 #include <cstdlib>
+#include "Utils.h"
 
 // Colour pairs. Only the 8 basic colours are used, over the terminal's background
 enum : short
@@ -60,8 +61,27 @@ attr_t Theme::AttrFor(Role role, Mode mode)
     return A_NORMAL;
 }
 
+const char *Theme::SymbolFor(Symbol symbol, bool unicode)
+{
+    switch (symbol)
+    {
+    case Symbol::EXPANDED:
+        return unicode ? "\u25be" : "v";  // ▾
+    case Symbol::COLLAPSED:
+        return unicode ? "\u25b8" : ">";  // ▸
+    case Symbol::ELLIPSIS:
+        return unicode ? "\u2026" : "~";  // …
+    case Symbol::CHECK:
+        return unicode ? "\u2713" : "*";  // ✓
+    case Symbol::SEPARATOR:
+        return unicode ? "\u203a" : ">";  // ›
+    }
+    return "?";
+}
+
 void Theme::Init(const std::string &theme_pref)
 {
+    unicode_ = IsUtf8Ctype();
     mode_ = SelectMode(has_colors(), std::getenv("NO_COLOR"), theme_pref);
     if (mode_ != Mode::COLOUR)
     {

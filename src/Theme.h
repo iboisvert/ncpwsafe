@@ -38,6 +38,21 @@ enum class Role
     SUCCESS,
 };
 
+/** Symbols that have a Unicode and an ASCII form */
+enum class Symbol
+{
+    /** Marks an expanded group heading */
+    EXPANDED,
+    /** Marks a collapsed group heading */
+    COLLAPSED,
+    /** Ends text that was cut to fit */
+    ELLIPSIS,
+    /** Marks a success message */
+    CHECK,
+    /** Between a group and an account title */
+    SEPARATOR,
+};
+
 /**
  * Text attributes for each `Role`.
  *
@@ -74,6 +89,9 @@ public:
     /** The attributes for `role` in `mode`, for a terminal with or without default colours */
     static attr_t AttrFor(Role role, Mode mode);
 
+    /** The Unicode or the ASCII form of a symbol */
+    static const char *SymbolFor(Symbol symbol, bool unicode);
+
     /**
      * Select the mode and, for colour, initialize the colour pairs.
      * Call after `initscr()`.
@@ -90,9 +108,25 @@ public:
         return AttrFor(role, mode_);
     }
 
+    /** A symbol in Unicode if the `LC_CTYPE` locale is UTF-8, else in ASCII */
+    const char *Sym(Symbol symbol) const
+    {
+        return SymbolFor(symbol, unicode_);
+    }
+
 private:
     Mode mode_ = Mode::MONO;
+    bool unicode_ = false;
 };
+
+/**
+ * Set the attributes of a window, including a colour pair in `attrs`.
+ * Unlike `wattr_set(win, attrs, 0, nullptr)`, which drops the colour pair.
+ */
+inline void SetAttrs(WINDOW *win, attr_t attrs)
+{
+    wattr_set(win, attrs & ~A_COLOR, static_cast<short>(PAIR_NUMBER(attrs)), nullptr);
+}
 
 /** Turns on the attributes of a role in a window for the lifetime of the object */
 class ScopedAttr

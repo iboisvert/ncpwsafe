@@ -112,6 +112,15 @@ size_t Utf8Length(std::string_view text);
 int DisplayWidth(std::string_view text);
 
 /**
+ * `text` cut to at most `width` columns (see `DisplayWidth()`).
+ * If it is cut, it ends with `ellipsis`, which counts in the width.
+ */
+std::string FitText(std::string_view text, int width, const char *ellipsis);
+
+/** `true` if the character set of the `LC_CTYPE` locale is UTF-8 */
+bool IsUtf8Ctype();
+
+/**
  * Wrap text into lines of at most `width` characters (see `Utf8Length`).
  * Lines are broken at newlines and between words, and a word longer than
  * `width` (e.g. a long pathname) is broken across lines.

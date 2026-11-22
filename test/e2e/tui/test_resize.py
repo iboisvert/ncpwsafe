@@ -36,23 +36,23 @@ class ResizeTest(e2elib.TuiTestCase):
 
     def test_resize_accounts_list(self):
         app, _, _ = self.open_db()
-        app.send("Down", "Down")
+        app.send("Down", "Down", "Down")
         app.wait_highlighted("Chequing")
         for cols, rows in SIZES:
             with self.subTest(size=f"{cols}x{rows}"):
                 self.resize(app, cols, rows)
                 self.assertFrame(app)
                 self.assertIn("Enter View", app.screen()[-1])
-                self.assertRegex(app.text(), r"x Chequing +Savings +x")
+                self.assertRegex(app.text(), r"x    Chequing +alice +x\nx    Savings +alice +x")
                 # The selection is kept
                 self.assertEqual(app.highlighted(), ["Chequing"])
         # And the app still responds
-        app.send("Right")
+        app.send("Down")
         app.wait_highlighted("Savings")
 
     def test_resize_with_dialog(self):
         app, _, _ = self.open_db()
-        app.send("Down", "Down", "Enter")
+        app.send("Down", "Down", "Down", "Enter")
         app.wait_for("View Account")
         for cols, rows in DIALOG_SIZES:
             with self.subTest(size=f"{cols}x{rows}"):
@@ -69,7 +69,7 @@ class ResizeTest(e2elib.TuiTestCase):
         # The dialog still takes input, and the list under it is intact
         app.send("C-x")
         app.wait_gone("View Account")
-        self.assertRegex(app.text(), r"x Chequing +Savings +x")
+        self.assertRegex(app.text(), r"x    Chequing +alice +x\nx    Savings +alice +x")
         self.assertEqual(app.highlighted(), ["Chequing"])
 
     def test_resize_with_message_over_dialog(self):
@@ -92,7 +92,7 @@ class ResizeTest(e2elib.TuiTestCase):
 
     def test_dialog_wider_than_terminal(self):
         app, _, _ = self.open_db()
-        app.send("Down", "Down", "Enter")
+        app.send("Down", "Down", "Down", "Enter")
         app.wait_for("View Account")
         # Narrower than the dialog: it is clipped, but the app keeps going
         app.resize(50, 20)
@@ -134,7 +134,7 @@ class ResizeTest(e2elib.TuiTestCase):
         app.resize(90, 26)
         self.resize(app, 90, 26)
         self.assertFrame(app)
-        self.assertRegex(app.text(), r"x Chequing +Savings +x")
+        self.assertRegex(app.text(), r"x    Chequing +alice +x\nx    Savings +alice +x")
         app.send("C-x")
         self.assertEqual(app.wait_exit(), e2elib.PRC_ERR_FAIL)
 

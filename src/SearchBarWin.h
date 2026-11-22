@@ -48,7 +48,7 @@ private:
     PWSafeApp &app_;
     AccountsWin &accounts_win_;
     std::string query_;
-    ITEM *save_item_ = nullptr;                ///< Menu item selected when search bar opened
+    AccountList::Position save_position_;      ///< Row selected when search bar opened
     AccountRecords::iterator save_match_;      ///< Account selected when search bar opened, end() for a group heading
     AccountRecords::iterator last_match_;      ///< Item selected after last "Find Next"
     AccountRecords::iterator transient_match_; ///< Item selected while typing query

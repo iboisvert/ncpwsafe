@@ -71,7 +71,7 @@ class EditTest(e2elib.TuiTestCase):
         app.wait_gone("View Account")
         # The new account is listed, in its own group, and selected
         screen = app.wait_for("Travel")
-        self.assertRegex(screen, r"x Travel +x\nx Airline +x")
+        self.assertRegex(screen, r"x ▾ Travel  q+  1 x\nx    Airline +carol +x")
         self.assertEqual(app.highlighted(), ["Airline"])
         self.save_and_exit(app)
         expected = e2elib.read_spec() + [("Travel", "Airline", "carol", "pw-air-8", "Frequent flyer")]
@@ -158,7 +158,7 @@ class EditTest(e2elib.TuiTestCase):
         app.wait_gone("View Account")
         # Shopping is now empty and goes away, Bookstore is listed under Banking
         screen = app.wait_gone("Shopping")
-        self.assertRegex(screen, r"x Banking +x\nx Bookstore +Chequing +x\nx Savings +x")
+        self.assertRegex(screen, r"x ▾ Banking  q+  3 x\nx    Bookstore +bob +x\nx    Chequing +alice +x\nx    Savings +alice +x")
         self.assertEqual(app.highlighted(), ["Bookstore"])
         self.save_and_exit(app)
         expected = [r for r in e2elib.read_spec() if r[1] != "Bookstore"]
@@ -176,7 +176,7 @@ class EditTest(e2elib.TuiTestCase):
         app.send("C-s")
         app.wait_gone("View Account")
         screen = app.wait_gone("Chequing")
-        self.assertRegex(screen, r"x Banking +x\nx Savings +Term deposit +x")
+        self.assertRegex(screen, r"x ▾ Banking  q+  2 x\nx    Savings +alice +x\nx    Term deposit +alice +x")
         self.assertEqual(app.highlighted(), ["Term deposit"])
         self.save_and_exit(app)
         expected = [r for r in e2elib.read_spec() if r[1] != "Chequing"]
@@ -237,7 +237,7 @@ class EditTest(e2elib.TuiTestCase):
         # A group heading has no account. DeleteEntry() used to fail an
         # assertion in Debug builds
         app, _, _ = self.open_db()
-        app.send("Down")
+        app.send("Down", "Down")
         app.wait_highlighted("Banking")
         app.send("C-d", "Right")
         app.wait_highlighted("Chequing")

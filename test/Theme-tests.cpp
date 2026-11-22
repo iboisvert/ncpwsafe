@@ -55,6 +55,18 @@ TEST(ThemeTest, SelectionIsReverseVideo)
     EXPECT_NE(0u, Theme::AttrFor(Role::SELECTION, Mode::COLOUR) & A_REVERSE);
 }
 
+TEST(ThemeTest, SymbolsHaveAsciiForms)
+{
+    for (Symbol symbol : {Symbol::EXPANDED, Symbol::COLLAPSED, Symbol::ELLIPSIS, Symbol::CHECK, Symbol::SEPARATOR})
+    {
+        const std::string ascii = Theme::SymbolFor(symbol, false);
+        EXPECT_EQ(1u, ascii.size());
+        EXPECT_LT(static_cast<unsigned char>(ascii[0]), 0x80);
+        EXPECT_NE(ascii, Theme::SymbolFor(symbol, true));
+    }
+    EXPECT_STREQ("\u25be", Theme::SymbolFor(Symbol::EXPANDED, true));
+}
+
 TEST(ThemeTest, HeadingStandsOutWithoutColour)
 {
     attr_t attrs = Theme::AttrFor(Role::HEADING, Mode::MONO);

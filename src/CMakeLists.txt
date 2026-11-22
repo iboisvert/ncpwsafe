@@ -3,6 +3,7 @@ list(APPEND SRC
     AccountRecord.cpp
     AccountRecords.cpp
     AccountDetailsDlg.cpp
+    AccountList.cpp
     AccountsWin.cpp
     ChangeDbPasswordCommand.cpp
     ChangeDbPasswordDlg.cpp

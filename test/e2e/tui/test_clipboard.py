@@ -21,7 +21,7 @@ class ClipboardTest(e2elib.TuiTestCase):
         app.wait_until(lambda: self.clipboard() == expected, f"clipboard to contain {expected!r}")
 
     def select_chequing(self, app):
-        app.send("Down", "Down")
+        app.send("Down", "Down", "Down")
         app.wait_highlighted("Chequing")
 
     def test_copy_user(self):
@@ -40,7 +40,7 @@ class ClipboardTest(e2elib.TuiTestCase):
 
     def test_copy_on_group_does_nothing(self):
         app, _, _ = self.open_db()
-        app.send("Down")
+        app.send("Down", "Down")
         app.wait_highlighted("Banking")
         app.send("C-u", "C-p", "Right")
         app.wait_highlighted("Chequing")
@@ -50,7 +50,6 @@ class ClipboardTest(e2elib.TuiTestCase):
         # An account without a user or password used to abort, constructing a
         # std::string from the missing (null) field
         app, _, _ = self.open_db(spec="sparse")
-        app.send("Down")
         app.wait_highlighted("No user")
         app.send("C-u")
         self.wait_clipboard(app, "")

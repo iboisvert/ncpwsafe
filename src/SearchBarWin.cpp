@@ -88,7 +88,7 @@ void SearchBarWin::Show()
     query_.clear();
 
     // Saved to go back to on cancel, which may be a group heading rather than an account
-    save_item_ = accounts_win_.GetCurrentItem();
+    save_position_ = accounts_win_.GetPosition();
     const AccountRecord *psel = accounts_win_.GetSelection();
     auto &records = app_.GetDb().Records();
     // Search from after the selected account, or from the first account if a group
@@ -192,7 +192,7 @@ void SearchBarWin::SetSelection(AccountRecords::const_iterator it)
 
 void SearchBarWin::ResetSavedMatch()
 {
-    accounts_win_.SetCurrentItem(save_item_);
+    accounts_win_.SetPosition(save_position_);
 }
 
 void SearchBarWin::ResetLastMatch()
