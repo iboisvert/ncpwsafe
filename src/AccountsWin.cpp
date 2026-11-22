@@ -235,7 +235,11 @@ AccountsWin::AccountsWin(PWSafeApp &app, WINDOW *win) : app_(app), win_(win)
         {"^P", "Copy password", "Copy the account password to the clipboard"},
         {~CBOPTS_READONLY, "^S", "Save and exit", "Save changes to the database and exit"},
         {"^X", "Exit", "Exit without saving changes"},
-        {~CBOPTS_READONLY, "^C", "Change password", "Change the account database password"}
+        {~CBOPTS_READONLY, "^C", "Change password", "Change the account database password"},
+        {"/", "Search", "Find an account by title, user name or notes"},
+        {"Space", "Collapse", "Collapse or expand the selected group"},
+        {"Left", "To group", "Go to the account's group, or collapse the group"},
+        {"Right", "Expand", "Expand the group, or go to its first account"},
     });
     // clang-format on
 }
@@ -725,6 +729,11 @@ DialogResult AccountsWin::ProcessInput()
         {
             app_.DoSearch();
             app_.GetCommandBar().Show(this);
+            break;
+        }
+        case KEY_F(1):
+        {
+            app_.GetCommandBar().ShowHelp(win_);
             break;
         }
         case ' ':

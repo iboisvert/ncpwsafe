@@ -15,6 +15,7 @@ list(APPEND SRC
     GeneratePasswordDlg.cpp
     GeneratePasswordCommand.cpp
     GenerateTestDbCommand.cpp
+    HelpWin.cpp
     MessageBox.cpp
     Policy.cpp
     Prefs.cpp

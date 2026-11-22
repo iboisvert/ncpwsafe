@@ -110,6 +110,36 @@ class NavigationTest(e2elib.TuiTestCase):
         self.assertRegex(app.text(), r"x ▾ Banking  q+  2 x\nx    No user +x\nx    Savings +alice +x")
         self.assertPath(app, [("Down", "Savings"), ("Down", "Savings")])
 
+    def test_help_lists_every_key(self):
+        # 80 columns are too few for every command: the bar ends with F1 More
+        app, _, _ = self.open_db(cols=80)
+        bar = app.screen()[-1]
+        self.assertTrue(bar.rstrip().endswith("F1 More"), bar)
+        self.assertNotIn("^C Change password", bar)
+        app.send("F1")
+        screen = app.wait_for(" Keys ")
+        for text in ("^C", "Change the account database password", "/", "Find an account by title",
+                     "Space", "Collapse or expand the selected group"):
+            self.assertIn(text, screen)
+        self.assertIn("Esc Close", app.screen()[-1])
+        app.send("Escape")
+        app.wait_gone(" Keys ")
+        self.assertTrue(app.screen()[-1].rstrip().endswith("F1 More"))
+        # The list still takes keys
+        self.assertPath(app, [("Down", "Wiki")])
+
+    def test_help_in_dialog(self):
+        app, _, _ = self.open_db(cols=80)
+        app.send("Enter")
+        app.wait_for("View Account")
+        app.send("F1")
+        screen = app.wait_for(" Keys ")
+        self.assertIn("Show or hide the account password", screen)
+        app.send("Escape")
+        app.wait_gone(" Keys ")
+        self.assertIn("View Account", app.text())
+        self.assertIn("^X Cancel", app.screen()[-1])
+
     def test_search(self):
         app, _, _ = self.open_db()
         app.send("/")

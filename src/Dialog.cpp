@@ -262,6 +262,10 @@ DialogResult Dialog::ProcessInput()
 
         switch (ch)
         {
+        case KEY_F(1): {
+            app_.GetCommandBar().ShowHelp(win_);
+            break;
+        }
         // Possibly add "apply" command ^A to apply changes and continue editing
         case KEY_CTRL('S'): {
             if (!read_only_)
