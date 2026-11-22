@@ -100,3 +100,8 @@ DialogResult SafeCombinationPromptDlg::Show(WINDOW *parent)
     }
     return result;
 }
+
+SafeCombinationPromptDlg::~SafeCombinationPromptDlg()
+{
+    ZeroString(password_);
+}

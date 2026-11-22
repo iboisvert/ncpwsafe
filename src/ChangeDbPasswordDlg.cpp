@@ -69,3 +69,9 @@ DialogResult ChangeDbPasswordDlg::Show(WINDOW *parent)
 
     return result;
 }
+
+ChangeDbPasswordDlg::~ChangeDbPasswordDlg()
+{
+    ZeroString(password_);
+    ZeroString(new_password_);
+}

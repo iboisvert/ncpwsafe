@@ -52,15 +52,3 @@ gets `An error occurred changing the account database password.` and the passwor
 **Fix:** decide whether an empty database password is allowed. If it is, accept it in `Write()`
 (keeping `--change-password`'s check if wanted); if not, reject it in the dialog's validation
 instead of asking. Add a TUI test for the answer.
-
-## 3. The password dialogs keep copies of the passwords that aren't zeroed
-
-**Severity:** Minor
-
-`ChangeDbPasswordDlg` and `ChangePasswordDlg` copy the entered passwords into `std::string`
-members (`password_`, `new_password_`) that are never zeroed, so they stay in freed memory after the
-dialog is destroyed. `Dialog::RandomizeBuffers()` scrambles the form buffers, but not these copies or
-`Dialog::values_`.
-
-**Fix:** zero the copies with `ZeroString()` in the dialogs' destructors, and the secret values in
-`Dialog::values_` when the dialog is destroyed.

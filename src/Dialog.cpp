@@ -10,6 +10,14 @@
 #include "Utils.h"
 #include "Label.h"
 
+Dialog::~Dialog()
+{
+    for (auto &[ft, value] : values_)
+    {
+        ZeroString(value);
+    }
+}
+
 Dialog &Dialog::SetActiveField(DialogFieldId ft)
 {
     active_field_ = GetField(ft);

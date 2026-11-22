@@ -89,3 +89,8 @@ DialogResult ChangePasswordDlg::Show(WINDOW *parent)
 
     return result;
 }
+
+ChangePasswordDlg::~ChangePasswordDlg()
+{
+    ZeroString(password_);
+}

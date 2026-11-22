@@ -95,6 +95,8 @@ public:
     {
         ConstructFields();
     }
+    /** Zeroes the values of the fields, which may hold passwords */
+    ~Dialog();
 
     /** Set the field to be active when the Dialog is initialized. */
     Dialog &SetActiveField(DialogFieldId fieldType);

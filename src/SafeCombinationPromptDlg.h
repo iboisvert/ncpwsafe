@@ -10,6 +10,8 @@ class SafeCombinationPromptDlg
 {
 public:
     SafeCombinationPromptDlg(PWSafeApp &app);
+    /** Zeroes the password */
+    ~SafeCombinationPromptDlg();
 
     /** Show the unlock dialog */
     DialogResult Show(WINDOW *parent);
@@ -19,7 +21,7 @@ public:
         return m_filename;
     }
 
-    std::string GetPassword()
+    const std::string &GetPassword() const
     {
         return password_;
     }

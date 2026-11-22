@@ -10,6 +10,8 @@ class ChangeDbPasswordDlg
 {
 public:
     ChangeDbPasswordDlg(PWSafeApp &app);
+    /** Zeroes the passwords */
+    ~ChangeDbPasswordDlg();
 
     DialogResult Show(WINDOW *parent);
 
