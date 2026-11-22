@@ -84,7 +84,7 @@ class ExportTest(e2elib.E2ETestCase):
         db, pw = self.make_db()
         proc = self.run_ncpwsafe("--export-db", "--password-file", pw, db)
         self.assertNotEqual(proc.returncode, 0)
-        self.assertGreater(proc.returncode, 0, "ncpwsafe was killed by a signal")
+        self.assertNotCrashed(proc)
         self.assertIn("Output file is required", proc.stderr)
 
     def test_wrong_password(self):
@@ -96,7 +96,8 @@ class ExportTest(e2elib.E2ETestCase):
         self.assertIn(f"An error occurred reading database file {db}", proc.stderr)
         self.assertFalse(out.exists())
 
-    @unittest.skipIf(os.geteuid() == 0, "root can write to read-only directories")
+    @unittest.skipIf(e2elib.IS_WINDOWS, "directory permission bits don't apply on Windows")
+    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root can write to read-only directories")
     def test_output_not_writable(self):
         db, pw = self.make_db()
         ro = self.tmp / "ro"
@@ -105,6 +106,14 @@ class ExportTest(e2elib.E2ETestCase):
         proc = self.run_ncpwsafe("--export-db", "--password-file", pw, "-o", ro / "out.csv", db)
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("creating export file", proc.stderr)
+
+    def test_output_directory_missing(self):
+        db, pw = self.make_db()
+        out = self.tmp / "no-such-dir" / "out.csv"
+        proc = self.run_ncpwsafe("--export-db", "--password-file", pw, "-o", out, db)
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("creating export file", proc.stderr)
+        self.assertFalse(out.parent.exists())
 
 
 if __name__ == "__main__":

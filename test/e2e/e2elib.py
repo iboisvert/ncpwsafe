@@ -8,9 +8,12 @@ environment variables:
     E2E_FIXTURES  directory holding the fixture specs (*.tsv) and password files
     TMUX_BIN      path of tmux, empty if it isn't installed (TUI tests only)
 
-Every test runs in its own temporary directory, which is also $HOME, so the
-preferences file (~/.config/ncpwsafe/...) and database backups never touch
-the real home directory.
+Every test runs in its own temporary directory, which is also $HOME (and,
+on Windows, %USERPROFILE% and %APPDATA%), so the preferences file and
+database backups never touch the real home directory.
+
+The CLI tests run on Linux and Windows. The TUI tests need tmux, so they
+only run on Linux, and are skipped on Windows.
 """
 
 import csv
@@ -23,6 +26,7 @@ import unittest
 from pathlib import Path
 
 E2E_DIR = Path(__file__).resolve().parent
+IS_WINDOWS = sys.platform == "win32"
 SKIP_EXIT_CODE = 77  # Matches SKIP_RETURN_CODE in CMakeLists.txt
 PRC_ERR_FAIL = 1  # ncpwsafe exit code for failure, or for exiting the UI without saving
 
@@ -42,13 +46,13 @@ E2E_MKDB = _env_path("E2E_MKDB")
 FIXTURES = _env_path("E2E_FIXTURES", E2E_DIR / "fixtures")
 
 # Fixture: password file and account spec for the "small" database
-SMALL_PASSWORD = (FIXTURES / "small.pw").read_text().splitlines()[0]
+SMALL_PASSWORD = (FIXTURES / "small.pw").read_text(encoding="utf-8").splitlines()[0]
 
 
 def read_spec(name="small"):
     """Read a fixture spec as a list of (group, title, user, password, notes) tuples."""
     rows = []
-    for line in (FIXTURES / f"{name}.tsv").read_text().splitlines():
+    for line in (FIXTURES / f"{name}.tsv").read_text(encoding="utf-8").splitlines():
         if not line or line.startswith("#"):
             continue
         fields = line.split("\t")
@@ -64,6 +68,7 @@ def sorted_rows(rows):
 def ncpwsafe_has_test_db():
     """`--test-db` is only compiled into Debug builds."""
     out = subprocess.run([str(NCPWSAFE), "--help"], capture_output=True, text=True,
+                         encoding="utf-8", errors="replace",
                          env=os.environ.copy(), check=False).stdout
     return "--test-db " in out
 
@@ -83,8 +88,10 @@ class E2ETestCase(unittest.TestCase):
     maxDiff = None
 
     def setUp(self):
-        # Under /tmp rather than $TMPDIR, so paths shown on screen stay short
-        self.tmp = Path(tempfile.mkdtemp(prefix="ncpwsafe-e2e-", dir="/tmp" if Path("/tmp").is_dir() else None))
+        # On Linux under /tmp rather than $TMPDIR, so paths shown on screen stay short.
+        # resolve() expands Windows 8.3 short names (C:\Users\RUNNER~1\...)
+        tmp_root = "/tmp" if not IS_WINDOWS and Path("/tmp").is_dir() else None
+        self.tmp = Path(tempfile.mkdtemp(prefix="ncpwsafe-e2e-", dir=tmp_root)).resolve()
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         self.home = self.tmp / "home"
         self.home.mkdir()
@@ -92,13 +99,23 @@ class E2ETestCase(unittest.TestCase):
         self.env["HOME"] = str(self.home)
         # Never reach a real clipboard
         self.env.pop("NCPWSAFE_XCLIP", None)
-        self.config_file = self.home / ".config" / "ncpwsafe" / "ncpwsafe-config.ini"
+        if IS_WINDOWS:
+            # ncpwsafe keeps its preferences under %APPDATA% on Windows
+            appdata = self.home / "AppData" / "Roaming"
+            appdata.mkdir(parents=True)
+            self.env["USERPROFILE"] = str(self.home)
+            self.env["APPDATA"] = str(appdata)
+            self.env["LOCALAPPDATA"] = str(self.home / "AppData" / "Local")
+            self.config_file = appdata / "ncpwsafe" / "ncpwsafe-config.ini"
+        else:
+            self.config_file = self.home / ".config" / "ncpwsafe" / "ncpwsafe-config.ini"
 
     # Files --------------------------------------------------------------
 
     def write_file(self, name, content):
+        """Write a text file in the temp dir, with the platform's line endings."""
         path = self.tmp / name
-        path.write_text(content)
+        path.write_text(content, encoding="utf-8")
         return path
 
     def password_file(self, password, name=None):
@@ -120,15 +137,25 @@ class E2ETestCase(unittest.TestCase):
 
     def run_ncpwsafe(self, *args, timeout=30):
         return subprocess.run([str(NCPWSAFE), *map(str, args)], capture_output=True, text=True,
+                              encoding="utf-8", errors="replace",
                               env=self.env, cwd=self.tmp, timeout=timeout,
                               stdin=subprocess.DEVNULL, check=False)
+
+    def assertNotCrashed(self, proc):
+        """ncpwsafe exited by itself rather than crashing: killed by a signal
+        on Linux, or an NTSTATUS exception code or abort() (3) on Windows."""
+        if IS_WINDOWS:
+            self.assertFalse(proc.returncode >= 0xC0000000 or proc.returncode == 3,
+                             f"ncpwsafe crashed with exit code {proc.returncode:#x}")
+        else:
+            self.assertGreaterEqual(proc.returncode, 0, "ncpwsafe was killed by a signal")
 
     def export(self, db, pwfile):
         """Export `db` and return its rows without UUIDs, as (group, title, user, password, notes)."""
         out = self.tmp / "export.csv"
         proc = self.run_ncpwsafe("--export-db", "--force", "--password-file", pwfile, "-o", out, db)
         self.assertEqual(proc.returncode, 0, f"export failed:\n{proc.stdout}{proc.stderr}")
-        rows = parse_export(out.read_text())
+        rows = parse_export(out.read_text(encoding="utf-8"))
         out.unlink()
         return rows
 
@@ -208,6 +235,10 @@ class TuiTestCase(E2ETestCase):
 
 def require_tmux():
     """Exit 77 (skipped) if tmux isn't available."""
+    if IS_WINDOWS:
+        # tmux can't host a native Windows console program
+        print("The TUI tests need tmux and don't run on Windows yet, skipping")
+        sys.exit(SKIP_EXIT_CODE)
     if not os.environ.get("TMUX_BIN") or not Path(os.environ["TMUX_BIN"]).exists():
         print("tmux is not installed, skipping TUI tests")
         sys.exit(SKIP_EXIT_CODE)

@@ -6,6 +6,10 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
     message(FATAL_ERROR "In-source builds are not supported, use a preset or -B build. "
         "Remove CMakeCache.txt and CMakeFiles/ from the source directory.")
 endif()
+# vcpkg installs the manifest's dependencies at project(), so its features are chosen here
+if(USE_GLOG)
+    list(APPEND VCPKG_MANIFEST_FEATURES "glog")
+endif()
 project(ncpwsafe 
     VERSION 0.1 
     DESCRIPTION "An ncurses terminal program that manages encrypted password databases"
@@ -49,12 +53,27 @@ endif()
 add_compile_definitions(
     "$<$<CONFIG:RELEASE>:NDEBUG>"
 )
+if(MSVC)
+    add_compile_definitions(WIN32_LEAN_AND_MEAN NOMINMAX)
+endif()
 add_compile_options(
     "$<$<AND:$<CONFIG:DEBUG>,$<BOOL:${NCPWSAFE_DEBUG_SANITIZE}>>:${NCPWSAFE_SANITIZE_FLAGS}>"
 )
-add_link_options(
-    "$<$<AND:$<CONFIG:DEBUG>,$<BOOL:${NCPWSAFE_DEBUG_SANITIZE}>>:${NCPWSAFE_SANITIZE_FLAGS}>"
-)
+if(NOT MSVC)
+    # MSVC adds the ASan runtime from the /fsanitize compile option, link.exe doesn't take it
+    add_link_options(
+        "$<$<AND:$<CONFIG:DEBUG>,$<BOOL:${NCPWSAFE_DEBUG_SANITIZE}>>:${NCPWSAFE_SANITIZE_FLAGS}>"
+    )
+elseif(NCPWSAFE_DEBUG_SANITIZE)
+    # CMake's default MSVC Debug flags have /RTC1, which cl rejects with /fsanitize=address (D8016),
+    # and link.exe ignores /INCREMENTAL with ASan. Only affects this directory and below,
+    # the dependencies are not built with ASan
+    foreach(lang C CXX)
+        string(REGEX REPLACE "(^| )[/-]RTC[1csu]*" "" CMAKE_${lang}_FLAGS_DEBUG "${CMAKE_${lang}_FLAGS_DEBUG}")
+    endforeach()
+    string(REGEX REPLACE "(^| )[/-]INCREMENTAL(:[A-Za-z]+)?" "" CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG}")
+    string(APPEND CMAKE_EXE_LINKER_FLAGS_DEBUG " /INCREMENTAL:NO")
+endif()
 
 add_subdirectory(src)
 if(BUILD_TESTING)

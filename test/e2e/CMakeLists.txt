@@ -2,6 +2,7 @@
 #   CLI tests (label "cli") run the non-interactive commands.
 #   TUI tests (label "tui") drive the ncurses UI inside a detached tmux server.
 # Both are Python 3 (standard library only) and carry the "e2e" label.
+# The CLI tests run on Linux and Windows, the TUI tests only on Linux.
 # See test/README.md.
 
 find_package(Python3 COMPONENTS Interpreter)
@@ -18,9 +19,16 @@ endif()
 add_executable(e2e-mkdb mkdb.cpp)
 target_link_libraries(e2e-mkdb libncpwsafe)
 
-set(E2E_ENV
+if(WIN32)
+    # ncpwsafe.exe, Windows has no versioned file name
+    set(E2E_NCPWSAFE "$<TARGET_FILE:ncpwsafe>")
+else()
     # The unversioned symlink, as users run it (TARGET_FILE is ncpwsafe-<version>)
-    "NCPWSAFE=$<TARGET_FILE_DIR:ncpwsafe>/ncpwsafe"
+    set(E2E_NCPWSAFE "$<TARGET_FILE_DIR:ncpwsafe>/ncpwsafe")
+endif()
+
+set(E2E_ENV
+    "NCPWSAFE=${E2E_NCPWSAFE}"
     "E2E_MKDB=$<TARGET_FILE:e2e-mkdb>"
     "E2E_FIXTURES=${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
     "TMUX_BIN=${TMUX_EXECUTABLE}"
@@ -36,7 +44,8 @@ function(add_e2e_tests label timeout)
         get_filename_component(stem ${script} NAME_WE)
         string(SUBSTRING ${stem} 5 -1 name)  # strip "test_"
         add_test(NAME ${label}.${name}
-            COMMAND ${Python3_EXECUTABLE} -B ${script}
+            # -X utf8: UTF-8 file and pipe I/O on every platform (Windows defaults to the ANSI code page)
+            COMMAND ${Python3_EXECUTABLE} -B -X utf8 ${script}
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
         set_tests_properties(${label}.${name} PROPERTIES
             LABELS "e2e;${label}"

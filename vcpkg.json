@@ -1,9 +1,24 @@
 {
   "dependencies": [
-    "glog",
+    {
+      "name": "getopt",
+      "platform": "windows"
+    },
+    "gtest",
     "icu",
     "ncurses",
-    "nettle",
-    "gtest"
-  ]
+    {
+      "name": "nettle",
+      "platform": "!windows"
+    },
+    "openssl"
+  ],
+  "features": {
+    "glog": {
+      "description": "Logging with glog, for -DUSE_GLOG=ON",
+      "dependencies": [
+        "glog"
+      ]
+    }
+  }
 }

@@ -7,7 +7,8 @@ database formats.
 Be sure to make a backup of your account password database 
 before using this application.
 
-`xclip` is required to copy data to the clipboard from the CLI,
+On Linux, `xclip` is required to copy data to the clipboard from the CLI.
+On Windows, the Windows clipboard is used directly.
 
 ## Get Started
 
@@ -17,6 +18,36 @@ $ cmake -DCMAKE_BUILD_TYPE:STRING=Debug -B build
 $ cmake --build build
 $ ./build/bin/ncpwsafe
 ```
+
+### Windows
+
+ncpwsafe builds natively on Windows with MSVC and the Windows SDK.
+Dependencies are installed by [vcpkg](https://vcpkg.io) from `vcpkg.json`.
+ncurses is built from the overlay port in `ports/ncurses`, which adds MSVC
+support to the upstream vcpkg port using the ncurses Windows console driver.
+
+Requirements:
+- Visual Studio 2022 or later, or the Build Tools for Visual Studio, with the
+  "Desktop development with C++" workload (MSVC, the Windows SDK, CMake, and Ninja)
+- vcpkg; the copy bundled with Visual Studio works, or set `VCPKG_ROOT`
+  to a clone of https://github.com/microsoft/vcpkg
+
+From a Developer PowerShell or Developer Command Prompt for Visual Studio (x64):
+```
+> cmake --preset x64-windows-msvc-debug
+> cmake --build --preset x64-windows-msvc-debug
+> ctest --preset x64-windows-msvc-debug
+> .\build\bin\ncpwsafe.exe
+```
+Use the `x64-windows-msvc-release` presets for a release build. It builds
+only the release libraries of the dependencies (the overlay triplet in
+`triplets/`). The first configure builds all dependencies from source and
+takes a while. glog is only installed when configuring with `-DUSE_GLOG=ON`.
+
+The executable is statically linked against its dependencies,
+so `ncpwsafe.exe` can be copied and run on its own.
+On Windows the configuration file is `%APPDATA%\ncpwsafe\ncpwsafe-config.ini`,
+and `${HOME}` in preference values falls back to `%USERPROFILE%`.
 
 ## Testing
 
@@ -30,6 +61,12 @@ $ ctest --preset=x64-linux-gcc-debug
 The end-to-end tests need Python 3, and the UI tests also need `tmux`
 (they are skipped without it). See [test/README.md](test/README.md) for
 requirements, running a subset of the tests, and how the tests work.
+
+On Windows the unit tests and the CLI end-to-end tests run, but the UI
+end-to-end tests are skipped: they drive the UI through `tmux`, which isn't
+available there. This is a gap in testing: nothing automatically tests the
+ncurses UI on Windows (the Windows console driver, keyboard input, the
+clipboard, resizing), so check UI changes on Windows by hand.
 
 ## Known issues
 Known bugs are tracked in [docs/ISSUES.md](docs/ISSUES.md).

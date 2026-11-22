@@ -20,6 +20,14 @@ There are two kinds of tests, and CTest runs both:
 
 On Ubuntu: `sudo apt-get install libgtest-dev python3 tmux`.
 
+### Windows
+
+The unit tests and the CLI tests run on Windows too, with the
+`x64-windows-msvc-*` presets. The CLI tests need Python 3 on the `PATH`
+(it's preinstalled on GitHub's Windows runners). The TUI tests are always
+reported as skipped on Windows, because tmux can't host a native Windows
+console program.
+
 ## Running the tests
 
 The build directory must be a direct child of the repository root (for
@@ -59,8 +67,19 @@ export NCPWSAFE=$PWD/build/bin/ncpwsafe \
        E2E_MKDB=$PWD/build/test/e2e/e2e-mkdb \
        TMUX_BIN=$(command -v tmux) \
        LANG=C.UTF-8 LC_ALL=C.UTF-8
-python3 test/e2e/tui/test_edit.py -k test_add_account
+python3 -X utf8 test/e2e/tui/test_edit.py -k test_add_account
 ```
+
+On Windows, in PowerShell:
+
+```powershell
+$env:NCPWSAFE = "$PWD\build\bin\ncpwsafe.exe"
+$env:E2E_MKDB = "$PWD\build\test\e2e\e2e-mkdb.exe"
+python -X utf8 test\e2e\cli\test_export.py -k test_export
+```
+
+`-X utf8` makes Python read and write files and pipes as UTF-8, which
+Windows doesn't do by default. CTest passes it to every script.
 
 To see the UI while a TUI test runs, find its tmux server and attach to
 it from another terminal (the socket names are `ncpwsafe-e2e-<pid>-<n>`):
@@ -114,11 +133,14 @@ comparing the rows, without UUIDs, to the spec. `assertDbContains` in
 
 Every test case gets:
 
-- a new temporary directory under `/tmp`, removed afterwards, holding its
-  databases, password files and exports;
-- its own `$HOME` in that directory, so the preferences file
-  (`~/.config/ncpwsafe/ncpwsafe-config.ini`) and database backups never touch
-  your real home directory;
+- a new temporary directory, removed afterwards, holding its databases,
+  password files and exports. It is under `/tmp` on Linux and under
+  `%TEMP%` on Windows;
+- its own `$HOME` in that directory (on Windows, also `%USERPROFILE%` and
+  `%APPDATA%`), so the preferences file
+  (`~/.config/ncpwsafe/ncpwsafe-config.ini`, or
+  `%APPDATA%\ncpwsafe\ncpwsafe-config.ini` on Windows) and database backups
+  never touch your real home directory;
 - for TUI tests, its own tmux server (`tmux -L <unique name> -f /dev/null`),
   so tests can run in parallel and never see your own tmux sessions or
   configuration.
@@ -226,3 +248,8 @@ only run under tmux with `TERM=screen`. See the manual checklists in
 - **A fixture**: add `fixtures/<name>.tsv` and use `self.make_db("<name>")`.
 - A script that can't run in the current environment should exit with
   `e2elib.SKIP_EXIT_CODE` (77), so CTest reports it as skipped.
+- CLI tests must run on Linux and Windows. Build paths with `pathlib`, not
+  `/` strings; pass `encoding="utf-8"` (or rely on `-X utf8`) when reading
+  files; check crashes with `assertNotCrashed()` rather than a negative exit
+  code; and use `e2elib.IS_WINDOWS` to skip a test that can't apply there,
+  such as one that depends on POSIX permission bits.

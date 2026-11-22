@@ -1,4 +1,5 @@
 """CLI: help, argument parsing and validation."""
+import os
 import sys
 from pathlib import Path
 
@@ -25,7 +26,8 @@ class ArgsTest(e2elib.E2ETestCase):
 
     def test_help_shows_config_file_under_home(self):
         proc = self.run_ncpwsafe("--help")
-        self.assertIn(str(self.config_file), proc.stdout)
+        # On Windows the default is %APPDATA% + "/ncpwsafe/...", with mixed separators
+        self.assertIn(str(self.config_file), proc.stdout.replace("/", os.sep))
 
     def test_unknown_option(self):
         proc = self.run_ncpwsafe("--no-such-option")

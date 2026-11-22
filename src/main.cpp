@@ -22,7 +22,12 @@
 #include <cwctype>
 #include <getopt.h>
 #include <wchar.h>
+#ifdef _WIN32
+#include <filesystem>
+#include "Win32.h"
+#else
 #include <libgen.h>
+#endif
 #ifdef HAVE_SYS_PRCTL_H
 #include <sys/prctl.h>
 #endif
@@ -30,13 +35,35 @@
 using std::fprintf;
 using std::srand;
 
+/** Get the program name to display from `argv[0]` */
+static std::string ProgramName(char *argv0)
+{
+#ifdef _WIN32
+    // Strip directory and `.exe` extension
+    return std::filesystem::path(argv0).stem().string();
+#else
+    return basename(argv0);
+#endif
+}
+
 /**
- * Prevent ptrace and the creation of core dumps, which could expose decrypted passwords.
+ * Prevent ptrace and the creation of core dumps (on Windows, opening the process
+ * and crash dumps), which could expose decrypted passwords.
  * Only in Release builds, so that a debugger can attach to Debug builds.
  */
 static bool DisableCoreDump()
 {
-#if defined(NDEBUG) && defined(HAVE_SYS_PRCTL_H)
+#if !defined(NDEBUG)
+    return true;
+#elif defined(_WIN32)
+    win32::DisableCrashDumps();
+    if (!win32::RestrictProcessAccess())
+    {
+        errno = EPERM;  // For the error message
+        return false;
+    }
+    return true;
+#elif defined(HAVE_SYS_PRCTL_H)
     return prctl(PR_SET_DUMPABLE, 0) == 0;
 #else
     return true;
@@ -87,9 +114,9 @@ static void Usage(const char *progName)
             "  --test-db-lang=STR   Language of strings in generated database\n"
             "                       Valid values are en-CA, ru. Default value is %s\n"
             "  --test-db-groups=N   Number of groups in the generated database\n"
-            "                       Default value is %zd\n"
+            "                       Default value is %lu\n"
             "  --test-db-items=N    Number of itesm in the generated database\n"
-            "                       Default value is %zd\n"
+            "                       Default value is %lu\n"
             "\n"
             "Generate password options:\n"
             "  --password-count=N   Generate N passwords, default count is %zd\n"
@@ -536,10 +563,15 @@ int main(int argc, char *argv[])
     // Initialize Google’s logging library.
     google::InitGoogleLogging(argv[0]);
 #endif
-    
+
+#ifdef _WIN32
+    // UTF-8 console code pages and locale
+    win32::InitConsole();
+#else
     // ncurses needs a UTF-8 character set to show and edit non-ASCII account text.
     // Only LC_CTYPE, so that e.g. number formats don't change
     SetUtf8CtypeLocale();
+#endif
 
     // Don't allow ptrace or core dumps in Release builds
     if (!DisableCoreDump())
@@ -551,7 +583,7 @@ int main(int argc, char *argv[])
     InputProgArgs input_args;
     if (!ParseArgs(argc, argv, input_args))
     {
-        Usage(basename(argv[0]));
+        Usage(ProgramName(argv[0]).c_str());
         return PRC_ERR_FAIL;
     }
 

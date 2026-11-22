@@ -1,6 +1,7 @@
 /* Copyright 2020 Ian Boisvert */
 #include "ProgArgs.h"
 #include "Utils.h"
+#include "Win32.h"
 
 const Operation DEFAULT_COMMAND = Operation::OPEN_DB;
 const bool DEFAULT_FORCE = false;
@@ -11,4 +12,8 @@ const unsigned long DEFAULT_GENERATE_ITEM_COUNT = 50;
 const size_t DEFAULT_GENERATE_PASSWORD_COUNT = 1;
 const size_t DEFAULT_PASSWORD_POLICY = 2;
 const size_t DEFAULT_PASSWORD_LENGTH = 20;
+#ifdef _WIN32
+std::string DEFAULT_CONFIG_FILE = win32::RoamingAppDataDir() + "/ncpwsafe/ncpwsafe-config.ini";
+#else
 std::string DEFAULT_CONFIG_FILE = ExpandEnvVars("${HOME}/.config/ncpwsafe/ncpwsafe-config.ini");
+#endif
