@@ -27,12 +27,25 @@ constexpr int KEY_WIDE_CHAR = KEY_MAX + 1;
 
 /**
  * Read a key from `win` with `wget_wch()`, so a non-ASCII (multibyte) character is read
- * whole rather than byte by byte.
+ * whole rather than byte by byte. Every modal loop reads its keys with this function.
+ *
+ * If an idle timer is set (`SetKeyIdleTimer()`, see AutoSignOff.h), each key except
+ * `KEY_RESIZE` restarts it, and when it expires `ReadKey()` throws `AutoSignOff`.
+ * While waiting, the window's input timeout (`wtimeout()`) is changed; it is blocking again
+ * when `ReadKey()` returns.
  * @param[out] wch The character, if `KEY_WIDE_CHAR` is returned
  * @returns A function key or ASCII character as `wgetch()` returns it, `KEY_WIDE_CHAR`
  * for any other character, or `ERR`
+ * @throws AutoSignOff when the idle timer expires
  */
 int ReadKey(WINDOW *win, wchar_t &wch);
+
+/** `ReadKey()` for windows that only need function keys and ASCII characters */
+inline int ReadKey(WINDOW *win)
+{
+    wchar_t wch;
+    return ReadKey(win, wch);
+}
 
 /**
  * Overwrite the 0 buffer of curses fields

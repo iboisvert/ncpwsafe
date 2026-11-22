@@ -23,6 +23,7 @@ void PWSafeApp::Init(ProgArgs args)
     args_ = args;
 
     prefs_.ReadPrefs(args_.config_file_);
+    InitAutoSignOff();
 
     db_.ReadOnly() = args.read_only_;
 
@@ -49,11 +50,59 @@ void PWSafeApp::Init(ProgArgs args)
     db_.Password() = args.password_;
 }
 
+void PWSafeApp::InitAutoSignOff()
+{
+    const std::string value = prefs_.Get<std::string>(Prefs::AUTO_SIGN_OFF, "");
+    long seconds = DEFAULT_AUTO_SIGN_OFF_SECONDS;
+    if (!value.empty() && !ParseAutoSignOff(value, seconds))
+    {
+#ifdef HAVE_GLOG
+        LOG(WARNING) << "Invalid value \"" << value << "\" of preference \"" << Prefs::AUTO_SIGN_OFF
+                     << "\", using " << FormatDuration(DEFAULT_AUTO_SIGN_OFF_SECONDS);
+#endif
+        seconds = DEFAULT_AUTO_SIGN_OFF_SECONDS;
+    }
+    idle_timer_.SetPeriod(seconds);
+}
+
 /** Open and edit an account database */
 DialogResult PWSafeApp::Show()
 {
     InitTUI();
 
+    DialogResult dr = DialogResult::CANCEL;
+    idle_timer_.Touch();
+    SetKeyIdleTimer(&idle_timer_);
+    try
+    {
+        dr = OpenAndEdit();
+    }
+    catch (const AutoSignOff &)
+    {
+        // Every window and dialog has been closed by unwinding
+        SignOff();
+        dr = DialogResult::CANCEL;
+    }
+    SetKeyIdleTimer(nullptr);
+
+    EndTUI();
+
+    return dr;
+}
+
+void PWSafeApp::SignOff()
+{
+    signed_off_ = true;
+    sign_off_discarded_changes_ = db_.IsDirty();
+    db_.Wipe();
+    // Don't leave the last screen, which may show a password, in the terminal
+    clear();
+    refresh();
+}
+
+/** Prompt for the database password, then show the accounts */
+DialogResult PWSafeApp::OpenAndEdit()
+{
     // Command bar must be constructed first
     commandbarwin_ = std::make_unique<CommandBarWin>(*this, commandbar_win_);
     accountswin_ = std::make_unique<AccountsWin>(*this, win_);
@@ -135,8 +184,6 @@ DialogResult PWSafeApp::Show()
             }
         }
     }
-
-    EndTUI();
 
     return dr;
 }

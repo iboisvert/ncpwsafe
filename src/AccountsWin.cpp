@@ -648,7 +648,7 @@ DialogResult AccountsWin::ProcessInput()
     bool read_only = app_.GetDb().ReadOnly();
     DialogResult result = DialogResult::CANCEL;
     int c;
-    while ((c = wgetch(win_)) != ERR)
+    while ((c = ReadKey(win_)) != ERR)
     {
         if (c != KEY_RESIZE)
         {

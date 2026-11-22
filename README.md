@@ -57,6 +57,20 @@ configuration file (`~/.config/ncpwsafe/ncpwsafe-config.ini`, or
 `%APPDATA%\ncpwsafe\ncpwsafe-config.ini` on Windows), to draw with
 bold, underline, dim and reverse video only.
 
+## Auto sign-off
+
+So that an account database isn't left open on an unattended computer,
+ncpwsafe quits after 5 minutes without a key press, **discarding any unsaved
+changes**. It clears the screen and exits with status 124. Time while the
+computer is asleep counts, so a laptop opened again later has signed off.
+
+Change the period with `auto-sign-off` in the configuration file: a number
+with an optional unit `s`, `m` or `h` (a number without a unit is minutes),
+or `0` to turn auto sign-off off:
+```
+auto-sign-off = 15m
+```
+
 ## Testing
 
 Unit tests (GoogleTest) and end-to-end tests of the CLI commands and the

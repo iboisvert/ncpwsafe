@@ -1,6 +1,13 @@
 /* Copyright 2023 Ian Boisvert */
 #include "AccountDb.h"
 #include "Filesystem.h"
+#include "Utils.h"
+
+void AccountDb::Wipe()
+{
+    ZeroString(password_);
+    records_.Wipe();
+}
 
 /** Check if file at DbPathname() exists. */
 bool AccountDb::Exists() const

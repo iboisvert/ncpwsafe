@@ -97,6 +97,17 @@ public:
         return Delete(*it);
     }
 
+    /** Overwrite every record's fields with zeros and remove the records */
+    void Wipe()
+    {
+        for (AccountRecord &rec : records_)
+        {
+            rec.Wipe();
+        }
+        records_.clear();
+        dirty_ = false;
+    }
+
     /** Returns `true` if the collection or elements of the collection have been modified */
     bool IsDirty() const
     {

@@ -21,6 +21,18 @@ public:
     {
     }
 
+    /** Frees the windows and form if `Show()` didn't, e.g. when `AutoSignOff` passed through it */
+    ~SearchBarWin()
+    {
+        if (win_ != nullptr)
+        {
+            EndTUI();
+        }
+    }
+
+    SearchBarWin(const SearchBarWin &) = delete;
+    SearchBarWin &operator=(const SearchBarWin &) = delete;
+
     void Show();
 
 private:

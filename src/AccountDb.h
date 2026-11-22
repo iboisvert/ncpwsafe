@@ -81,6 +81,12 @@ struct AccountDb
         return CheckPassword(password_, rc);
     }
 
+    /**
+     * Overwrite the password and every record's fields with zeros, and remove the records.
+     * The pathname and read-only flag are kept.
+     */
+    void Wipe();
+
     /** Read the account database at DbPathname() using Password() */
     bool ReadDb(int *rc = nullptr);
 

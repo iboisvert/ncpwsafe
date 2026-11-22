@@ -2,6 +2,7 @@ add_executable(unittests
     AccountDb-tests.cpp
     AccountList-tests.cpp
     AccountRecord-tests.cpp
+    AutoSignOff-tests.cpp
     PWSafeApp-tests.cpp
     Policy-tests.cpp
     TextArea-tests.cpp

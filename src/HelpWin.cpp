@@ -107,7 +107,7 @@ void HelpWin::Show(WINDOW *parent)
     {
         ScopedResizeHandler resize_handler(app_, [this]() { OnResize(); });
         int c;
-        while ((c = wgetch(win_)) != ERR)
+        while ((c = ReadKey(win_)) != ERR)
         {
             if (c == KEY_RESIZE)
             {
