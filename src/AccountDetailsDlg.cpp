@@ -149,7 +149,7 @@ DialogResult AccountDetailsDlg::Show(WINDOW *parent, bool read_only)
         {FT_PASSWORD, "Password:", account_rec_.GetField(FT_PASSWORD, EMPTY_STR), /*m_width*/56, /*m_fieldOptsOn*/0, O_STATIC | O_PUBLIC | O_EDIT | O_ACTIVE, /*m_section*/"", /*m_masked*/true},
         {FT_URL, "URL:", account_rec_.GetField(FT_URL, EMPTY_STR), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
         {FT_EMAIL, "Email:", account_rec_.GetField(FT_EMAIL, EMPTY_STR), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC},
-        {FT_NOTES, "Notes:", account_rec_.GetField(FT_NOTES, EMPTY_STR), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC, /*m_section*/"Notes"}
+        {FT_NOTES, "Notes:", account_rec_.GetField(FT_NOTES, EMPTY_STR), /*m_width*/40, /*m_fieldOptsOn*/0, O_STATIC, /*m_section*/"Notes", /*m_masked*/false, /*m_height*/3}
     };
 
     auto f_validate = std::bind(&AccountDetailsDlg::ValidateForm, this, _1);

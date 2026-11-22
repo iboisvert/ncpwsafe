@@ -113,7 +113,8 @@ test/e2e/
     sparse.tsv       accounts with fields left out
     unicode.tsv      accounts with non-ASCII groups and titles
     control-chars.tsv  an account with a control character in its title
-    roundtrip.tsv    accounts with line breaks, tabs and trailing spaces in their values
+    roundtrip.tsv    accounts with line breaks, tabs and trailing spaces in their values,
+                     and notes longer than the notes field
   cli/test_*.py      CLI tests
   tui/test_*.py      TUI tests
 ```

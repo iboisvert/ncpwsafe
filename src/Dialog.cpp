@@ -1,6 +1,8 @@
 /* Copyright 2022 Ian Boisvert */
 
 #include <algorithm>
+#include <climits>
+#include <cwchar>
 
 #include "Dialog.h"
 #include "MessageBox.h"
@@ -30,6 +32,7 @@ void Dialog::ConstructFields()
 {
     fields_.clear();
     sections_.clear();
+    text_areas_.clear();
     max_field_width_ = 0;
     // Fields are contained by a subwindow that is
     // moved to align with labels
@@ -44,7 +47,9 @@ void Dialog::ConstructFields()
             if (row > 0) ++row;
             sections_.emplace_back(row++, df.m_section);
         }
-        FIELD *field = new_field(/*height*/ 1, df.m_width, row++, /*leftcol*/ 0, /*offscreen*/ 0, /*nbuffers*/ 0);
+        const int height = std::max(1, df.m_height);
+        FIELD *field = new_field(height, df.m_width, row, /*leftcol*/ 0, /*offscreen*/ 0, /*nbuffers*/ 0);
+        row += height;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-value"
         assert(("Unexpected field null", field));
@@ -57,11 +62,21 @@ void Dialog::ConstructFields()
         {
             set_field_fore(field, app_.GetTheme().Attr(Role::SECRET));
         }
-        set_field_buffer(field, /*buf*/ 0, df.m_value.c_str());
-        // A field holds what a terminal would show of its value: line breaks, tabs,
-        // control characters and trailing spaces don't survive. The status is set again
-        // when the field changes, until then FieldValue() gives the value itself.
-        set_field_status(field, FALSE);
+        if (height > 1)
+        {
+            // The text is drawn over the field and edited by its TextArea, the field stays empty
+            field_opts_on(field, O_STATIC);
+            field_opts_off(field, O_EDIT);
+            text_areas_.emplace(field, TextArea(df.m_value));
+        }
+        else
+        {
+            set_field_buffer(field, /*buf*/ 0, df.m_value.c_str());
+            // A field holds what a terminal would show of its value: line breaks, tabs,
+            // control characters and trailing spaces don't survive. The status is set again
+            // when the field changes, until then FieldValue() gives the value itself.
+            set_field_status(field, FALSE);
+        }
         fields_.push_back(field);
     }
     content_rows_ = row;
@@ -137,6 +152,7 @@ void Dialog::InitTUI(const std::string &title)
     }
 
     form_driver(form_, REQ_END_LINE);
+    DrawTextAreas();
 
     // Reset cursor for input fields
     save_cursor_ = curs_set(1);
@@ -191,6 +207,7 @@ void Dialog::CreateForm(int label_width)
     }
 
     DrawMasks();
+    DrawTextAreas();
 }
 
 void Dialog::FieldInit(FORM *form)
@@ -266,6 +283,7 @@ void Dialog::OnResize()
         set_current_field(form_, field);
     }
     form_driver(form_, REQ_END_LINE);
+    DrawTextAreas();
 }
 
 void Dialog::EndTUI()
@@ -303,12 +321,13 @@ static std::string GetFieldValue(const FIELD *field)
     return buf;
 }
 
-/**
- * The value of a field: the value it was given if it hasn't changed since,
- * otherwise its contents (see `ConstructFields()`)
- */
-static std::string FieldValue(const FIELD *field)
+std::string Dialog::FieldValue(const FIELD *field) const
 {
+    auto area = text_areas_.find(field);
+    if (area != text_areas_.end())
+    {
+        return area->second.Text();
+    }
     if (!field_status(field))
     {
         return reinterpret_cast<const DialogField *>(field_userptr(field))->m_value;
@@ -347,6 +366,12 @@ DialogResult Dialog::ProcessInput()
         {
             SaveData();
             goto done;
+        }
+
+        if (TextArea *area = CurrentTextArea(); area != nullptr && TextAreaInput(*area, ch, wch))
+        {
+            DrawTextAreas();
+            continue;
         }
 
         switch (ch)
@@ -397,6 +422,10 @@ DialogResult Dialog::ProcessInput()
             /* Go to the end of the present buffer */
             /* Leaves nicely at the last character */
             form_driver(form_, REQ_END_LINE);
+            if (TextArea *area = CurrentTextArea())
+            {
+                area->First();
+            }
             break;
         }
         case KEY_BTAB:
@@ -404,6 +433,10 @@ DialogResult Dialog::ProcessInput()
             /* Go to previous field */
             form_driver(form_, REQ_PREV_FIELD);
             form_driver(form_, REQ_END_LINE);
+            if (TextArea *area = CurrentTextArea())
+            {
+                area->Last();
+            }
             break;
         }
         case KEY_LEFT: {
@@ -452,6 +485,7 @@ DialogResult Dialog::ProcessInput()
         }
         }
         DrawMasks();
+        DrawTextAreas();
     }
 
 done:
@@ -471,6 +505,117 @@ bool Dialog::DiscardChanges()
 void Dialog::RandomizeBuffers()
 {
     ZeroFieldsBuffer(fields_.data());
+    for (auto &[field, area] : text_areas_)
+    {
+        area.Clear();
+    }
+}
+
+TextArea *Dialog::CurrentTextArea()
+{
+    if (form_ == nullptr)
+    {
+        return nullptr;
+    }
+    auto area = text_areas_.find(current_field(form_));
+    return area != text_areas_.end() ? &area->second : nullptr;
+}
+
+bool Dialog::TextAreaInput(TextArea &area, int ch, wchar_t wch)
+{
+    int rows, cols, frow, fcol, nrow, nbuf;
+    field_info(current_field(form_), &rows, &cols, &frow, &fcol, &nrow, &nbuf);
+    switch (ch)
+    {
+    case KEY_LEFT:
+        area.Left();
+        return true;
+    case KEY_RIGHT:
+        area.Right();
+        return true;
+    case KEY_HOME:
+        area.Home();
+        return true;
+    case KEY_END:
+        area.End();
+        return true;
+    case KEY_UP:
+        return area.Up(cols);
+    case KEY_DOWN:
+        return area.Down(cols);
+    case '\n':
+    case KEY_ENTER:
+        // Enter goes to the next field in a read-only dialog
+        if (read_only_)
+            return false;
+        area.NewLine();
+        return true;
+    case KEY_BACKSPACE:
+        if (!read_only_)
+            area.Backspace();
+        return true;
+    case KEY_DC:
+        if (!read_only_)
+            area.Delete();
+        return true;
+    case KEY_WIDE_CHAR:
+        if (!read_only_)
+        {
+            char buf[MB_LEN_MAX];
+            std::mbstate_t state{};
+            const size_t n = std::wcrtomb(buf, wch, &state);
+            if (n != static_cast<size_t>(-1))
+                area.Insert(std::string_view(buf, n));
+        }
+        return true;
+    default:
+        if (ch >= ' ' && ch < 0x7f)
+        {
+            if (!read_only_)
+                area.Insert(std::string(1, static_cast<char>(ch)));
+            return true;
+        }
+        return false;
+    }
+}
+
+void Dialog::DrawTextAreas()
+{
+    if (form_ == nullptr || form_win_ == nullptr || text_areas_.empty())
+        return;
+    const Theme &theme = app_.GetTheme();
+    const FIELD *current = current_field(form_);
+    int cursor_y = -1, cursor_x = -1;
+    for (auto &[field, area] : text_areas_)
+    {
+        int rows, cols, frow, fcol, nrow, nbuf;
+        field_info(field, &rows, &cols, &frow, &fcol, &nrow, &nbuf);
+        const bool focus = field == current;
+        const int top = area.ScrollTop(cols, rows);
+        const std::vector<TextArea::Row> layout = area.Layout(cols);
+        ScopedAttr attrs(form_win_, theme, focus ? Role::FIELD_FOCUS : Role::FIELD);
+        for (int y = 0; y < rows; ++y)
+        {
+            const size_t i = static_cast<size_t>(top + y);
+            const std::string text = i < layout.size() ? area.RowText(layout[i]) : std::string{};
+            mvwaddstr(form_win_, frow + y, fcol, text.c_str());
+            for (int x = DisplayWidth(text); x < cols; ++x)
+                waddch(form_win_, ' ');
+        }
+        if (focus)
+        {
+            int row, col;
+            area.CursorPosition(cols, row, col);
+            cursor_y = frow + row - top;
+            // At the end of a full row the cursor stays on its last column
+            cursor_x = fcol + std::min(col, cols - 1);
+        }
+    }
+    if (cursor_y >= 0)
+        wmove(form_win_, cursor_y, cursor_x);
+    wsyncup(form_win_);
+    if (cursor_y >= 0)
+        wcursyncup(form_win_);
 }
 
 FIELD *Dialog::GetField(PwsFieldType ft) const
@@ -491,7 +636,17 @@ void Dialog::SetField(PwsFieldType ft, const std::string &value)
 {
     FIELD *field = GetField(ft);
     assert(field != nullptr);
-    if (field != nullptr)
+    if (field == nullptr)
+    {
+        return;
+    }
+    auto area = text_areas_.find(field);
+    if (area != text_areas_.end())
+    {
+        area->second.SetText(value);
+        DrawTextAreas();
+    }
+    else
     {
         set_field_buffer(field, /*buf*/0, value.c_str());
     }

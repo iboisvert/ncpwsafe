@@ -23,6 +23,7 @@ list(APPEND SRC
     PWSafeApp.cpp
     SafeCombinationPromptDlg.cpp
     SearchBarWin.cpp
+    TextArea.cpp
     Theme.cpp
     Utils.cpp
     Win32.cpp

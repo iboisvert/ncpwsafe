@@ -1,5 +1,6 @@
 """TUI: adding, editing and deleting accounts, saving and discarding changes."""
 import hashlib
+import re
 import sys
 from pathlib import Path
 
@@ -356,6 +357,83 @@ class EditTest(e2elib.TuiTestCase):
             app.wait_gone("View Account")
             expected.append((group, title + "2", user, password, notes))
         self.save_and_exit(app)
+        self.assertDbContains(db, pw, expected)
+
+    def open_notes(self, app, title):
+        """Open the account `title` and move to the first row of its notes."""
+        self.select(app, title)
+        app.send("Enter")
+        app.wait_for("View Account")
+        app.send(*["Down"] * FIELDS.index("Notes"))
+
+    def notes_rows(self, app):
+        """The text in the rows of the notes field, up to a gap of two spaces."""
+        screen = app.screen()
+        first = next(i for i, line in enumerate(screen) if "Notes:  " in line)
+        start = screen[first].index("Notes:") + len("Notes:    ")
+        return [re.split(r" {2,}", line[start:])[0].rstrip() for line in screen[first:first + 3]]
+
+    def test_notes_show_three_rows(self):
+        app, _, _ = self.open_db(spec="roundtrip")
+        self.select(app, "Long")
+        app.send("Enter")
+        app.wait_for("View Account")
+        self.assertEqual(self.notes_rows(app), ["one", "two", "three"])
+
+    def test_notes_wrap_long_lines(self):
+        # 24 wide characters take 48 columns: 20 on the first row of 40 columns
+        app, _, _ = self.open_db(spec="roundtrip")
+        self.select(app, "Wide")
+        app.send("Enter")
+        app.wait_for("View Account")
+        notes = "日本語" * 8
+        self.assertEqual(self.notes_rows(app), [notes[:20], notes[20:], ""])
+
+    def test_notes_scroll(self):
+        # Down moves through the rows of the notes, which scroll to show the cursor
+        app, _, _ = self.open_db(spec="roundtrip")
+        self.open_notes(app, "Long")
+        app.send("Down", "Down", "Down")
+        app.wait_until(lambda: self.notes_rows(app) == ["two", "three", "four"], "the notes to scroll")
+        app.send("Down")
+        app.wait_until(lambda: self.notes_rows(app) == ["three", "four", "five"], "the notes to scroll")
+        # Up moves back through them, then on to the field above
+        app.send(*["Up"] * 4)
+        app.wait_until(lambda: self.notes_rows(app) == ["one", "two", "three"], "the notes to scroll back")
+        app.send("Up", "End")
+        app.type("x")
+        app.wait_for("Email:    x")
+
+    def test_edit_notes(self):
+        # Edits change only what is edited, line breaks keep the notes' own style
+        app, db, pw = self.open_db(spec="roundtrip")
+        # Add a line in the middle
+        self.open_notes(app, "MultiLine")
+        app.send("End", "Enter")
+        app.type("middle")
+        app.send("C-s")
+        app.wait_gone("View Account")
+        # Add to the second line of notes with Windows line breaks
+        self.open_notes(app, "CrLf")
+        app.send("Down", "End")
+        app.type("!")
+        app.send("C-s")
+        app.wait_gone("View Account")
+        # A first line break in one-line notes is the one Password Safe uses
+        self.open_notes(app, "Plain")
+        app.send("End", "Enter")
+        app.type("Two")
+        app.send("C-s")
+        app.wait_gone("View Account")
+        # Backspace at the start of a line joins it to the line before
+        self.open_notes(app, "BlankFirst")
+        app.send("Down", "BSpace")
+        app.send("C-s")
+        app.wait_gone("View Account")
+        self.save_and_exit(app)
+        notes = {"MultiLine": "line one\nmiddle\nline two", "CrLf": "line one\r\nline two!",
+                 "Plain": "One line\r\nTwo", "BlankFirst": "after a blank line"}
+        expected = [row[:4] + (notes.get(row[1], row[4]),) for row in e2elib.read_spec("roundtrip")]
         self.assertDbContains(db, pw, expected)
 
 if __name__ == "__main__":

@@ -285,7 +285,8 @@ The first milestones are done (see §2.8):
   its position (`Banking › Chequing  3/7`).
 - The command bar ends with `^G More` when it is full; ^G shows every key with its description. It was F1 at first, but many terminals and window managers keep F1 for their own help.
 - View Account is in sections (Account, Credentials, Notes), the focused field is highlighted,
-  and a hidden password shows as 8 bullets.
+  and a hidden password shows as 8 bullets. The notes field shows 3 rows and edits multi-line
+  notes (`TextArea`); text that isn't edited, line breaks included, is kept as it was stored.
 - Copying to the clipboard is confirmed in the bottom border.
 
 Not done yet: `[theme]` per-role overrides and the `light` theme, `--no-color`, nested groups
@@ -470,8 +471,6 @@ in §3.4.
 - Create a new database.
 - Close the database after a timeout.
   - Test by putting the computer to sleep.
-- Multiline notes fields.
-  - Needs a `Dialog` enhancement.
 - Update the CI/CD pipeline (`.github/workflows/build.yml`) for product releases.
   - Today the workflow only builds and tests. It publishes no executables; the Windows
     "Upload executable" step was removed until this work is done.
@@ -509,6 +508,7 @@ in §3.4.
 
 - UI brush-up milestones U-1, U-2/U-4, U-5 and U-6 (see §2.8), which also cover the old items
   "Colors", "Improve command bar", "F1 Help" and "Display user name in account list"
+- Multiline notes fields (`TextArea`, `DialogField::m_height`)
 - Export database, and export as CSV
 - Write last opened database to prefs
 - Database copy-on-backup, and backup on save
