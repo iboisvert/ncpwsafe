@@ -63,6 +63,8 @@ if(WIN32)
         user32
         # SHGetKnownFolderPath(), CoTaskMemFree(), FOLDERID_*
         shell32
+        # Process DACL
+        advapi32
         ole32
         uuid
     )

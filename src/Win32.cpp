@@ -10,6 +10,8 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
+#include <aclapi.h>
+#include <sddl.h>
 #include <shlobj.h>
 
 #include <climits>
@@ -17,6 +19,8 @@
 #include <csignal>
 #include <cstdint>
 #include <cstdlib>
+#include <string>
+#include <vector>
 
 namespace win32
 {
@@ -103,6 +107,62 @@ void DisableCrashDumps()
     _set_abort_behavior(0, _CALL_REPORTFAULT);
     // No "ncpwsafe has stopped working" dialog
     SetErrorMode(GetErrorMode() | SEM_NOGPFAULTERRORBOX);
+}
+
+/** The SID of the user the process runs as, in SDDL string form, or an empty string */
+static std::wstring CurrentUserSid()
+{
+    HANDLE token = nullptr;
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
+        return std::wstring();
+    DWORD size = 0;
+    GetTokenInformation(token, TokenUser, nullptr, 0, &size);
+    std::vector<BYTE> buf(size);
+    BOOL ok = size > 0 && GetTokenInformation(token, TokenUser, buf.data(), size, &size);
+    CloseHandle(token);
+    if (!ok)
+        return std::wstring();
+
+    std::wstring sid;
+    LPWSTR str = nullptr;
+    if (ConvertSidToStringSidW(reinterpret_cast<TOKEN_USER *>(buf.data())->User.Sid, &str))
+    {
+        sid = str;
+        LocalFree(str);
+    }
+    return sid;
+}
+
+bool RestrictProcessAccess()
+{
+    std::wstring user_sid = CurrentUserSid();
+    if (user_sid.empty())
+        return false;
+
+    // D:P   A DACL that doesn't inherit ACEs
+    // SY    SYSTEM: all access
+    // user  SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE:
+    //       wait for, query and end the process, but not PROCESS_VM_READ etc.
+    // OW    OWNER RIGHTS: only READ_CONTROL. Without it the owner implicitly has
+    //       WRITE_DAC, and could give itself all access again
+    std::wstring sddl = L"D:P(A;;GA;;;SY)(A;;0x00101001;;;" + user_sid + L")(A;;RC;;;OW)";
+
+    PSECURITY_DESCRIPTOR sd = nullptr;
+    if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl.c_str(), SDDL_REVISION_1, &sd, nullptr))
+        return false;
+
+    DWORD rc = ERROR_INVALID_SECURITY_DESCR;
+    BOOL present = FALSE, defaulted = FALSE;
+    PACL dacl = nullptr;
+    if (GetSecurityDescriptorDacl(sd, &present, &dacl, &defaulted) && present)
+    {
+        // The GetCurrentProcess() pseudo-handle has all access, including WRITE_DAC
+        rc = SetSecurityInfo(GetCurrentProcess(), SE_KERNEL_OBJECT,
+                             DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
+                             nullptr, nullptr, dacl, nullptr);
+    }
+    LocalFree(sd);
+    return rc == ERROR_SUCCESS;
 }
 
 /** Convert a NUL-terminated UTF-16 string to UTF-8 */

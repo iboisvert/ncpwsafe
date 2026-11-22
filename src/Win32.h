@@ -36,10 +36,24 @@ void InitConsole();
  * Unhandled exceptions, `abort()` and invalid C runtime parameters end the
  * process immediately instead of being reported to WER. Fail-fast exceptions
  * (e.g. `/GS` stack buffer overruns) can't be intercepted and are still
- * reported. This does not stop another process of the same user from
- * reading this process's memory (e.g. Task Manager's "Create memory dump file").
+ * reported, with a dump only if an administrator has enabled WER LocalDumps.
  */
 void DisableCrashDumps();
+
+/**
+ * Keep other processes from reading or changing this process's memory,
+ * which could expose decrypted passwords, the counterpart of
+ * `prctl(PR_SET_DUMPABLE, 0)` on Linux.
+ *
+ * Replaces the process's DACL so that the current user can only wait for,
+ * query and end the process (e.g. a debugger, or Task Manager's
+ * "Create memory dump file", can't open it), and the owner can't change the
+ * DACL back. Only SYSTEM keeps full access. This does not stop an
+ * administrator using `SeDebugPrivilege`.
+ *
+ * @returns `true` on success
+ */
+bool RestrictProcessAccess();
 
 /**
  * The directory for per-user application data (`%APPDATA%`), UTF-8 encoded.

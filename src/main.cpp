@@ -47,8 +47,8 @@ static std::string ProgramName(char *argv0)
 }
 
 /**
- * Prevent ptrace and the creation of core dumps (crash dumps on Windows),
- * which could expose decrypted passwords.
+ * Prevent ptrace and the creation of core dumps (on Windows, opening the process
+ * and crash dumps), which could expose decrypted passwords.
  * Only in Release builds, so that a debugger can attach to Debug builds.
  */
 static bool DisableCoreDump()
@@ -57,6 +57,11 @@ static bool DisableCoreDump()
     return true;
 #elif defined(_WIN32)
     win32::DisableCrashDumps();
+    if (!win32::RestrictProcessAccess())
+    {
+        errno = EPERM;  // For the error message
+        return false;
+    }
     return true;
 #elif defined(HAVE_SYS_PRCTL_H)
     return prctl(PR_SET_DUMPABLE, 0) == 0;
