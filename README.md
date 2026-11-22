@@ -60,6 +60,12 @@ The end-to-end tests need Python 3, and the UI tests also need `tmux`
 (they are skipped without it). See [test/README.md](test/README.md) for
 requirements, running a subset of the tests, and how the tests work.
 
+On Windows the unit tests and the CLI end-to-end tests run, but the UI
+end-to-end tests are skipped: they drive the UI through `tmux`, which isn't
+available there. This is a gap in testing: nothing automatically tests the
+ncurses UI on Windows (the Windows console driver, keyboard input, the
+clipboard, resizing), so check UI changes on Windows by hand.
+
 ## Known issues
 Known bugs are tracked in [docs/ISSUES.md](docs/ISSUES.md).
 
