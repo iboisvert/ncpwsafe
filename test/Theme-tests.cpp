@@ -57,7 +57,7 @@ TEST(ThemeTest, SelectionIsReverseVideo)
 
 TEST(ThemeTest, SymbolsHaveAsciiForms)
 {
-    for (Symbol symbol : {Symbol::EXPANDED, Symbol::COLLAPSED, Symbol::ELLIPSIS, Symbol::CHECK, Symbol::SEPARATOR})
+    for (Symbol symbol : {Symbol::EXPANDED, Symbol::COLLAPSED, Symbol::ELLIPSIS, Symbol::CHECK, Symbol::SEPARATOR, Symbol::BULLET})
     {
         const std::string ascii = Theme::SymbolFor(symbol, false);
         EXPECT_EQ(1u, ascii.size());

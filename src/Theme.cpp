@@ -75,6 +75,8 @@ const char *Theme::SymbolFor(Symbol symbol, bool unicode)
         return unicode ? "\u2713" : "*";  // ✓
     case Symbol::SEPARATOR:
         return unicode ? "\u203a" : ">";  // ›
+    case Symbol::BULLET:
+        return unicode ? "\u2022" : "*";  // •
     }
     return "?";
 }

@@ -51,6 +51,8 @@ enum class Symbol
     CHECK,
     /** Between a group and an account title */
     SEPARATOR,
+    /** Stands for a hidden character of a secret */
+    BULLET,
 };
 
 /**

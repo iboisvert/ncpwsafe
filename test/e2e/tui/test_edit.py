@@ -126,12 +126,27 @@ class EditTest(e2elib.TuiTestCase):
         self.assertRegex(screen, r"Title: +Work mail")
         self.assertRegex(screen, r"User: +asmith")
         self.assertRegex(screen, r"Notes: +VPN required")
-        # The password is hidden until ^V
+        # The fields are in sections
+        self.assertRegex(screen, r"x Account q+ x[^\n]*\n[^\n]*x Group:")
+        self.assertRegex(screen, r"x Credentials q+ x[^\n]*\n[^\n]*x User:")
+        self.assertRegex(screen, r"x Notes q+ x[^\n]*\n[^\n]*x Notes:")
+        # The password is hidden until ^V, as 8 bullets whatever its length
         self.assertNotIn("pw-work-4", screen)
+        self.assertRegex(screen, r"Password: +•{8} ")
         app.send("C-v")
         app.wait_for("pw-work-4")
+        self.assertNotIn("••", app.text())
         app.send("C-v")
         app.wait_gone("pw-work-4")
+        app.wait_for("••••••••")
+
+    def test_empty_password_not_masked(self):
+        app, _, _ = self.open_db(spec="sparse")
+        app.wait_highlighted("No user")
+        app.send("Enter")
+        screen = app.wait_for("View Account")
+        self.assertRegex(screen, r"Password: +x")
+        self.assertNotIn("•", screen)
 
     def test_edit_account(self):
         app, db, pw = self.open_db()
