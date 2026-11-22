@@ -85,7 +85,7 @@ static void Usage(const char *progName)
             "  --generate-password  Generate a list of passwords,\n"
             "                       does not change the account database\n"
             "  --export-db          Export account database as plain text\n"
-            "  --change-password    Change the account databasse password\n"
+            "  --change-password    Change the account database password\n"
             "\n"
             "Common options:\n"
             "  -c,--config=PATHNAME Specify the configuration file\n"
@@ -113,7 +113,7 @@ static void Usage(const char *progName)
             "                       Valid values are en-CA, ru. Default value is %s\n"
             "  --test-db-groups=N   Number of groups in the generated database\n"
             "                       Default value is %lu\n"
-            "  --test-db-items=N    Number of itesm in the generated database\n"
+            "  --test-db-items=N    Number of items in the generated database\n"
             "                       Default value is %lu\n"
             "\n"
             "Generate password options:\n"
@@ -413,7 +413,7 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
 
     int option_index = 0;
     int c;
-    while ((c = getopt_long(argc, argv, "c:o:P:r", options, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "c:ho:P:r", options, &option_index)) != -1)
     {
         switch (c)
         {
@@ -525,7 +525,8 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
             break;
         }
         case 'h': {
-            return false;
+            args.help_ = true;
+            return true;
         }
         case '?': {
             // Unknown argument
@@ -583,6 +584,11 @@ int main(int argc, char *argv[])
     {
         Usage(ProgramName(argv[0]).c_str());
         return PRC_ERR_FAIL;
+    }
+    if (input_args.help_)
+    {
+        Usage(ProgramName(argv[0]).c_str());
+        return 0;
     }
 
     srand(time(0));

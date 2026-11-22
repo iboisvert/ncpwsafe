@@ -1,0 +1,574 @@
+.\" Copyright (C) 2026 Ian Boisvert
+.\" SPDX-License-Identifier: GPL-3.0-or-later
+.\"
+.\" CMake fills in the version (configure_file). Preview the result with
+.\" man -l build/man/ncpwsafe.1
+.Dd November 22, 2026
+.Dt NCPWSAFE 1
+.Os ncpwsafe @NCPWSAFE_VERSION@
+.Sh NAME
+.Nm ncpwsafe
+.Nd terminal password manager for Password Safe databases
+.Sh SYNOPSIS
+.Nm
+.Op Fl r
+.Op Fl c Ar file
+.Op Fl -password-file Ns = Ns Ar file
+.Op Ar database
+.Nm
+.Fl -generate-password
+.Op Fl -password-count Ns = Ns Ar n
+.Op Fl -password-length Ns = Ns Ar n
+.Op Fl -password-policy Ns = Ns Ar policy
+.Nm
+.Fl -export-db
+.Fl o Ar file
+.Op Fl -force
+.Fl -password-file Ns = Ns Ar file
+.Ar database
+.Nm
+.Fl -change-password
+.Fl -password-file Ns = Ns Ar file
+.Fl -new-password-file Ns = Ns Ar file
+.Ar database
+.Nm
+.Fl h | Fl -help
+.Sh DESCRIPTION
+.Nm
+is an ncurses program that manages account password databases in the
+Password Safe V1 and V2 formats
+.Pq Lk https://www.pwsafe.org/ .
+Without a command it opens a
+.Ar database
+in a full-screen user interface, described in
+.Sx USER INTERFACE .
+The other commands work without the user interface:
+.Bl -tag -width Ds
+.It Fl -generate-password
+Print a line describing the passwords, then the passwords, one per line, on
+standard output.
+The database is not used.
+.It Fl -export-db
+Write the accounts of
+.Ar database
+to a file as comma-separated values, with the columns UUID, Group, Title,
+User, Password and Notes.
+.Sy The file holds the passwords unencrypted ;
+delete it securely when it is no longer needed.
+.It Fl -change-password
+Change the password of
+.Ar database .
+.It Fl -test-db
+Write a database of generated test accounts to
+.Ar database .
+Only in Debug builds.
+.El
+.Pp
+When
+.Ar database
+is not given,
+.Nm
+opens the last database opened, as recorded in the
+.Cm db-pathname
+preference.
+Before saving a database,
+.Nm
+saves a copy of it, see
+.Sx PREFERENCES .
+Copying to the clipboard uses
+.Xr xclip 1 ,
+which must be installed, except on Windows.
+.Sh OPTIONS
+.Ss Common options
+.Bl -tag -width Ds
+.It Fl c Ar file , Fl -config Ns = Ns Ar file
+Read and write the preferences in
+.Ar file
+instead of the default, see
+.Sx FILES .
+.It Fl -password-file Ns = Ns Ar file
+Read the database password from the first line of
+.Ar file ,
+without its line ending.
+Process substitution works too, for example
+.Fl -password-file Ns = Ns Li <(pass show pwsafe) .
+When a database is opened without a password,
+.Nm
+prompts for one.
+.Fl -export-db
+and
+.Fl -change-password
+need a password from this option or
+.Fl P .
+.It Fl P Ar password , Fl -password Ns = Ns Ar password
+The database password.
+.Sy Deprecated :
+other users can read the command line of a running program, and it is kept
+in the shell history.
+.Nm
+prints a warning, and overwrites the password in its argument list after reading
+it.
+Use
+.Fl -password-file
+instead.
+.It Fl -force
+Overwrite an existing output file.
+.It Fl h , Fl -help
+Print a summary of the commands and options, and exit.
+.El
+.Ss Open database options
+.Bl -tag -width Ds
+.It Fl r , Fl -read-only
+Open the database read-only: the commands that change it are not available.
+.El
+.Ss Generate password options
+.Bl -tag -width Ds
+.It Fl -password-count Ns = Ns Ar n
+Generate
+.Ar n
+passwords.
+The default is 1.
+.It Fl -password-length Ns = Ns Ar n
+The length of each password.
+The default is 20.
+.It Fl -password-policy Ns = Ns Ar policy
+The characters passwords are made of, as a number or a name:
+.Bl -tag -width Ds -compact
+.It 1, Li alpha/digit/symbol
+letters, digits and symbols
+.It 2, Li alpha/digit
+letters and digits; the default
+.It 3, Li easy-to-read alpha/digit/symbol
+letters, digits and symbols, without characters that look alike
+.It 4, Li digits only
+.It 5, Li hex digits only
+.El
+.El
+.Ss Export options
+.Bl -tag -width Ds
+.It Fl o Ar file , Fl -out Ns = Ns Ar file
+The file to write.
+Required.
+.El
+.Ss Change password options
+.Bl -tag -width Ds
+.It Fl -new-password-file Ns = Ns Ar file
+Read the new password from the first line of
+.Ar file .
+.It Fl -new-password Ns = Ns Ar password
+The new password.
+.Sy Deprecated ,
+for the same reasons as
+.Fl -password .
+.El
+.Ss Test database options
+Only in Debug builds.
+.Bl -tag -width Ds
+.It Fl -test-db-lang Ns = Ns Ar language
+The language of the generated text,
+.Li en-CA
+(the default) or
+.Li ru .
+.It Fl -test-db-groups Ns = Ns Ar n
+The number of groups.
+The default is 10.
+.It Fl -test-db-items Ns = Ns Ar n
+The number of accounts.
+The default is 50.
+.El
+.Sh USER INTERFACE
+The screen has the accounts list, with a title bar at the top and a command
+bar at the bottom.
+The command bar shows the keys of the window that has the focus, and ends with
+.Ic ^G More
+when they do not all fit;
+.Ic ^G
+lists every key with a description.
+Keys written
+.Ic ^X
+are typed holding Ctrl.
+The windows lay themselves out again when the terminal is resized.
+.Ss Unlock Database
+Shown when no password was given, or the password given is incorrect.
+It asks for the database file, filled in with the last one opened, and its
+password, which is not shown as it is typed.
+.Ss Accounts list
+The accounts, sorted by group and title.
+Each group has a heading with the number of accounts in it, and its accounts
+are listed beneath it with their user names.
+Accounts without a group come first, under
+.Dq (no group) .
+A group can be collapsed to its heading.
+.Pp
+The title bar shows the file name, followed by
+.Ql *
+when there are unsaved changes, or
+.Ql [read-only] ;
+and at the right the selected account's group and title and its position in
+the list, for example
+.Dq Banking \[fc] Chequing 3/7 .
+After copying to the clipboard, the bottom border confirms it, for example
+.Dq Copied the password of Chequing ,
+until the next key.
+The copied text is never shown.
+.Ss View Account
+The fields of an account in three sections: Account (Group, Title),
+Credentials (User, Password, URL, Email) and Notes.
+The password is shown as eight bullets, whatever its length, until
+.Ic ^V .
+Notes can have several lines.
+In a read-only database the fields cannot be changed.
+.Ss Change Account Password
+Asks for the new password of an account twice.
+.Ic ^P
+opens Generate Password.
+An empty password must be confirmed.
+.Ss Generate Password
+Shows a generated password, which can be generated again, made longer or
+shorter, or made of other characters (the policies of
+.Fl -password-policy ) .
+.Ss Change Account Database Password
+Asks for the current database password and for the new one twice.
+The database file is encrypted with the new password at once, after a copy
+is saved (see
+.Cm backup-before-save ) .
+.Ss Search
+Opened with
+.Ic / ,
+in place of the command bar.
+As you type, the selection moves to the next account whose title, name, user
+name or notes contain the text, ignoring case, expanding its group if it is
+collapsed.
+.Ss Messages and confirmations
+Errors and information are shown in a box over the window.
+A question is answered with
+.Ic y
+or
+.Ic n .
+.Sh KEYS
+.Ss Accounts list
+.Bl -tag -width "PgUp, PgDn" -compact
+.It Ic Up , Down
+Select the previous or next row.
+.It Ic Home , End
+Select the first or last row.
+.It Ic PgUp , PgDn
+Move a page up or down.
+.It Ic Left
+On an account, go to its group's heading; on a heading, collapse the group.
+.It Ic Right
+On a collapsed heading, expand the group; on an expanded heading, go to its
+first account.
+.It Ic Space
+Collapse or expand the selected group.
+.It Ic Enter
+View the selected account, or collapse or expand the selected group.
+.It Ic /
+Search for an account.
+.It Ic ^A
+Add an account.
+.It Ic ^D
+Delete the selected account, after confirmation.
+.It Ic ^U
+Copy the selected account's user name to the clipboard.
+.It Ic ^P
+Copy the selected account's password to the clipboard.
+.It Ic ^C
+Change the database password.
+.It Ic ^S
+Save the changes to the database and exit.
+.It Ic ^X
+Exit without saving; asks for confirmation when there are unsaved changes.
+.It Ic ^G
+List every key.
+.El
+.Pp
+In a read-only database,
+.Ic ^A ,
+.Ic ^D ,
+.Ic ^C
+and
+.Ic ^S
+are not available, and
+.Ic ^X
+exits at once.
+.Ss Dialogs
+In every dialog with fields (Unlock Database, View Account, Change Account
+Password, Change Account Database Password):
+.Bl -tag -width "Shift-Tab, Up" -compact
+.It Ic Tab , Down , Enter
+Go to the next field.
+In Unlock Database,
+.Ic Enter
+in the password field unlocks the database.
+.It Ic Shift-Tab , Up
+Go to the previous field.
+.It Ic Left , Right , Home , End
+Move in the field.
+.It Ic Backspace , Delete
+Delete the character before or under the cursor.
+.It Ic ^S
+Save and close, or in Unlock Database, unlock.
+.It Ic ^X
+Cancel.
+In View Account, asks for confirmation when a field has changed, and in a
+read-only database, closes.
+.It Ic ^G
+List every key.
+.El
+.Pp
+In the notes field,
+.Ic Enter
+starts a new line,
+.Ic Up
+and
+.Ic Down
+move between lines, going on to the previous or next field from the first or
+last line, and
+.Ic Backspace
+and
+.Ic Delete
+join lines.
+.Ss View Account
+.Bl -tag -width Ds -compact
+.It Ic ^V
+Show or hide the password.
+.It Ic ^C
+Change the account's password.
+.It Ic ^U
+Copy the user name to the clipboard.
+.It Ic ^P
+Copy the password to the clipboard.
+.El
+.Ss Change Account Password
+.Bl -tag -width Ds -compact
+.It Ic ^P
+Generate a password.
+.El
+.Ss Generate Password
+.Bl -tag -width "Space" -compact
+.It Ic Enter
+Generate another password.
+.It Ic < , >
+Make the password 4 characters shorter or longer.
+The keys
+.Ql \&,
+and
+.Ql \&.
+work too.
+.It Ic Space
+Use the next policy.
+.It Ic ^S
+Use the password.
+.It Ic ^X
+Cancel.
+.El
+.Ss Search
+.Bl -tag -width "Esc, ^X" -compact
+.It Ic ^L
+Go to the next match.
+.It Ic Enter
+Close the search, keeping the selection.
+.It Ic Esc , ^X
+Close the search and go back to where it started.
+.El
+.Ss Help, messages and confirmations
+.Bl -tag -width "Any key" -compact
+.It Any key
+Close the list of keys.
+.It Ic Enter
+Close a message.
+.It Ic y , n
+Answer a question.
+.El
+.Sh PREFERENCES
+The preferences file is an INI file of
+.Ar key No = Ar value
+lines.
+.Nm
+reads it at startup and writes it when the user interface exits.
+.Bl -tag -width Ds
+.It Cm db-pathname Ns = Ns Ar file
+The database to open when none is given on the command line.
+.Nm
+sets it to the last database opened.
+The default is
+.Pa ~/.pwsafe.dat .
+.It Cm backup-before-save Ns = Ns Cm true | false
+Save a copy of the database before saving changes to it.
+The default is
+.Cm true .
+.It Cm backup-count Ns = Ns Ar n
+How many copies to keep; older ones are deleted.
+The default is 3.
+.It Cm theme Ns = Ns Cm mono
+Draw without colour, using only bold, underline, dim and reverse video.
+Without it, colour is used when the terminal supports it and
+.Ev NO_COLOR
+is not set.
+.It Cm auto-sign-off Ns = Ns Ar period
+The program will exit with status 124, discarding unsaved changes, if idle for
+.Ar period .
+.Ar period
+is a number followed by an optional unit:
+.Cm s
+for seconds,
+.Cm m
+for minutes or
+.Cm h
+for hours, for example
+.Li 90s
+or
+.Li 1h .
+The default unit is minutes.
+.Cm 0
+turns auto sign-off off.
+An invalid value is ignored.
+The default is
+.Cm 5m .
+Time the computer spends asleep counts.
+.It Cm backup. Ns Ar n
+The copies of the database
+.Nm
+has saved.
+They are kept up to date by
+.Nm ;
+do not edit them.
+.El
+.Pp
+A copy is saved next to the database as
+.Ar name Ns Li - Ns Ar YYYYMMDD Ns Li _ Ns Ar HHMMSS Ns Ar .ext ,
+for example
+.Pa accounts-20261122_143000.dat .
+.Pp
+.Nm
+rewrites the whole file when it exits, so comments and sections in it are not
+kept.
+.Sh ENVIRONMENT
+.Bl -tag -width Ds
+.It Ev HOME
+The home directory, for the default preferences file and database.
+On Windows,
+.Ev USERPROFILE
+is used instead, and the preferences are under
+.Ev APPDATA .
+.It Ev LANG , LC_ALL , LC_CTYPE
+Account text is UTF-8.
+When the locale's character set is not UTF-8,
+.Nm
+uses the character set of
+.Li C.UTF-8
+or
+.Li en_US.UTF-8 ,
+if one of them is installed, so non-ASCII text can be shown and edited.
+.It Ev TERM
+The terminal type, as for every ncurses program.
+.It Ev ESCDELAY
+How long ncurses waits after
+.Ic Esc
+for the rest of a key's escape sequence, in milliseconds.
+.It Ev NO_COLOR
+When set to a non-empty value, draw without colour, as
+.Cm theme Ns = Ns Cm mono .
+.It Ev DISPLAY
+The X display
+.Xr xclip 1
+copies to, except on Windows, which uses its own clipboard.
+Copying to the clipboard fails when it is not set.
+.It Ev NCPWSAFE_XCLIP
+The
+.Xr xclip 1
+program to run, instead of
+.Pa /usr/bin/xclip .
+.El
+.Sh FILES
+.Bl -tag -width Ds
+.It Pa ~/.config/ncpwsafe/ncpwsafe.ini
+The preferences, or
+.Pa %APPDATA%\(rsncpwsafe\(rsncpwsafe.ini
+on Windows.
+.It Pa ~/.pwsafe.dat
+The default database.
+.El
+.Sh EXIT STATUS
+.Bl -tag -width Ds -compact
+.It 0
+Success: the changes were saved with
+.Ic ^S ,
+a command succeeded, or
+.Fl -help .
+.It 1
+An error, such as an invalid argument or an incorrect password; or the user
+interface was left with
+.Ic ^X ,
+or the password prompt was cancelled.
+.It 124
+The program exited after the idle period expired; see
+.Cm auto-sign-off
+in
+.Sx PREFERENCES .
+.El
+.Sh EXAMPLES
+Open a database read-only, reading its password from
+.Xr pass 1 :
+.Pp
+.Dl $ ncpwsafe -r --password-file=<(pass show pwsafe) accounts.dat
+.Pp
+Generate ten passwords of 16 letters and digits:
+.Pp
+.Dl $ ncpwsafe --generate-password --password-count=10 --password-length=16
+.Pp
+Export a database, then delete the export securely:
+.Pp
+.Dl $ ncpwsafe --export-db -o accounts.csv accounts.dat
+.Dl $ shred -u accounts.csv
+.Pp
+Change a database's password, with both passwords in files:
+.Pp
+.Bd -literal -offset indent
+$ ncpwsafe --change-password --password-file=old.pw \e
+    --new-password-file=new.pw accounts.dat
+.Ed
+.Sh SECURITY CONSIDERATIONS
+.Bl -bullet
+.It
+Passwords given with
+.Fl P
+or
+.Fl -new-password
+can be seen by other users while
+.Nm
+starts.
+Use
+.Fl -password-file
+and
+.Fl -new-password-file .
+.It
+In Release builds,
+.Nm
+cannot be traced by a debugger and writes no core dumps, which would hold
+decrypted passwords.
+.It
+After the
+.Cm auto-sign-off
+period without a key press,
+.Nm
+quits and clears the database from memory, discarding unsaved changes.
+.It
+A password copied to the clipboard stays there until something else is copied.
+.It
+An exported file holds every password unencrypted.
+.El
+.Sh SEE ALSO
+.Xr pass 1 ,
+.Xr xclip 1
+.Pp
+Password Safe:
+.Lk https://www.pwsafe.org/
+.Sh AUTHORS
+.An Ian Boisvert
+.Sh BUGS
+Known bugs are listed in
+.Pa docs/ISSUES.md
+in the source, at
+.Lk https://github.com/iboisvert/ncpwsafe .

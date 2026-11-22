@@ -75,6 +75,7 @@ elseif(NCPWSAFE_DEBUG_SANITIZE)
 endif()
 
 add_subdirectory(src)
+add_subdirectory(man)
 if(BUILD_TESTING)
     resolve_test_dependencies()
     enable_testing()

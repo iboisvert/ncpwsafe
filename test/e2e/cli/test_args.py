@@ -15,14 +15,24 @@ class ArgsTest(e2elib.E2ETestCase):
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("Usage: ncpwsafe [COMMAND] [OPTIONS] [DATABASE_FILE]", proc.stdout)
 
+    def assertHelp(self, proc):
+        # Asking for help isn't an error
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(proc.stderr, "")
+        self.assertIn("Usage: ncpwsafe [COMMAND] [OPTIONS] [DATABASE_FILE]", proc.stdout)
+
     def test_help(self):
         proc = self.run_ncpwsafe("--help")
-        self.assertUsage(proc)
+        self.assertHelp(proc)
         for cmd in ("--generate-password", "--export-db", "--change-password"):
             self.assertIn(cmd, proc.stdout)
 
     def test_help_short(self):
-        self.assertUsage(self.run_ncpwsafe("-h"))
+        # -h used to be rejected as an invalid option, which also shows the usage
+        self.assertHelp(self.run_ncpwsafe("-h"))
+
+    def test_help_with_other_options(self):
+        self.assertHelp(self.run_ncpwsafe("--read-only", "--help", "some.dat"))
 
     def test_help_shows_config_file_under_home(self):
         proc = self.run_ncpwsafe("--help")
