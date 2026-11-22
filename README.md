@@ -10,6 +10,15 @@ before using this application.
 On Linux, `xclip` is required to copy data to the clipboard from the CLI.
 On Windows, the Windows clipboard is used directly.
 
+## Download
+
+Ready-to-run executables for Linux (x86-64) and Windows (64-bit) are on the
+[releases page](https://github.com/iboisvert/ncpwsafe/releases), with a
+`SHA256SUMS` file to check them against. The Linux executable needs only
+glibc (2.35 or newer, as in Ubuntu 22.04, Debian 12 or Fedora 36), the other
+libraries are linked in; the Windows executable needs Windows 10 or later and
+nothing else. Each package includes the man page and `THIRD-PARTY-LICENSES`.
+
 ## Get Started
 
 To build:
@@ -44,8 +53,9 @@ only the release libraries of the dependencies (the overlay triplet in
 `triplets/`). The first configure builds all dependencies from source and
 takes a while. glog is only installed when configuring with `-DUSE_GLOG=ON`.
 
-The executable is statically linked against its dependencies,
-so `ncpwsafe.exe` can be copied and run on its own.
+The executable is statically linked against its dependencies (and, in the
+release build, the C runtime), so `ncpwsafe.exe` can be copied and run on its
+own.
 On Windows the configuration file is `%APPDATA%\ncpwsafe\ncpwsafe.ini`,
 and the default database is in `%USERPROFILE%`.
 
@@ -57,6 +67,20 @@ command line and the preferences file. After building, read it with
 $ man -l build/man/ncpwsafe.1
 ```
 `cmake --install build` installs it with the executable.
+
+## Releasing
+
+A release is made from a version tag. Set the version in `project()` in the
+top-level `CMakeLists.txt`, commit, then push a tag `v` followed by that
+version (e.g. `v0.1.0`). `.github/workflows/release.yml` checks that the tag
+matches the version, builds, tests and packages ncpwsafe for Linux (the
+`x64-linux-gcc-static-release` preset, every dependency except glibc linked
+statically) and Windows, and creates a draft release with the packages and
+`SHA256SUMS`. Write the release notes in the draft, then publish it.
+
+To try the workflow without releasing, run it from the Actions tab
+(`workflow_dispatch`): with `dry-run`, the default, the packages are kept as
+the run's artifacts and no release is created.
 
 ## Colours
 
