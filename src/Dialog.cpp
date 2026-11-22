@@ -45,7 +45,7 @@ void Dialog::ConstructFields()
         set_field_userptr(field, const_cast<DialogField *>(&df));
         field_opts_on(field, df.m_fieldOptsOn);
         field_opts_off(field, df.m_fieldOptsOff);
-        set_field_back(field, A_UNDERLINE);
+        set_field_back(field, app_.GetTheme().Attr(Role::FIELD));
         set_field_buffer(field, /*buf*/ 0, df.m_value.c_str());
         fields_.push_back(field);
     }
@@ -130,9 +130,10 @@ void Dialog::CreateForm(int label_width)
     // Enable keypad so curses interprets function keys
     keypad(win_, TRUE);
     box(win_, 0, 0);
-    wattron(win_, A_BOLD);
 
-    Label::WriteJustified(win_, /*y*/ 0, /*begin_x*/ 2, getmaxx(win_), title_.c_str(), JUSTIFY_CENTER);
+    const Theme &theme = app_.GetTheme();
+    const std::string title = " " + title_ + " ";
+    Label::Write(win_, /*y*/ 0, /*begin_x*/ 2, getmaxx(win_), title.c_str(), theme.Attr(Role::TITLE), JUSTIFY_CENTER);
 
     int label_begin_x = 2, form_begin_y = 2, form_begin_x = label_width + label_begin_x + 1;
     form_ = new_form(fields_.data());
@@ -151,10 +152,8 @@ void Dialog::CreateForm(int label_width)
     int row = 2;
     for (const DialogField &df : dialog_fields_)
     {
-        Label::Write(win_, row++, label_begin_x, df.m_label.c_str());
+        Label::Write(win_, row++, label_begin_x, /*width*/ 0, df.m_label.c_str(), theme.Attr(Role::LABEL));
     }
-
-    wattroff(win_, A_BOLD);
 }
 
 void Dialog::OnResize()

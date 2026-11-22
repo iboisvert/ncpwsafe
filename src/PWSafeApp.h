@@ -15,6 +15,7 @@
 #include "SearchBarWin.h"
 #include "Dialog.h"
 #include "Prefs.h"
+#include "Theme.h"
 #include "Filesystem.h"
 
 class PWSafeApp
@@ -75,6 +76,12 @@ public:
         return *commandbarwin_;
     }
 
+    /** Text attributes for each kind of text, see `Theme::Attr()` */
+    const Theme &GetTheme() const
+    {
+        return theme_;
+    }
+
     /** Get the command bar window, used as the layout reference for the search bar */
     WINDOW *GetCommandBarWindow()
     {
@@ -121,6 +128,7 @@ private:
     void CleanBackups();
 
     Prefs &prefs_;
+    Theme theme_;
     ProgArgs args_;
     AccountDb db_;
     Filesystem &filesystem_;

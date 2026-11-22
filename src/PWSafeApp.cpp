@@ -168,7 +168,7 @@ void PWSafeApp::InitTUI()
 {
     /* Initialize curses */
     root_win_ = initscr();
-    // start_color();
+    theme_.Init(prefs_.Get<std::string>(Prefs::THEME, ""));
     raw();
     noecho();
     // IMB 2022-12-13 htop uses F3/S-F3 to find next/prev, like in
@@ -199,10 +199,6 @@ void PWSafeApp::InitTUI()
 
     DrawFrame();
 
-    // Draw command bar
-    wattron(commandbar_win_, A_REVERSE | A_DIM);
-    mvwhline(commandbar_win_, /*y*/ 0, beg_x, /*ch*/ ' ', ncols);
-    wattroff(commandbar_win_, A_REVERSE | A_DIM);
 }
 
 /** Draw the border and title of the accounts list */
@@ -210,7 +206,9 @@ void PWSafeApp::DrawFrame()
 {
     werase(accounts_win_);
     box(accounts_win_, /*verch*/ 0, /*horch*/ 0);
-    Label::WriteJustified(accounts_win_, /*y*/ 0, /*x*/ 0, getmaxx(accounts_win_), APPNAME_VERSION, JUSTIFY_CENTER);
+    const std::string title = std::string(" ") + APPNAME_VERSION + " ";
+    Label::Write(accounts_win_, /*y*/ 0, /*x*/ 0, getmaxx(accounts_win_), title.c_str(), theme_.Attr(Role::TITLE),
+                 JUSTIFY_CENTER);
     // accounts_win_ is a subwindow of stdscr, which is the bottom panel
     touchwin(root_win_);
 }

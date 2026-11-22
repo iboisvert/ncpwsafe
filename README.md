@@ -49,6 +49,14 @@ so `ncpwsafe.exe` can be copied and run on its own.
 On Windows the configuration file is `%APPDATA%\ncpwsafe\ncpwsafe-config.ini`,
 and `${HOME}` in preference values falls back to `%USERPROFILE%`.
 
+## Colours
+
+ncpwsafe uses colour when the terminal supports it. Set the `NO_COLOR`
+environment variable (see https://no-color.org), or `theme = mono` in the
+configuration file (`~/.config/ncpwsafe/ncpwsafe-config.ini`, or
+`%APPDATA%\ncpwsafe\ncpwsafe-config.ini` on Windows), to draw with
+bold, underline, dim and reverse video only.
+
 ## Testing
 
 Unit tests (GoogleTest) and end-to-end tests of the CLI commands and the

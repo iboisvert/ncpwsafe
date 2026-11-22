@@ -28,6 +28,12 @@ public:
      * when a new backup is saved.
      */
     static constexpr const char *BACKUP_COUNT = "backup-count";
+    /**
+     * Colour theme, string. `mono` draws without colour, using only bold,
+     * underline, dim and reverse. Any other value, or none, uses colour
+     * when the terminal supports it and `NO_COLOR` is not set.
+     */
+    static constexpr const char *THEME = "theme";
 
     /**
      * Initialize Prefs from defaults

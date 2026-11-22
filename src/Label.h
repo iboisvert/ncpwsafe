@@ -8,7 +8,7 @@
 class Label
 {
 public:
-    Label(WINDOW *win, int y, int x, int width = 0, int attrs = 0, int justification = JUSTIFY_LEFT)
+    Label(WINDOW *win, int y, int x, int width = 0, attr_t attrs = A_NORMAL, int justification = JUSTIFY_LEFT)
         : win_(win), m_y(y), m_x(x), m_width(width), m_attrs(attrs), m_justification(justification)
     {
     }
@@ -18,14 +18,14 @@ public:
     }
 
     static int Write(
-        WINDOW *win, int y, int x, int width, const char *msg, int attrs = 0, int justification = JUSTIFY_LEFT)
+        WINDOW *win, int y, int x, int width, const char *msg, attr_t attrs = A_NORMAL, int justification = JUSTIFY_LEFT)
     {
         if (attrs)
-            wattron(win, attrs);
+            wattr_on(win, attrs, nullptr);
         if (justification != JUSTIFY_LEFT) x = CalcX(x, width, strlen(msg), justification);
         int retval = mvwaddstr(win, y, x, msg);
         if (attrs)
-            wattroff(win, attrs);
+            wattr_off(win, attrs, nullptr);
         return retval;
     }
 
@@ -85,6 +85,6 @@ private:
     WINDOW *win_ = nullptr;
     int m_y, m_x;
     int m_width;
-    int m_attrs;
+    attr_t m_attrs = A_NORMAL;
     int m_justification;
 };

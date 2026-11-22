@@ -3,6 +3,7 @@ add_executable(unittests
     AccountRecord-tests.cpp
     PWSafeApp-tests.cpp
     Policy-tests.cpp
+    Theme-tests.cpp
     Utils-tests.cpp
     Win32-tests.cpp
 )

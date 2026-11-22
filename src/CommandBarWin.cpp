@@ -37,7 +37,8 @@ void CommandBarWin::ShowActions(const PWSafeApp &app, WINDOW *win, const std::ve
 
 void CommandBarWin::DrawActions(const PWSafeApp &app, WINDOW *win, const std::vector<Action> &actions, int opts)
 {
-    wattron(win, A_REVERSE/* | A_DIM*/);
+    const Theme &theme = app.GetTheme();
+    wattrset(win, theme.Attr(Role::KEY_DESC));
 
     const bool read_only = app.GetDb().ReadOnly();
     int status_len = read_only ? 2 : 0;
@@ -59,9 +60,10 @@ void CommandBarWin::DrawActions(const PWSafeApp &app, WINDOW *win, const std::ve
 
         for (int j = 0; j < spacer; ++j)
             waddch(win, ' ');
-        wattron(win, A_BOLD);
-        waddstr(win, action.m_key.c_str());
-        wattroff(win, A_BOLD);
+        {
+            ScopedAttr key(win, theme, Role::KEY);
+            waddstr(win, action.m_key.c_str());
+        }
         waddch(win, ' ');
         waddstr(win, action.m_name.c_str());
 
@@ -74,6 +76,8 @@ void CommandBarWin::DrawActions(const PWSafeApp &app, WINDOW *win, const std::ve
     whline(win, ' ', max_x-col);
     if (read_only)
     {
+        ScopedAttr warning(win, theme, Role::WARNING);
         mvwaddstr(win, /*y*/0, max_x, STATUS_READ_ONLY);
     }
+    wattrset(win, A_NORMAL);
 }

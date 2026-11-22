@@ -373,6 +373,7 @@ void AccountsWin::CreateMenu()
 
     menu_ = new_menu(menu_items_.data());
     set_menu_grey(menu_, A_NORMAL);
+    set_menu_fore(menu_, app_.GetTheme().Attr(Role::SELECTION));
     menu_opts_off(menu_, O_SHOWDESC);
     set_menu_mark(menu_, nullptr);
 

@@ -21,6 +21,7 @@ list(APPEND SRC
     PWSafeApp.cpp
     SafeCombinationPromptDlg.cpp
     SearchBarWin.cpp
+    Theme.cpp
     Utils.cpp
     Win32.cpp
 )
