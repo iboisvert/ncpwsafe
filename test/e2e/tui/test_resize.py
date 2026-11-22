@@ -20,7 +20,7 @@ class ResizeTest(e2elib.TuiTestCase):
         screen = app.screen()
         self.assertEqual(len(screen[0].rstrip()), cols, screen[0])
         self.assertTrue(screen[0].startswith("lqq") and screen[0].rstrip().endswith("qqk"), screen[0])
-        self.assertIn("ncpwsafe 0.1", screen[0])
+        self.assertIn(f"ncpwsafe {e2elib.VERSION}", screen[0])
         bottom = screen[rows - 2]
         self.assertEqual(bottom.rstrip(), "m" + "q" * (cols - 2) + "j", "\n".join(screen))
         for line in screen[1:rows - 2]:

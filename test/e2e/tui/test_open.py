@@ -14,7 +14,7 @@ class OpenTest(e2elib.TuiTestCase):
 
     def assertAccountsShown(self, app):
         screen = app.text()
-        self.assertIn("ncpwsafe 0.1", app.screen()[0])
+        self.assertIn(f"ncpwsafe {e2elib.VERSION}", app.screen()[0])
         # A heading for each group with its number of accounts, then the group's accounts
         # with their user names, sorted by group and title. Accounts without a group come first
         self.assertRegex(screen, r"x ▾ \(no group\)  q+  2 x\nx    Router +admin +x\nx    Wiki +wikiuser +x")

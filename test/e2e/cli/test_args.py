@@ -39,6 +39,17 @@ class ArgsTest(e2elib.E2ETestCase):
         # On Windows the default is %APPDATA% + "/ncpwsafe/...", with mixed separators
         self.assertIn(str(self.config_file), proc.stdout.replace("/", os.sep))
 
+    def test_version(self):
+        for option in ("--version", "-V"):
+            proc = self.run_ncpwsafe(option)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            self.assertEqual(proc.stderr, "")
+            self.assertEqual(proc.stdout, f"ncpwsafe {e2elib.VERSION}\n")
+        self.assertRegex(e2elib.VERSION, r"^\d+\.\d+\.\d+$")
+
+    def test_version_in_help(self):
+        self.assertIn("-V,--version", self.run_ncpwsafe("--help").stdout)
+
     def test_unknown_option(self):
         proc = self.run_ncpwsafe("--no-such-option")
         self.assertUsage(proc)

@@ -11,7 +11,7 @@ if(USE_GLOG)
     list(APPEND VCPKG_MANIFEST_FEATURES "glog")
 endif()
 project(ncpwsafe 
-    VERSION 0.1 
+    VERSION 0.1.0
     DESCRIPTION "An ncurses terminal program that manages encrypted password databases"
     HOMEPAGE_URL "https://github.com/iboisvert/ncpwsafe"
     LANGUAGES C CXX
