@@ -36,3 +36,14 @@ set_tests_properties(release.tag_mismatch release.tag_without_v PROPERTIES
     PASS_REGULAR_EXPRESSION "doesn't match the version in CMakeLists.txt")
 set_tests_properties(release.version_read release.tag_matches release.tag_mismatch release.tag_without_v
     PROPERTIES LABELS release)
+
+# The release packaging script (cmake/MakePackage.cmake), on the build itself
+if(WIN32)
+    set(PACKAGE_PLATFORM windows-x64)
+else()
+    set(PACKAGE_PLATFORM linux-x86_64)
+endif()
+add_test(NAME release.package
+    COMMAND ${CMAKE_COMMAND} -DBUILD_DIR=${CMAKE_BINARY_DIR} -DOUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}/release-package
+        -DPLATFORM=${PACKAGE_PLATFORM} -P ${CMAKE_CURRENT_SOURCE_DIR}/release/CheckPackage.cmake)
+set_tests_properties(release.package PROPERTIES LABELS release)

@@ -1,0 +1,52 @@
+# Test of cmake/MakePackage.cmake: package the build into a temporary directory and
+# check the archive's contents. Run by CTest (release.package), with BUILD_DIR,
+# OUTPUT_DIR and PLATFORM set.
+
+cmake_minimum_required(VERSION 3.21)
+include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/ReadVersion.cmake")
+read_project_version(version)
+
+file(REMOVE_RECURSE "${OUTPUT_DIR}")
+file(MAKE_DIRECTORY "${OUTPUT_DIR}")
+set(licence "${OUTPUT_DIR}/example-licence.txt")
+file(WRITE "${licence}" "Example licence text\n")
+set(args -DBUILD_DIR=${BUILD_DIR} -DPLATFORM=${PLATFORM} -DOUTPUT_DIR=${OUTPUT_DIR}/out "-DLICENSES=Example=${licence}")
+if(PLATFORM STREQUAL "windows-x64")
+    set(man_html "${OUTPUT_DIR}/ncpwsafe.1.html")
+    file(WRITE "${man_html}" "<html></html>\n")
+    list(APPEND args -DMAN_HTML=${man_html})
+    set(package "${OUTPUT_DIR}/out/ncpwsafe-${version}-${PLATFORM}.zip")
+    set(expected ncpwsafe/ncpwsafe.exe ncpwsafe/ncpwsafe.1.html)
+else()
+    set(package "${OUTPUT_DIR}/out/ncpwsafe-${version}-${PLATFORM}.tar.gz")
+    set(expected ncpwsafe/bin/ncpwsafe ncpwsafe/share/man/man1/ncpwsafe.1)
+endif()
+list(APPEND expected ncpwsafe/README.md ncpwsafe/LICENSE ncpwsafe/THIRD-PARTY-LICENSES)
+
+execute_process(COMMAND ${CMAKE_COMMAND} ${args} -P "${CMAKE_CURRENT_LIST_DIR}/../../cmake/MakePackage.cmake"
+    RESULT_VARIABLE status)
+if(NOT status EQUAL 0)
+    message(FATAL_ERROR "MakePackage.cmake failed")
+endif()
+
+# Extract it and compare the files, ignoring directories
+set(extract "${OUTPUT_DIR}/extract")
+file(MAKE_DIRECTORY "${extract}")
+execute_process(COMMAND ${CMAKE_COMMAND} -E tar xf "${package}" WORKING_DIRECTORY "${extract}" RESULT_VARIABLE status)
+if(NOT status EQUAL 0)
+    message(FATAL_ERROR "Can't extract ${package}")
+endif()
+file(GLOB_RECURSE files RELATIVE "${extract}" "${extract}/*")
+list(SORT files)
+list(SORT expected)
+if(NOT files STREQUAL expected)
+    message(FATAL_ERROR "Package files:\n  ${files}\nexpected:\n  ${expected}")
+endif()
+file(READ "${extract}/ncpwsafe/THIRD-PARTY-LICENSES" notices)
+foreach(text IN ITEMS libpwsafe libconfini "Example licence text")
+    if(NOT notices MATCHES "${text}")
+        message(FATAL_ERROR "THIRD-PARTY-LICENSES doesn't mention ${text}")
+    endif()
+endforeach()
+file(REMOVE_RECURSE "${OUTPUT_DIR}")
+message(STATUS "Package contents as expected: ${files}")

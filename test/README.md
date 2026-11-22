@@ -7,7 +7,7 @@ There are three kinds of tests, and CTest runs them all:
 | Unit tests | `test/*-tests.cpp` | Classes in `libncpwsafe`, with GoogleTest | none |
 | End-to-end CLI tests | `test/e2e/cli/` | The `--generate-password`, `--export-db`, `--change-password` and `--test-db` commands, run as a user would | `e2e`, `cli` |
 | End-to-end TUI tests | `test/e2e/tui/` | The ncurses UI, driven through a detached tmux server | `e2e`, `tui` |
-| Release script tests | `test/CMakeLists.txt` | `cmake/CheckReleaseVersion.cmake`, which the release workflow runs to check the tag against the version | `release` |
+| Release script tests | `test/CMakeLists.txt`, `test/release/` | The scripts the release workflow runs: `cmake/CheckReleaseVersion.cmake`, which checks the tag against the version, and `cmake/MakePackage.cmake`, which packages the build (`release.package` packages this build and checks the archive's files) | `release` |
 
 ## Requirements
 

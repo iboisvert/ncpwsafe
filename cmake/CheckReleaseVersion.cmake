@@ -10,15 +10,8 @@
 
 cmake_minimum_required(VERSION 3.21)
 
-file(READ "${CMAKE_CURRENT_LIST_DIR}/../CMakeLists.txt" top_level)
-# The arguments of project(ncpwsafe ...), up to its closing parenthesis
-if(NOT top_level MATCHES "\nproject\\(ncpwsafe([^)]*)\\)")
-    message(FATAL_ERROR "No project() in CMakeLists.txt")
-endif()
-if(NOT CMAKE_MATCH_1 MATCHES "VERSION[ \t\r\n]+([0-9]+\\.[0-9]+\\.[0-9]+)[ \t\r\n]")
-    message(FATAL_ERROR "project() in CMakeLists.txt has no MAJOR.MINOR.PATCH version")
-endif()
-set(version "${CMAKE_MATCH_1}")
+include("${CMAKE_CURRENT_LIST_DIR}/ReadVersion.cmake")
+read_project_version(version)
 
 if(DEFINED EXPECT_VERSION)
     if(NOT version STREQUAL EXPECT_VERSION)

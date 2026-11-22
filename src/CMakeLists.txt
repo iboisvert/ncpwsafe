@@ -91,7 +91,12 @@ if(NCPWSAFE_STATIC_DEPS)
     # Not for the test executables, which link the shared GoogleTest and so libstdc++
     target_link_options(ncpwsafe PRIVATE -static-libstdc++ -static-libgcc)
 endif()
-install (TARGETS ncpwsafe RUNTIME)
+if(WIN32)
+    # <prefix>\ncpwsafe.exe, as in the release zip: Windows programs don't use a bin directory
+    install(TARGETS ncpwsafe RUNTIME DESTINATION .)
+else()
+    install(TARGETS ncpwsafe RUNTIME)
+endif()
 
 add_compile_definitions(
     "$<$<CONFIG:RELEASE>:NDEBUG>"
