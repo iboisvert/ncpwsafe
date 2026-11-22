@@ -4,10 +4,13 @@ macro(resolve_dependencies)
         find_package(PkgConfig REQUIRED)
     endif()
 
+    # The forks are pinned to commits, so that building a tag of ncpwsafe always
+    # gives the same result. Updating a fork is a change to ncpwsafe: set the new
+    # commit here.
     FetchContent_Declare(
         libpwsafe
         GIT_REPOSITORY https://github.com/iboisvert/libpwsafe.git
-        GIT_TAG HEAD
+        GIT_TAG fb4b3c886fe49d09816c86bd87382852afbe71bd
         # URL https://github.com/iboisvert/libpwsafe/archive/refs/heads/main.zip
         # SOURCE_DIR /workspaces/libpwsafe
     )
@@ -19,7 +22,7 @@ macro(resolve_dependencies)
     FetchContent_Declare(
         libconfini
         GIT_REPOSITORY https://github.com/iboisvert/libconfini.git
-        GIT_TAG HEAD
+        GIT_TAG 531bd1c7583b2cda9748b07fde92db9e79c42ba7
     )
 
     FetchContent_MakeAvailable(libpwsafe libconfini)
