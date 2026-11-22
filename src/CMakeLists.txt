@@ -86,6 +86,11 @@ set_target_properties(ncpwsafe
 target_link_libraries(ncpwsafe 
     libncpwsafe
 )
+if(NCPWSAFE_STATIC_DEPS)
+    # Only glibc stays a shared library: its version is the one requirement on the system.
+    # Not for the test executables, which link the shared GoogleTest and so libstdc++
+    target_link_options(ncpwsafe PRIVATE -static-libstdc++ -static-libgcc)
+endif()
 install (TARGETS ncpwsafe RUNTIME)
 
 add_compile_definitions(
