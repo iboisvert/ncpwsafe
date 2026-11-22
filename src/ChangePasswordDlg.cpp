@@ -5,7 +5,7 @@
 #include "MessageBox.h"
 #include "Utils.h"
 
-static PwsFieldType PASSWORD_CONFIRM = static_cast<PwsFieldType>(FT_END+1);
+static constexpr DialogFieldId PASSWORD_CONFIRM = DIALOG_FIELD_ID_FIRST;
 
 ChangePasswordDlg::ChangePasswordDlg(PWSafeApp &app)
     : app_(app)

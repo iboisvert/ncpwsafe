@@ -20,9 +20,18 @@ enum class DialogResult
     NO,
 };
 
+/**
+ * Identifies a field of a dialog. Fields that hold an account field use its
+ * `PwsFieldType`; other fields use ids from `DIALOG_FIELD_ID_FIRST` up, which
+ * are past the range of `PwsFieldType` and so can't be stored in one
+ */
+typedef int DialogFieldId;
+/** The first id that isn't a `PwsFieldType`, for fields such as password confirmations */
+constexpr DialogFieldId DIALOG_FIELD_ID_FIRST = FT_END + 1;
+
 struct DialogField
 {
-    PwsFieldType m_fieldType;
+    DialogFieldId m_fieldType;
     std::string m_label;
     std::string m_value;
     int m_width;
@@ -88,7 +97,7 @@ public:
     }
 
     /** Set the field to be active when the Dialog is initialized. */
-    Dialog &SetActiveField(PwsFieldType fieldType);
+    Dialog &SetActiveField(DialogFieldId fieldType);
     /** Gets the active field. */
     const DialogField *GetActiveField() const;
 
@@ -114,19 +123,19 @@ public:
         return read_only_;
     }
 
-    /** Gets the curses `FIELD` for the given `FieldType` */
-    FIELD *GetField(PwsFieldType ft) const;
-    /** Sets the value of a curses `FIELD` for the given `FieldType` */
-    void SetField(PwsFieldType ft, const std::string &value);
-    /** Gets the value of the field with the given `FieldType` */
-    const std::string &GetValue(PwsFieldType ft) const;
+    /** Gets the curses `FIELD` for the given field id */
+    FIELD *GetField(DialogFieldId ft) const;
+    /** Sets the value of a curses `FIELD` for the given field id */
+    void SetField(DialogFieldId ft, const std::string &value);
+    /** Gets the value of the field with the given field id */
+    const std::string &GetValue(DialogFieldId ft) const;
     /**
      * Gets the current, possibly unsaved, contents of the field with the given
-     * `FieldType`. Unlike `GetValue()`, this can be called while the dialog is
+     * field id. Unlike `GetValue()`, this can be called while the dialog is
      * processing input, e.g. from an input delegate.
      * \note Callers should `ZeroMemory()` the result if it holds a secret
      */
-    std::string GetCurrentValue(PwsFieldType ft);
+    std::string GetCurrentValue(DialogFieldId ft);
 
 private:
     friend int DefaultInputHandler(Dialog &);
@@ -177,7 +186,7 @@ private:
     InputHandler input_delegate_;
     Callback validate_callback_;
     Callback discard_changes_callback_;
-    std::map<PwsFieldType, std::string> values_;
+    std::map<DialogFieldId, std::string> values_;
     int max_field_width_;
     /** Rows taken by the fields and section headings */
     int content_rows_ = 0;

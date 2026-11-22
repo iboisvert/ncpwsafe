@@ -39,26 +39,6 @@ The README already suggests editing the file by hand (`theme = mono`), and the p
 **Fix:** take only `INI_KEY` nodes, and use the node's section (`append_to`) to tell top-level keys
 from keys in sections. Add a unit test that reads a file with comments, blank lines and sections.
 
-## 2. Password dialogs use field types outside `PwsFieldType`'s range
-
-**Severity:** Important
-
-The confirmation fields of the password dialogs use field types past `FT_END` (`0xff`):
-
-```cpp
-static PwsFieldType PASSWORD_CONFIRM = static_cast<PwsFieldType>(FT_END+1);      // ChangePasswordDlg.cpp
-static PwsFieldType NEW_PASSWORD_CONFIRM = static_cast<PwsFieldType>(FT_END+2);  // ChangeDbPasswordDlg.cpp
-```
-
-256 and 257 aren't valid values of the enum, whose range is 0 to 255, so loading them is undefined
-behaviour. In a build with `-DNCPWSAFE_DEBUG_SANITIZE=ON`, UBSan reports `runtime error: load of value
-256, which is not a valid value for type 'PwsFieldType'` each time one of these dialogs is used
-(`ChangePasswordDlg.cpp:28`, `Dialog.h:23`, `std_function.h`). The reports are written over the
-screen, so `tui.edit` and `tui.change_db_password` fail in that build. Other builds work.
-
-**Fix:** key dialog fields by a type of their own (for example an `int` field id, or an enum that
-includes the confirmation fields) rather than by `PwsFieldType`, or use unused values below `FT_END`.
-
 ## 3. The title bar shows the account's place in the stored records, not in the list
 
 **Severity:** Minor

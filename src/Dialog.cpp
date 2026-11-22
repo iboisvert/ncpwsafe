@@ -10,7 +10,7 @@
 #include "Utils.h"
 #include "Label.h"
 
-Dialog &Dialog::SetActiveField(PwsFieldType ft)
+Dialog &Dialog::SetActiveField(DialogFieldId ft)
 {
     active_field_ = GetField(ft);
     return *this;
@@ -353,7 +353,7 @@ void Dialog::SaveData()
     for (size_t i = 0; i < fields_.size() - 1; ++i)
     {
         const FIELD *field = fields_[i];
-        const PwsFieldType ft = reinterpret_cast<const DialogField*>(field_userptr(field))->m_fieldType;
+        const DialogFieldId ft = reinterpret_cast<const DialogField*>(field_userptr(field))->m_fieldType;
         values_[ft] = FieldValue(field);
     }
 }
@@ -629,7 +629,7 @@ void Dialog::DrawTextAreas()
         wcursyncup(form_win_);
 }
 
-FIELD *Dialog::GetField(PwsFieldType ft) const
+FIELD *Dialog::GetField(DialogFieldId ft) const
 {
     FIELD *retval = nullptr;
     auto it = std::find_if(fields_.begin(), fields_.end(), [ft](FIELD *field){
@@ -642,8 +642,8 @@ FIELD *Dialog::GetField(PwsFieldType ft) const
     return retval;
 }
 
-/** Sets the value of a curses `FIELD` for the given `FieldType` */
-void Dialog::SetField(PwsFieldType ft, const std::string &value)
+/** Sets the value of a curses `FIELD` for the given field id */
+void Dialog::SetField(DialogFieldId ft, const std::string &value)
 {
     FIELD *field = GetField(ft);
     assert(field != nullptr);
@@ -663,12 +663,12 @@ void Dialog::SetField(PwsFieldType ft, const std::string &value)
     }
 }
 
-const std::string &Dialog::GetValue(PwsFieldType ft) const
+const std::string &Dialog::GetValue(DialogFieldId ft) const
 {
     return values_.at(ft);
 }
 
-std::string Dialog::GetCurrentValue(PwsFieldType ft)
+std::string Dialog::GetCurrentValue(DialogFieldId ft)
 {
     // Commit pending edits in the active field to its buffer
     form_driver(form_, REQ_VALIDATION);
