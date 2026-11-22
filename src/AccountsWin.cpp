@@ -567,6 +567,18 @@ DialogResult AccountsWin::Save()
     return result;
 }
 
+bool AccountsWin::ConfirmWriteChanges()
+{
+    if (!app_.GetDb().IsDirty())
+        return true;
+
+    app_.GetCommandBar().Show(CommandBarWin::YES_NO);
+    const char *msg = "The database has unsaved changes.\nChanging the password will save them. Continue?";
+    const bool yes = MessageBox(app_).Show(win_, msg, &YesNoKeyHandler) == DialogResult::YES;
+    redrawwin(win_);
+    return yes;
+}
+
 /** Ask for confirmation to discard changes */
 bool AccountsWin::DiscardChanges()
 {
@@ -646,21 +658,20 @@ DialogResult AccountsWin::ProcessInput()
         }
         case KEY_CTRL('C'):
         {
-            if (!read_only)
+            if (!read_only && ConfirmWriteChanges())
             {
                 ChangeDbPasswordDlg dialog(app_);
                 if (dialog.Show(win_) == DialogResult::OK)
                 {
-                    const std::string &password = dialog.GetPassword();
-                    const std::string &new_password = dialog.GetNewPassword();
-                    app_.GetDb().Password() = password;
-                    if (ChangeDbPasswordCommand{app_, new_password}.Execute() != RC_SUCCESS)
+                    // The dialog checked the current password. Write the records in
+                    // memory: reading the file again would undo the unsaved changes
+                    if (ChangeDbPasswordCommand{app_, dialog.GetNewPassword()}.Write() != RC_SUCCESS)
                     {
                         MessageBox(app_).Show(win_, "An error occurred changing the account database password.");
                     }
                 }
-                SetCommandBar();
             }
+            SetCommandBar();
             break;
         }
         case KEY_CTRL('D'):

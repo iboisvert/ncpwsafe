@@ -4,6 +4,7 @@
 #include "PWSafeApp.h"
 #include "ProgArgs.h"
 #include "ResultCode.h"
+#include "Utils.h"
 
 int ChangeDbPasswordCommand::Execute()
 {
@@ -19,19 +20,36 @@ int ChangeDbPasswordCommand::Execute()
         return RC_ERR_FILE_DOESNT_EXIST;
     }
 
-    app_.BackupDb();
-
-    int rc;
-    if (!db.CheckPassword(&rc))
+    int rc = RC_SUCCESS;
+    if (!db.CheckPassword(&rc) || !db.ReadDb(&rc))
     {
         return rc;
     }
 
-    if (db.ReadDb(&rc))
+    return Write();
+}
+
+int ChangeDbPasswordCommand::Write()
+{
+    if (new_password_.empty())
     {
-        db.Password() = new_password_;
-        db.WriteDb(&rc);
+        return RC_ERR_INVALID_ARG;
     }
 
+    AccountDb &db = app_.GetDb();
+    app_.BackupDb();
+
+    std::string old_password = db.Password();
+    db.Password() = new_password_;
+    int rc = RC_SUCCESS;
+    if (db.WriteDb(&rc))
+    {
+        db.ClearDirty();
+    }
+    else
+    {
+        db.Password() = old_password;
+    }
+    ZeroString(old_password);
     return rc;
 }

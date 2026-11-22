@@ -38,17 +38,3 @@ The README already suggests editing the file by hand (`theme = mono`), and the p
 
 **Fix:** take only `INI_KEY` nodes, and use the node's section (`append_to`) to tell top-level keys
 from keys in sections. Add a unit test that reads a file with comments, blank lines and sections.
-
-## 5. Changing the database password loses unsaved changes and writes a mix of saved and unsaved data
-
-**Severity:** Critical
-
-In the accounts list, `^C` (Change Account Database Password) runs `ChangeDbPasswordCommand::Execute()`, which calls `AccountDb::ReadDb()` before `WriteDb()`. `ReadDb()` doesn't clear the records in memory: it passes each record in the file to `AccountRecords::Save()`, which overwrites the in-memory record with the same UUID and re-inserts records that were deleted. The file is then written with the new password. So, for changes not yet saved with `^S`:
-
-- edits to existing accounts are lost, in memory and in the file;
-- deleted accounts come back and are written;
-- added accounts are kept and written.
-
-`AccountsWin` doesn't call `AccountList::Build()` afterwards, so the list's rows still point to the records' old places, which `Save()` has inserted into and re-sorted. The list shows accounts under the wrong groups and leaves out the added ones; if the vector reallocated, the rows are dangling pointers. `^X` then still asks to discard changes, although the file has been written.
-
-**Fix:** when changing the password from the TUI, don't re-read the file: set the new password and write the records in memory (or ask to save first). Call `list_.Build()` afterwards, and clear the dirty state only if everything in memory was written. `--change-password` still has to read the file, since it has nothing in memory. Add a TUI test that makes an edit, a deletion and an addition without saving, changes the password, and checks the list and `--export-db`.

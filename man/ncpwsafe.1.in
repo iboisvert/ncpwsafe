@@ -274,7 +274,8 @@ Copy the selected account's user name to the clipboard.
 .It Ic ^P
 Copy the selected account's password to the clipboard.
 .It Ic ^C
-Change the database password.
+Change the database password, and write the database with it.
+If there are unsaved changes, asks first, since they are written too.
 .It Ic ^S
 Save the changes to the database and exit.
 If the database can't be written,

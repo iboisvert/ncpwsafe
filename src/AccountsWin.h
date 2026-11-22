@@ -49,6 +49,11 @@ private:
     DialogResult Save();
     /** Ask for confirmation to discard changes */
     bool DiscardChanges();
+    /**
+     * If there are unsaved changes, warn that changing the database password
+     * writes them and ask to continue. @returns `true` to continue
+     */
+    bool ConfirmWriteChanges();
     /** View or edit an account entry */
     DialogResult ShowAccountRecord(AccountRecord &itemData);
     /** Save an edited account and update the list */
