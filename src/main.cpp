@@ -74,8 +74,6 @@ static void Usage(const char *progName)
 {
     using namespace std;
 
-    std::string cfgfile = ExpandEnvVars(DEFAULT_CONFIG_FILE);
-
     // clang-format off
     fprintf(stdout,
             "Usage: %s [COMMAND] [OPTIONS] [DATABASE_FILE]\n"
@@ -137,7 +135,7 @@ static void Usage(const char *progName)
             "Help options:\n"
             "  -h,--help            Display this help text and exit\n",
             progName, 
-            cfgfile.c_str(),
+            DEFAULT_CONFIG_FILE.c_str(),
             DEFAULT_GENERATE_LANGUAGE, DEFAULT_GENERATE_GROUP_COUNT, DEFAULT_GENERATE_ITEM_COUNT,
             DEFAULT_GENERATE_PASSWORD_COUNT,
             DEFAULT_PASSWORD_LENGTH,
@@ -171,7 +169,7 @@ static bool ValidateArgs(InputProgArgs &args)
 
 #ifdef HAVE_GLOG
     LOG_IF(INFO, args.config_file_ && !fs::Exists(*args.config_file_)) 
-        << "Configuration file \"" << ExpandEnvVars(args.config_file_.value_or("")) << "\" does not exist";
+        << "Configuration file \"" << *args.config_file_ << "\" does not exist";
 #endif
 
     Operation cmd = args.GetCommand();

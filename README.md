@@ -47,7 +47,7 @@ takes a while. glog is only installed when configuring with `-DUSE_GLOG=ON`.
 The executable is statically linked against its dependencies,
 so `ncpwsafe.exe` can be copied and run on its own.
 On Windows the configuration file is `%APPDATA%\ncpwsafe\ncpwsafe.ini`,
-and `${HOME}` in preference values falls back to `%USERPROFILE%`.
+and the default database is in `%USERPROFILE%`.
 
 ## Colours
 

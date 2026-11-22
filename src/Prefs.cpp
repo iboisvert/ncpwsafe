@@ -14,7 +14,7 @@
 #include "Filesystem.h"
 
 static std::map<std::string, std::string> DEFAULTS{
-    {Prefs::DB_PATHNAME, "${HOME}/.pwsafe.dat"},
+    {Prefs::DB_PATHNAME, HomeDir() + "/.pwsafe.dat"},
     {Prefs::BACKUP_BEFORE_SAVE, "true"},
     {Prefs::BACKUP_COUNT, "3"},
     {Prefs::AUTO_SIGN_OFF, "5m"},
@@ -44,9 +44,7 @@ bool Prefs::HasPref(const std::string &key)
 template <>
 std::string Prefs::GetPrefValue<std::string>(const std::string &key)
 {
-    std::string value = prefs_.at(key);
-    value = ExpandEnvVars(value);
-    return value;
+    return prefs_.at(key);
 }
 
 template <>

@@ -108,8 +108,18 @@ inline std::string &rtrim(std::string &str)
  */
 bool SetUtf8CtypeLocale();
 
-/** Expand environment variables in the string */
-std::string ExpandEnvVars(const std::string &str);
+/**
+ * The user's home directory: `USERPROFILE` on Windows, `HOME` elsewhere.
+ *
+ * @returns The directory, or an empty string if it isn't set
+ */
+std::string HomeDir();
+
+/**
+ * The directory for ncpwsafe's per-user data, such as its preferences:
+ * `win32::RoamingAppDataDir()/ncpwsafe` on Windows, `HomeDir()/.config/ncpwsafe` elsewhere.
+ */
+std::string UserAppDataDir();
 
 /**
  * Number of characters (code points) in UTF-8 text. A character is assumed to

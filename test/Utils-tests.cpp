@@ -17,15 +17,38 @@
 #include "Utils.h"
 
 
-TEST(UtilTest, TestExpandEnvVars)
+TEST(UtilTest, HomeDir)
 {
-    SetEnv("FOO", "foo");
-    SetEnv("BAR", "bar");
-    ASSERT_STREQ("foo", ExpandEnvVars("${FOO}").c_str());
-    ASSERT_STREQ("abcfooxyz", ExpandEnvVars("abc${FOO}xyz").c_str());
-    ASSERT_STREQ("abcfoobarxyz", ExpandEnvVars("abc${FOO}${BAR}xyz").c_str());
-    ASSERT_STREQ("abcfooxyzbar123", ExpandEnvVars("abc${FOO}xyz${BAR}123").c_str());
-    ASSERT_STREQ("abc${FOOxyz", ExpandEnvVars("abc${FOOxyz").c_str());
+#ifdef _WIN32
+    const char *var = "USERPROFILE";
+#else
+    const char *var = "HOME";
+#endif
+    const char *home = std::getenv(var);
+    std::string saved = home ? home : "";
+    SetEnv(var, "/home/someone");
+    EXPECT_EQ("/home/someone", HomeDir());
+    SetEnv(var, saved.c_str());
+}
+
+TEST(UtilTest, UserAppDataDir)
+{
+#ifdef _WIN32
+    const char *var = "APPDATA";
+    const char *expected = "C:\\Users\\someone\\AppData\\Roaming/ncpwsafe";
+#else
+    const char *var = "HOME";
+    const char *expected = "/home/someone/.config/ncpwsafe";
+#endif
+    const char *value = std::getenv(var);
+    std::string saved = value ? value : "";
+#ifdef _WIN32
+    SetEnv(var, "C:\\Users\\someone\\AppData\\Roaming");
+#else
+    SetEnv(var, "/home/someone");
+#endif
+    EXPECT_EQ(expected, UserAppDataDir());
+    SetEnv(var, saved.c_str());
 }
 
 TEST(UtilTest, TestRtrim)
