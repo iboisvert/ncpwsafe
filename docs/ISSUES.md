@@ -39,14 +39,6 @@ The README already suggests editing the file by hand (`theme = mono`), and the p
 **Fix:** take only `INI_KEY` nodes, and use the node's section (`append_to`) to tell top-level keys
 from keys in sections. Add a unit test that reads a file with comments, blank lines and sections.
 
-## 3. The title bar shows the account's place in the stored records, not in the list
-
-**Severity:** Minor
-
-`AccountsWin::StatusText()` shows the selected account as, for example, `3/7`, but takes the number from the account's index in `app_.GetDb().Records()`. The list on screen is sorted by group and title, so when the records are stored in another order the number doesn't match what the user sees: the first account in the list can show `5/7`.
-
-**Fix:** take the position from the order of `AccountList` (the account rows, in list order). Add a unit test with records stored out of order.
-
 ## 4. The save-error Retry? prompt can't be cancelled with ^X, and declining exits 0
 
 **Severity:** Important
