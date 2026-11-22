@@ -78,18 +78,36 @@ protected:
 
     void SetUp() override
     {
-        // Portable replacement for mkstemp(), which MSVC doesn't have
+        // Portable replacement for mkstemp(), which MSVC doesn't have.
+        // "x" fails if the file exists, so an existing file is never truncated
+        // (or removed by TearDown()); try again with a new name
         std::random_device rd;
-        std::string name = "ncpwsafe-pwfile-" + std::to_string(rd()) + "-" + std::to_string(rd());
-        pathname_ = (std::filesystem::temp_directory_path() / name).string();
-        std::FILE *f = std::fopen(pathname_.c_str(), "wb");
-        ASSERT_NE(nullptr, f);
-        std::fclose(f);
+        const std::filesystem::path tmpdir = std::filesystem::temp_directory_path();
+        for (int attempt = 0; attempt < 100; ++attempt)
+        {
+            std::string name = "ncpwsafe-pwfile-" + std::to_string(rd()) + "-" + std::to_string(rd());
+            std::string pathname = (tmpdir / name).string();
+            errno = 0;
+            std::FILE *f = std::fopen(pathname.c_str(), "wbx");
+            if (f)
+            {
+                std::fclose(f);
+                pathname_ = pathname;
+                // Like mkstemp(), only the owner can read the password file
+                std::filesystem::permissions(pathname_, std::filesystem::perms::owner_read | std::filesystem::perms::owner_write);
+                return;
+            }
+            ASSERT_EQ(EEXIST, errno) << "Unable to create " << pathname << ": " << std::strerror(errno);
+        }
+        FAIL() << "Unable to create a unique file in " << tmpdir;
     }
     void TearDown() override
     {
-        std::error_code ec;
-        std::filesystem::remove(pathname_, ec);
+        if (!pathname_.empty())
+        {
+            std::error_code ec;
+            std::filesystem::remove(pathname_, ec);
+        }
     }
     void Write(const std::string &contents)
     {

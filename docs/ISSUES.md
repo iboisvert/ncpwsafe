@@ -7,14 +7,6 @@ Known open issues. Severity is one of:
 
 Issues 1–9 were found by a code review of the Windows MSVC port (branch `dev/build-win-msvc`, 2026-11-21). Issue 10 is the part of the crash-dump issue (3) that its fix did not cover.
 
-## 9. `ReadPasswordFileTest` temp file is not created exclusively
-
-**Severity:** Minor
-
-`ReadPasswordFileTest::SetUp()` (`test/Utils-tests.cpp:82`) replaced `mkstemp()` with a name made from `std::random_device` and `fopen(..., "wb")`. This truncates an existing file instead of failing, and creates the file with default permissions, where `mkstemp()` created it atomically with mode 0600. On a name collision the test overwrites a file, and `TearDown()` then deletes a file it did not create.
-
-**Fix:** open with `"wbx"` (supported by C11 and MSVC) and retry with a new name if the file exists.
-
 ## 10. Other processes can read ncpwsafe's memory on Windows
 
 **Severity:** Minor
