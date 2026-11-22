@@ -80,6 +80,21 @@ class ClipboardTest(e2elib.TuiTestCase):
         app.send("C-u")
         self.wait_clipboard(app, "alice")
 
+    def test_copy_in_details_dialog_keeps_value(self):
+        # The dialog copies the stored value of a field that wasn't edited,
+        # not what a form field shows of it (here without the trailing space)
+        app, _, _ = self.open_db(spec="roundtrip")
+        app.send("/")
+        app.wait_for("Search:")
+        app.type("TrailSpace")
+        app.send("Enter")
+        app.wait_gone("Search:")
+        app.wait_highlighted("TrailSpace")
+        app.send("Enter")
+        app.wait_for("View Account")
+        app.send("C-p")
+        self.wait_clipboard(app, "pw-trail ")
+
     def test_copy_unsaved_edit(self):
         # The dialog copies what is in the fields, not the saved account
         app, _, _ = self.open_db()

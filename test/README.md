@@ -113,6 +113,7 @@ test/e2e/
     sparse.tsv       accounts with fields left out
     unicode.tsv      accounts with non-ASCII groups and titles
     control-chars.tsv  an account with a control character in its title
+    roundtrip.tsv    accounts with line breaks, tabs and trailing spaces in their values
   cli/test_*.py      CLI tests
   tui/test_*.py      TUI tests
 ```
@@ -121,7 +122,9 @@ test/e2e/
 
 Test databases aren't committed. Each test builds the one it needs with
 `e2e-mkdb`, from a tab-separated spec in `fixtures/` (group, title, user,
-password, notes, one account per line). `e2e-mkdb` writes the file with
+password, notes, one account per line). In a field, `\n`, `\r`, `\t` and
+`\\` stand for a line feed, carriage return, tab and backslash; `read_spec()`
+in `e2elib.py` reads them the same way. `e2e-mkdb` writes the file with
 libpwsafe, the same code ncpwsafe uses, and it works in Release builds,
 where `--test-db` doesn't exist.
 

@@ -17,7 +17,9 @@ only run on Linux, and are skipped on Windows.
 """
 
 import csv
+import io
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -49,13 +51,21 @@ FIXTURES = _env_path("E2E_FIXTURES", E2E_DIR / "fixtures")
 SMALL_PASSWORD = (FIXTURES / "small.pw").read_text(encoding="utf-8").splitlines()[0]
 
 
+_SPEC_ESCAPES = {"n": "\n", "r": "\r", "t": "\t", "\\": "\\"}
+
+
+def unescape(value):
+    """Replace the escapes \\n, \\r, \\t and \\\\ of a fixture field, as e2e-mkdb does."""
+    return re.sub(r"\\([nrt\\])", lambda m: _SPEC_ESCAPES[m.group(1)], value)
+
+
 def read_spec(name="small"):
     """Read a fixture spec as a list of (group, title, user, password, notes) tuples."""
     rows = []
     for line in (FIXTURES / f"{name}.tsv").read_text(encoding="utf-8").splitlines():
         if not line or line.startswith("#"):
             continue
-        fields = line.split("\t")
+        fields = [unescape(f) for f in line.split("\t")]
         fields += [""] * (5 - len(fields))
         rows.append(tuple(fields[:5]))
     return rows
@@ -155,7 +165,9 @@ class E2ETestCase(unittest.TestCase):
         out = self.tmp / "export.csv"
         proc = self.run_ncpwsafe("--export-db", "--force", "--password-file", pwfile, "-o", out, db)
         self.assertEqual(proc.returncode, 0, f"export failed:\n{proc.stdout}{proc.stderr}")
-        rows = parse_export(out.read_text(encoding="utf-8"))
+        # Keep the line breaks in values as they are
+        with open(out, encoding="utf-8", newline="") as f:
+            rows = parse_export(f.read())
         out.unlink()
         return rows
 
@@ -165,7 +177,7 @@ class E2ETestCase(unittest.TestCase):
 
 def parse_export(text):
     """Parse --export-db output, check the header and drop the UUID column."""
-    reader = csv.reader(text.splitlines())
+    reader = csv.reader(io.StringIO(text, newline=""))
     header = next(reader)
     assert header == ["UUID", "Group", "Title", "User", "Password", "Notes"], header
     return [tuple(row[1:6]) for row in reader]

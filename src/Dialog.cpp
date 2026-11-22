@@ -58,6 +58,10 @@ void Dialog::ConstructFields()
             set_field_fore(field, app_.GetTheme().Attr(Role::SECRET));
         }
         set_field_buffer(field, /*buf*/ 0, df.m_value.c_str());
+        // A field holds what a terminal would show of its value: line breaks, tabs,
+        // control characters and trailing spaces don't survive. The status is set again
+        // when the field changes, until then FieldValue() gives the value itself.
+        set_field_status(field, FALSE);
         fields_.push_back(field);
     }
     content_rows_ = row;
@@ -299,6 +303,19 @@ static std::string GetFieldValue(const FIELD *field)
     return buf;
 }
 
+/**
+ * The value of a field: the value it was given if it hasn't changed since,
+ * otherwise its contents (see `ConstructFields()`)
+ */
+static std::string FieldValue(const FIELD *field)
+{
+    if (!field_status(field))
+    {
+        return reinterpret_cast<const DialogField *>(field_userptr(field))->m_value;
+    }
+    return GetFieldValue(field);
+}
+
 /** Copy data from form fields to values array */
 void Dialog::SaveData()
 {
@@ -307,7 +324,7 @@ void Dialog::SaveData()
     {
         const FIELD *field = fields_[i];
         const PwsFieldType ft = reinterpret_cast<const DialogField*>(field_userptr(field))->m_fieldType;
-        values_[ft] = GetFieldValue(field);
+        values_[ft] = FieldValue(field);
     }
 }
 
@@ -491,5 +508,5 @@ std::string Dialog::GetCurrentValue(PwsFieldType ft)
     form_driver(form_, REQ_VALIDATION);
     FIELD *field = GetField(ft);
     assert(field != nullptr);
-    return field != nullptr ? GetFieldValue(field) : std::string{};
+    return field != nullptr ? FieldValue(field) : std::string{};
 }

@@ -320,6 +320,43 @@ class EditTest(e2elib.TuiTestCase):
         self.assertEqual(digest(db), before)
         self.assertEqual(self.backups_of(db), [])
 
+    def test_close_unedited_account(self):
+        # Line breaks, tabs and trailing spaces don't survive a one-row form field,
+        # but a field that wasn't edited isn't a change: closing doesn't ask
+        app, db, pw = self.open_db(spec="roundtrip")
+        for _, title, *_ in e2elib.read_spec("roundtrip"):
+            with self.subTest(title=title):
+                self.select(app, title)
+                app.send("Enter")
+                app.wait_for("View Account")
+                app.send("C-x")
+                app.wait_until(lambda: "has changed" in app.text() or "View Account" not in app.text(),
+                               "the dialog to close")
+                asked = "has changed" in app.text()
+                if asked:
+                    # Discard, so the next accounts can still be checked
+                    app.send("y")
+                    app.wait_gone("View Account")
+                self.assertFalse(asked, "asked to discard changes")
+        # Nothing changed, ^X exits without asking
+        app.send("C-x")
+        self.assertEqual(app.wait_exit(), e2elib.PRC_ERR_FAIL)
+        self.assertDbContains(db, pw, e2elib.read_spec("roundtrip"))
+
+    def test_edit_keeps_unedited_fields(self):
+        # Saving an edit to the title keeps the other fields as they were stored
+        app, db, pw = self.open_db(spec="roundtrip")
+        expected = []
+        for group, title, user, password, notes in e2elib.read_spec("roundtrip"):
+            self.select(app, title)
+            app.send("Enter")
+            app.wait_for("View Account")
+            self.fill_details(app, title=title + "2")
+            app.send("C-s")
+            app.wait_gone("View Account")
+            expected.append((group, title + "2", user, password, notes))
+        self.save_and_exit(app)
+        self.assertDbContains(db, pw, expected)
 
 if __name__ == "__main__":
     e2elib.main()
