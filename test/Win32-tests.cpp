@@ -46,7 +46,7 @@ TEST_F(RoamingAppDataDirTest, FallsBackToKnownFolderWithoutAppDataVariable)
 static bool DebugPrivilegeEnabled()
 {
     LUID luid;
-    if (!LookupPrivilegeValueW(nullptr, SE_DEBUG_NAME, &luid))
+    if (!LookupPrivilegeValueW(nullptr, L"SeDebugPrivilege", &luid))
         return false;
     HANDLE token = nullptr;
     if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token))
