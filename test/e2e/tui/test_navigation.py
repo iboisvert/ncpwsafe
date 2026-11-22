@@ -111,12 +111,12 @@ class NavigationTest(e2elib.TuiTestCase):
         self.assertPath(app, [("Down", "Savings"), ("Down", "Savings")])
 
     def test_help_lists_every_key(self):
-        # 80 columns are too few for every command: the bar ends with F1 More
+        # 80 columns are too few for every command: the bar ends with ^G More
         app, _, _ = self.open_db(cols=80)
         bar = app.screen()[-1]
-        self.assertTrue(bar.rstrip().endswith("F1 More"), bar)
+        self.assertTrue(bar.rstrip().endswith("^G More"), bar)
         self.assertNotIn("^C Change password", bar)
-        app.send("F1")
+        app.send("C-g")
         screen = app.wait_for(" Keys ")
         for text in ("^C", "Change the account database password", "/", "Find an account by title",
                      "Space", "Collapse or expand the selected group"):
@@ -124,7 +124,7 @@ class NavigationTest(e2elib.TuiTestCase):
         self.assertIn("Esc Close", app.screen()[-1])
         app.send("Escape")
         app.wait_gone(" Keys ")
-        self.assertTrue(app.screen()[-1].rstrip().endswith("F1 More"))
+        self.assertTrue(app.screen()[-1].rstrip().endswith("^G More"))
         # The list still takes keys
         self.assertPath(app, [("Down", "Wiki")])
 
@@ -132,7 +132,7 @@ class NavigationTest(e2elib.TuiTestCase):
         app, _, _ = self.open_db(cols=80)
         app.send("Enter")
         app.wait_for("View Account")
-        app.send("F1")
+        app.send("C-g")
         screen = app.wait_for(" Keys ")
         self.assertIn("Show or hide the account password", screen)
         app.send("Escape")

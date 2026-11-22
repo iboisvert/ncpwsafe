@@ -283,7 +283,7 @@ The first milestones are done (see §2.8):
   `AccountsWin` draws them (the `menu` library is no longer used).
 - The title bar shows the file, `*` for unsaved changes or `[read-only]`, and the selection with
   its position (`Banking › Chequing  3/7`).
-- The command bar ends with `F1 More` when it is full; F1 shows every key with its description.
+- The command bar ends with `^G More` when it is full; ^G shows every key with its description. It was F1 at first, but many terminals and window managers keep F1 for their own help.
 - View Account is in sections (Account, Credentials, Notes), the focused field is highlighted,
   and a hidden password shows as 8 bullets.
 - Copying to the clipboard is confirmed in the bottom border.
@@ -359,11 +359,11 @@ room. Optionally mark accounts linked to a template that has `max_age_days` set.
 
 **U-5. Command bar overhaul.** This resolves the backlog item "Improve command bar".
 - Key/description pairs use the `key` and `keydesc` styles.
-- When commands don't fit, show `F1 More`, which opens the help overlay (U-6).
+- When commands don't fit, show `^G More`, which opens the help overlay (U-6).
 - Show a status section on the right: database name, `[RO]` when read-only, `*` when modified,
   the position in the list (`42/310`), and the active search filter.
 
-**U-6. F1 help overlay.** A scrollable panel listing every key for the current context, built from the
+**U-6. ^G help overlay.** A scrollable panel listing every key for the current context, built from the
 `Action` lists that each window already registers with `CommandBarWin`, so it needs no extra upkeep.
 This resolves the backlog item "F1 Help".
 
@@ -397,7 +397,7 @@ and clicking command bar entries. Off by default; enabled with the `mouse = true
 60×15), show a centered message ("Terminal too small: 52×12, need 60×15") instead of a broken layout.
 This works with the existing `ScopedResizeHandler` stack.
 
-**U-14. Help on first run.** When there is no prefs file, show a short message pointing to `F1`.
+**U-14. Help on first run.** When there is no prefs file, show a short message pointing to `^G`.
 
 ### 2.5 Accessibility and compatibility
 
@@ -416,8 +416,8 @@ This works with the existing `ScopedResizeHandler` stack.
 | `PWSafeApp` | Owns `Theme`; enables colour; status data for the command bar. |
 | `AccountsWin` | Group headings, collapsing, richer rows, type-to-jump; probably a custom list widget instead of `menu`. |
 | `DetailPaneWin` (new) | Read-only detail view (U-3). |
-| `HelpWin` (new) | F1 overlay built from `Action` lists. |
-| `CommandBarWin` | Styled pairs, More/F1, status section. |
+| `HelpWin` (new) | ^G overlay built from `Action` lists. |
+| `CommandBarWin` | Styled pairs, More/^G, status section. |
 | `Dialog`, `MessageBox` | Use roles; sections; masked secrets; consistent buttons. |
 | `Prefs` | `theme`, `[theme]` overrides, `mouse`, collapsed groups. |
 
@@ -434,8 +434,8 @@ This works with the existing `ScopedResizeHandler` stack.
 | # | Milestone | Depends on | Status |
 |---|---|---|---|
 | U-1 | `Theme` and roles, colour enabled, existing windows switched to roles (no layout changes). | — | Done, except `[theme]` overrides, `light`, `--no-color` |
-| U-5 | Command bar overhaul. | U-1 | Done: key caps, `F1 More`, status in the title bar |
-| U-6 | F1 help overlay. | U-5 | Done |
+| U-5 | Command bar overhaul. | U-1 | Done: key caps, `^G More`, status in the title bar |
+| U-6 | ^G help overlay. | U-5 | Done |
 | U-2 / U-4 | Grouped accounts list with richer rows. | U-1 | Done, except nested groups and saved collapse state |
 | U-7 / U-8 | Search and navigation polish. | U-2 | Search expands collapsed groups; the rest to do |
 | U-9 / U-10 / U-11 | Dialog polish: masking, indicators, message boxes. | U-1 | Masking, sections, focus, modified/read-only, copy feedback done; reveal timeout, message boxes to do |
@@ -445,7 +445,7 @@ This works with the existing `ScopedResizeHandler` stack.
 ---|---|---|
 | U-1 | `Theme` and roles, colour enabled, existing windows switched to roles (no layout changes). | — |
 | U-5 | Command bar overhaul. | U-1 |
-| U-6 | F1 help overlay. | U-5 |
+| U-6 | ^G help overlay. | U-5 |
 | U-2 / U-4 | Grouped accounts list with richer rows. | U-1 |
 | U-7 / U-8 | Search and navigation polish. | U-2 |
 | U-9 / U-10 / U-11 | Dialog polish: masking, indicators, message boxes. | U-1 |

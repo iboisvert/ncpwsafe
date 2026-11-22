@@ -7,7 +7,7 @@
 
 const Action Action::YES{"Y", "Yes"};
 const Action Action::NO{"N", "No"};
-const Action CommandBarWin::MORE{"F1", "More"};
+const Action CommandBarWin::MORE{"^G", "More"};
 
 const std::vector<Action> CommandBarWin::YES_NO{Action::YES, Action::NO};
 
@@ -70,7 +70,7 @@ void CommandBarWin::DrawActions(const PWSafeApp &app, WINDOW *win, const std::ve
         total += (visible.empty() ? 0 : SPACER) + ActionWidth(action);
         visible.push_back(&action);
     }
-    // When they don't all fit, end with "F1 More", which lists them all (see ShowHelp())
+    // When they don't all fit, end with "^G More", which lists them all (see ShowHelp())
     const bool truncated = beg_x + total > max_x;
     const int limit = truncated ? max_x - SPACER - ActionWidth(MORE) : max_x;
 

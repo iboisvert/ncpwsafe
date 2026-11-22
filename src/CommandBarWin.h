@@ -73,7 +73,7 @@ public:
 
     /**
      * Show every action of the command bar with its description over `parent`,
-     * until a key is pressed. Call for F1.
+     * until a key is pressed. Call for ^G.
      */
     void ShowHelp(WINDOW *parent);
 

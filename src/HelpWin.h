@@ -9,7 +9,7 @@
 class PWSafeApp;
 
 /**
- * The F1 help overlay: every key of the current context with its description,
+ * The ^G help overlay: every key of the current context with its description,
  * including the ones that don't fit in the command bar. Any key closes it.
  */
 class HelpWin

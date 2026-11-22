@@ -744,7 +744,7 @@ DialogResult AccountsWin::ProcessInput()
             app_.GetCommandBar().Show(this);
             break;
         }
-        case KEY_F(1):
+        case KEY_CTRL('G'):
         {
             app_.GetCommandBar().ShowHelp(win_);
             break;

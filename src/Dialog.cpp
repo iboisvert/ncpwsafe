@@ -334,7 +334,7 @@ DialogResult Dialog::ProcessInput()
 
         switch (ch)
         {
-        case KEY_F(1): {
+        case KEY_CTRL('G'): {
             app_.GetCommandBar().ShowHelp(win_);
             break;
         }

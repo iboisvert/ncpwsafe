@@ -8,17 +8,6 @@ Known open issues. Severity is one of:
 
 Issues 1–4 were found by trying out the UI brush-up (branch `uiux`, 2026-11-21).
 
-## 2. F1 opens the terminal's help instead of the ncpwsafe help
-
-**Severity:** Important
-
-The help page is bound to `KEY_F(1)` (`src/AccountsWin.cpp:746`, `src/Dialog.cpp:337`), and the command bar ends with `F1 More` (`CommandBarWin::MORE`, `src/CommandBarWin.cpp:10`). Many desktop terminals (GNOME Terminal, Konsole and others) and window managers take F1 for their own help, so the key never reaches ncpwsafe. Change the shortcut to `^H`.
-
-Things to handle with `^H`:
-
-- **Backspace:** terminals send either `^?` (DEL) or `^H` for Backspace. When the terminfo entry says Backspace is `^H` (`kbs=^H`), which includes `TERM=screen` (used by the TUI tests) and the Windows console, ncurses turns `^H` into `KEY_BACKSPACE` because of `keypad()`. Then `^H` can't be told apart from Backspace. In dialogs, `KEY_BACKSPACE` deletes the previous character (`src/Dialog.cpp:408`). Decide what the help key does on such terminals, e.g. accept `KEY_F(1)` as well, and check that Backspace still edits fields.
-- Update `CommandBarWin::MORE`, the `KEY_F(1)` cases, `HelpWin`, AGENTS.md (the F1 convention), the README, and the TUI tests that send `F1` (`test/e2e/tui/test_navigation.py:119`, `:135`).
-
 ## 3. Closing an unchanged account entry asks to discard changes, and saving it changes the entry
 
 **Severity:** Critical
