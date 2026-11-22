@@ -49,7 +49,11 @@
         "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" }
     },
     { "name": "x64-windows-msvc-debug", "inherits": [ "base", "x64-windows-msvc", "debug" ] },
-    { "name": "x64-windows-msvc-release", "inherits": [ "base", "x64-windows-msvc", "release" ] }
+    {
+      "name": "x64-windows-msvc-release",
+      "inherits": [ "base", "x64-windows-msvc", "release" ],
+      "cacheVariables": { "VCPKG_TARGET_TRIPLET": "x64-windows-static-md-release" }
+    }
   ],
   "buildPresets": [
     { "name": "x64-linux-gcc-debug", "configurePreset": "x64-linux-gcc-debug" },

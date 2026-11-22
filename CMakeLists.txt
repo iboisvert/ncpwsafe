@@ -6,6 +6,10 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
     message(FATAL_ERROR "In-source builds are not supported, use a preset or -B build. "
         "Remove CMakeCache.txt and CMakeFiles/ from the source directory.")
 endif()
+# vcpkg installs the manifest's dependencies at project(), so its features are chosen here
+if(USE_GLOG)
+    list(APPEND VCPKG_MANIFEST_FEATURES "glog")
+endif()
 project(ncpwsafe 
     VERSION 0.1 
     DESCRIPTION "An ncurses terminal program that manages encrypted password databases"

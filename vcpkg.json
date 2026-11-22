@@ -4,7 +4,6 @@
       "name": "getopt",
       "platform": "windows"
     },
-    "glog",
     "gtest",
     "icu",
     "ncurses",
@@ -13,5 +12,13 @@
       "platform": "!windows"
     },
     "openssl"
-  ]
+  ],
+  "features": {
+    "glog": {
+      "description": "Logging with glog, for -DUSE_GLOG=ON",
+      "dependencies": [
+        "glog"
+      ]
+    }
+  }
 }

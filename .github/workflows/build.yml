@@ -25,23 +25,36 @@ jobs:
         preset: [x64-windows-msvc-release]
 
     env:
+      VCPKG_CACHE_PREFIX: vcpkg-windows-${{ matrix.preset }}-
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg-binary-cache
       VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}\vcpkg-binary-cache,readwrite
 
     steps:
     - uses: actions/checkout@v4
 
+    # vcpkg builds the dependencies from source, which takes most of the job's time,
+    # and stores each package in the binary cache as soon as it is built.
+    # The cache is restored and saved in separate steps, so that it is saved even when
+    # the job fails or is cancelled (each push cancels the previous run): otherwise
+    # nothing is cached until a whole run succeeds. Cache entries can't be overwritten,
+    # so each run that builds a new package saves a new entry, keyed by the run ID,
+    # and the next run restores the most recent one.
     - name: Restore vcpkg binary cache
-      uses: actions/cache@v4
+      id: restore-vcpkg-cache
+      uses: actions/cache/restore@v4
       with:
         path: ${{ github.workspace }}\vcpkg-binary-cache
-        key: vcpkg-${{ runner.os }}-x64-windows-static-md-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'ports/**') }}
+        key: ${{ env.VCPKG_CACHE_PREFIX }}${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'ports/**', 'triplets/**') }}-${{ github.run_id }}
         restore-keys: |
-          vcpkg-${{ runner.os }}-x64-windows-static-md-
+          ${{ env.VCPKG_CACHE_PREFIX }}${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'ports/**', 'triplets/**') }}-
+          ${{ env.VCPKG_CACHE_PREFIX }}
 
     - name: Create vcpkg binary cache directory
       shell: pwsh
-      run: New-Item -ItemType Directory -Force "$env:VCPKG_DEFAULT_BINARY_CACHE" | Out-Null
+      run: |
+        New-Item -ItemType Directory -Force "$env:VCPKG_DEFAULT_BINARY_CACHE" | Out-Null
+        $count = (Get-ChildItem -Recurse -File "$env:VCPKG_DEFAULT_BINARY_CACHE" | Measure-Object).Count
+        "VCPKG_CACHE_RESTORED_FILES=$count" >> $env:GITHUB_ENV
 
     - name: Set up MSVC developer environment
       uses: ilammy/msvc-dev-cmd@v1
@@ -59,6 +72,21 @@ jobs:
     - name: Configure CMake
       # Installs dependencies from vcpkg.json in manifest mode
       run: cmake --preset=${{ matrix.preset }}
+
+    - name: Check for new vcpkg packages
+      id: check-vcpkg-cache
+      if: always() && steps.restore-vcpkg-cache.outcome == 'success'
+      shell: pwsh
+      run: |
+        $count = (Get-ChildItem -Recurse -File "$env:VCPKG_DEFAULT_BINARY_CACHE" | Measure-Object).Count
+        "changed=$($count -ne [int]$env:VCPKG_CACHE_RESTORED_FILES)" >> $env:GITHUB_OUTPUT
+
+    - name: Save vcpkg binary cache
+      if: always() && steps.check-vcpkg-cache.outputs.changed == 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ github.workspace }}\vcpkg-binary-cache
+        key: ${{ steps.restore-vcpkg-cache.outputs.cache-primary-key }}
 
     - name: Build
       run: cmake --build --preset=${{ matrix.preset }}

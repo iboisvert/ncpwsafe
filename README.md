@@ -39,8 +39,10 @@ From a Developer PowerShell or Developer Command Prompt for Visual Studio (x64):
 > ctest --preset x64-windows-msvc-debug
 > .\build\bin\ncpwsafe.exe
 ```
-Use the `x64-windows-msvc-release` presets for a release build.
-The first configure builds all dependencies from source and takes a while.
+Use the `x64-windows-msvc-release` presets for a release build. It builds
+only the release libraries of the dependencies (the overlay triplet in
+`triplets/`). The first configure builds all dependencies from source and
+takes a while. glog is only installed when configuring with `-DUSE_GLOG=ON`.
 
 The executable is statically linked against its dependencies,
 so `ncpwsafe.exe` can be copied and run on its own.
