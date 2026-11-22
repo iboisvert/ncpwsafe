@@ -7,14 +7,6 @@ Known open issues. Severity is one of:
 
 Issues 1–9 were found by a code review of the Windows MSVC port (branch `dev/build-win-msvc`, 2026-11-21). Issue 10 is the part of the crash-dump issue (3) that its fix did not cover.
 
-## 4. `InitConsole()` sets every locale category
-
-**Severity:** Minor
-
-`win32::InitConsole()` calls `setlocale(LC_ALL, ".UTF-8")` (`src/Win32.cpp:46`). On other platforms `main()` deliberately sets only `LC_CTYPE`, so that number formats and collation don't change. On Windows, `LC_NUMERIC`, `LC_COLLATE` and `LC_TIME` switch to the user's locale. A fr-FR user would get a comma decimal separator in `printf`/`strtod`.
-
-**Fix:** `setlocale(LC_CTYPE, ".UTF-8")`.
-
 ## 9. `ReadPasswordFileTest` temp file is not created exclusively
 
 **Severity:** Minor

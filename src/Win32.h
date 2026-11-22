@@ -20,8 +20,8 @@ namespace win32
 /**
  * Configure the console and C runtime for UTF-8.
  *
- * Sets the console input and output code pages to UTF-8 and selects the
- * UTF-8 C runtime locale so that multibyte strings are interpreted
+ * Sets the console input and output code pages to UTF-8 and selects a
+ * UTF-8 `LC_CTYPE` C runtime locale so that multibyte strings are interpreted
  * as UTF-8 by curses. The original console code pages are restored
  * when the process exits, also after a crash, `abort()` or a console control
  * event (Ctrl+C, Ctrl+Break, closing the console). They are not restored

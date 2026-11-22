@@ -72,8 +72,9 @@ void InitConsole()
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
 
-    // UCRT supports UTF-8 locales since Windows 10 1803
-    std::setlocale(LC_ALL, ".UTF-8");
+    // UCRT supports UTF-8 locales since Windows 10 1803.
+    // Only LC_CTYPE, as on other platforms, so that e.g. number formats don't change
+    std::setlocale(LC_CTYPE, ".UTF-8");
 }
 
 /** Unhandled exception filter: ends the process before WER can write a crash dump */
