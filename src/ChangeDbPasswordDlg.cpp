@@ -4,8 +4,8 @@
 #include "MessageBox.h"
 #include "Utils.h"
 
-static PwsFieldType NEW_PASSWORD = static_cast<PwsFieldType>(FT_END+1);
-static PwsFieldType NEW_PASSWORD_CONFIRM = static_cast<PwsFieldType>(FT_END+2);
+static constexpr DialogFieldId NEW_PASSWORD = DIALOG_FIELD_ID_FIRST;
+static constexpr DialogFieldId NEW_PASSWORD_CONFIRM = DIALOG_FIELD_ID_FIRST + 1;
 
 ChangeDbPasswordDlg::ChangeDbPasswordDlg(PWSafeApp &app)
     : app_(app)
@@ -68,4 +68,10 @@ DialogResult ChangeDbPasswordDlg::Show(WINDOW *parent)
     }
 
     return result;
+}
+
+ChangeDbPasswordDlg::~ChangeDbPasswordDlg()
+{
+    ZeroString(password_);
+    ZeroString(new_password_);
 }

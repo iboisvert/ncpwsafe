@@ -10,6 +10,8 @@ class ChangePasswordDlg
 {
 public:
     ChangePasswordDlg(PWSafeApp &app);
+    /** Zeroes the password */
+    ~ChangePasswordDlg();
 
     DialogResult Show(WINDOW *parent);
 

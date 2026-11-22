@@ -530,20 +530,12 @@ DialogResult AccountsWin::DeleteEntry(const AccountRecord &record)
     return result;
 }
 
-static bool YesNoCancelKeyHandler(int ch, DialogResult &result)
+/** Key handler for the save error prompt: `y` retries, `n` quits without saving, ^X cancels */
+static bool RetrySaveKeyHandler(int ch, DialogResult &result)
 {
-    ch = tolower(ch);
-    if (ch == 'y')
-    {
-        result = DialogResult::YES;
+    if (YesNoKeyHandler(ch, result))
         return true;
-    }
-    else if (ch == 'n')
-    {
-        result = DialogResult::NO;
-        return true;
-    }
-    else if (ch == KEY_CTRL('C'))
+    if (ch == KEY_CTRL('X'))
     {
         result = DialogResult::CANCEL;
         return true;
@@ -552,45 +544,39 @@ static bool YesNoCancelKeyHandler(int ch, DialogResult &result)
 }
 
 /** Save the database to the current file. */
-bool AccountsWin::Save()
+DialogResult AccountsWin::Save()
 {
-    app_.GetCommandBar().Show({Action::YES, Action::NO, {"^X", "Cancel"}});
-
-    bool retval = false;
-
-    int rc = RC_FAILURE;
-    while (rc != RC_SUCCESS && rc != RC_USER_CANCEL)
+    DialogResult result = DialogResult::OK;
+    while (app_.Save() != RC_SUCCESS)
     {
-        rc = app_.Save();
-        if (rc == RC_SUCCESS)
-        {
-            retval = true;
-        }
-        else
-        {
-            AccountDb &db = app_.GetDb();
-            std::string msg("An error occurred writing the database to file\n");
-            msg.append(db.DbPathname()).append(". Retry?");
-            DialogResult dr = MessageBox(app_).Show(win_, msg.c_str(), &YesNoCancelKeyHandler);
-            if (dr == DialogResult::NO)
-            {
-                rc = RC_SUCCESS;
-                retval = true;
-                break;
-            }
-            else if (dr == DialogResult::CANCEL)
-            {
-                rc = RC_USER_CANCEL;
-                break;
-            }
-
-            redrawwin(win_);
-        }
+        app_.GetCommandBar().Show({{"Y", "Retry", "Try saving again"},
+                                   {"N", "Quit", "Quit without saving the changes"},
+                                   {"^X", "Cancel", "Go back to the accounts list"}});
+        AccountDb &db = app_.GetDb();
+        std::string msg("An error occurred writing the database to file\n");
+        msg.append(db.DbPathname()).append(". Retry?");
+        result = MessageBox(app_).Show(win_, msg.c_str(), &RetrySaveKeyHandler);
+        redrawwin(win_);
+        if (result != DialogResult::YES)
+            break;
+        result = DialogResult::OK;
     }
 
     SetCommandBar();
 
-    return retval;
+    return result;
+}
+
+bool AccountsWin::ConfirmWriteChanges()
+{
+    if (!app_.GetDb().IsDirty())
+        return true;
+
+    app_.GetCommandBar().Show(CommandBarWin::YES_NO);
+    const char *msg = "The database has unsaved changes.\nChanging the password will save them. Continue?";
+    const bool yes = MessageBox(app_).Show(win_, msg, &YesNoKeyHandler) == DialogResult::YES;
+    redrawwin(win_);
+    return yes;
 }
 
 /** Ask for confirmation to discard changes */
@@ -672,21 +658,20 @@ DialogResult AccountsWin::ProcessInput()
         }
         case KEY_CTRL('C'):
         {
-            if (!read_only)
+            if (!read_only && ConfirmWriteChanges())
             {
                 ChangeDbPasswordDlg dialog(app_);
                 if (dialog.Show(win_) == DialogResult::OK)
                 {
-                    const std::string &password = dialog.GetPassword();
-                    const std::string &new_password = dialog.GetNewPassword();
-                    app_.GetDb().Password() = password;
-                    if (ChangeDbPasswordCommand{app_, new_password}.Execute() != RC_SUCCESS)
+                    // The dialog checked the current password. Write the records in
+                    // memory: reading the file again would undo the unsaved changes
+                    if (ChangeDbPasswordCommand{app_, dialog.GetNewPassword()}.Write() != RC_SUCCESS)
                     {
                         MessageBox(app_).Show(win_, "An error occurred changing the account database password.");
                     }
                 }
-                SetCommandBar();
             }
+            SetCommandBar();
             break;
         }
         case KEY_CTRL('D'):
@@ -701,12 +686,14 @@ DialogResult AccountsWin::ProcessInput()
         }
         case KEY_CTRL('S'):
         {
-            if (!read_only && Save())
-            {
-                result = DialogResult::OK;
-                goto done;
-            }
-            break;
+            if (read_only)
+                break;
+            const DialogResult saved = Save();
+            if (saved == DialogResult::CANCEL)
+                break;
+            // Quitting without saving after an error exits as ^X does
+            result = saved == DialogResult::OK ? DialogResult::OK : DialogResult::CANCEL;
+            goto done;
         }
         case KEY_CTRL('X'):
         {

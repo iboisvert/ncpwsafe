@@ -11,6 +11,8 @@ class GeneratePasswordDlg
 {
 public:
     GeneratePasswordDlg(PWSafeApp &app);
+    /** Zeroes the password */
+    ~GeneratePasswordDlg();
 
     DialogResult Show(WINDOW *parent);
 

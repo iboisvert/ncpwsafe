@@ -40,10 +40,20 @@ private:
     /** The list starts below a blank row */
     static constexpr int FIRST_ROW = 1;
 
-    /** Save changes to database */
-    bool Save();
+    /**
+     * Save changes to the database. If saving fails, ask to retry.
+     * @returns `DialogResult::OK` if the changes were saved, `DialogResult::NO` if
+     * saving failed and the user chose to quit without saving, `DialogResult::CANCEL`
+     * if saving failed and the user chose to go back to the accounts list
+     */
+    DialogResult Save();
     /** Ask for confirmation to discard changes */
     bool DiscardChanges();
+    /**
+     * If there are unsaved changes, warn that changing the database password
+     * writes them and ask to continue. @returns `true` to continue
+     */
+    bool ConfirmWriteChanges();
     /** View or edit an account entry */
     DialogResult ShowAccountRecord(AccountRecord &itemData);
     /** Save an edited account and update the list */

@@ -215,3 +215,8 @@ DialogResult GeneratePasswordDlg::ProcessInput()
 done:
     return retval;
 }
+
+GeneratePasswordDlg::~GeneratePasswordDlg()
+{
+    ZeroString(password_);
+}
