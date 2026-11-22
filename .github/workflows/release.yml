@@ -1,0 +1,300 @@
+# Release: build, test and package ncpwsafe for Linux and Windows, and create a draft
+# GitHub release with the packages and their checksums.
+#
+# - Pushing a tag vX.Y.Z runs everything and creates the draft release. The tag must be
+#   "v" followed by the version in project() in CMakeLists.txt. Write the release notes in
+#   the draft (it starts from .github/release-notes.md), then publish it.
+# - Run it by hand (workflow_dispatch) to try it without releasing: with dry-run (the
+#   default) it builds, tests and packages, and the packages are kept as the run's
+#   artifacts, but no release is created. A release is only ever created from a tag.
+#
+# See docs/dev-plan.md §6.
+name: Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Build, test and package only; don't create the release
+        type: boolean
+        default: true
+
+# The build jobs only read the repository; the publish job asks for more
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Check the version
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Check the tag against the version
+      if: github.ref_type == 'tag'
+      run: cmake "-DTAG=${GITHUB_REF_NAME}" -P cmake/CheckReleaseVersion.cmake
+
+    - name: Read the version
+      id: version
+      run: echo "version=$(cmake -DPRINT_VERSION=ON -P cmake/CheckReleaseVersion.cmake)" >> "$GITHUB_OUTPUT"
+
+    # For the Windows package, as Windows has no man command
+    - name: Render the man page to HTML
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y mandoc
+        mkdir man-html
+        sed "s/@NCPWSAFE_VERSION@/${{ steps.version.outputs.version }}/" man/ncpwsafe.1.in \
+          | mandoc -Thtml > man-html/ncpwsafe.1.html
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: man-html
+        path: man-html/ncpwsafe.1.html
+        if-no-files-found: error
+
+  linux:
+    name: Linux package
+    needs: check
+    # The oldest supported runner: the executable needs this glibc version or newer
+    runs-on: ubuntu-22.04
+    outputs:
+      glibc: ${{ steps.check-linkage.outputs.glibc }}
+    env:
+      PRESET: x64-linux-gcc-static-release
+    steps:
+    - uses: actions/checkout@v4
+
+    # The -dev packages have the static libraries (.a) that the static preset links
+    - name: Install dependencies
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y pkg-config libncurses-dev libicu-dev libssl-dev \
+          libgtest-dev python3 tmux
+
+    - name: Configure CMake
+      run: cmake --preset=$PRESET
+
+    - name: Build
+      run: cmake --build --preset=$PRESET
+
+    - name: Test
+      run: ctest --preset=$PRESET
+
+    - name: Check that only glibc is linked dynamically
+      id: check-linkage
+      run: |
+        exe=build/bin/ncpwsafe
+        ldd "$exe"
+        unexpected=$(ldd "$exe" | awk '{print $1}' \
+          | grep -vE '^(linux-vdso\.so\.1|libc\.so\.6|libm\.so\.6|/lib64/ld-linux-x86-64\.so\.2)$' || true)
+        if [ -n "$unexpected" ]; then
+          echo "::error::ncpwsafe links shared libraries other than glibc's: $unexpected"
+          exit 1
+        fi
+        glibc=$(objdump -T "$exe" | grep -o 'GLIBC_[0-9.]*' | sed 's/GLIBC_//' | sort -V | tail -1)
+        echo "Needs glibc $glibc or newer"
+        echo "glibc=$glibc" >> "$GITHUB_OUTPUT"
+
+    - name: Package
+      run: |
+        cmake -DBUILD_DIR=build -DPLATFORM=linux-x86_64 -DOUTPUT_DIR=dist \
+          "-DLICENSES=ncurses=/usr/share/doc/libncurses-dev/copyright;ICU=/usr/share/doc/libicu-dev/copyright;OpenSSL=/usr/share/doc/libssl-dev/copyright;GCC runtime libraries (libstdc++, libgcc)=/usr/share/doc/libstdc++-11-dev/copyright" \
+          -P cmake/MakePackage.cmake
+
+    # The package must run on other distros, without their development packages
+    - name: Smoke test on other distros
+      run: |
+        package=$(ls dist/ncpwsafe-*-linux-x86_64.tar.gz)
+        for image in debian:12 fedora:latest archlinux:latest ubuntu:24.04; do
+          echo "::group::$image"
+          docker run --rm -v "$PWD/dist:/dist:ro" "$image" sh -ec "
+            cd /tmp && tar xzf /dist/$(basename "$package")
+            ncpwsafe/bin/ncpwsafe --version
+            ncpwsafe/bin/ncpwsafe --generate-password --password-count=3"
+          echo "::endgroup::"
+        done
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: package-linux
+        path: dist/*.tar.gz
+        if-no-files-found: error
+
+  windows:
+    name: Windows package
+    needs: check
+    runs-on: windows-latest
+    env:
+      PRESET: x64-windows-msvc-release
+      TRIPLET: x64-windows-static-release
+      VCPKG_CACHE_PREFIX: vcpkg-windows-x64-windows-msvc-release-
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg-binary-cache
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}\vcpkg-binary-cache,readwrite
+    steps:
+    - uses: actions/checkout@v4
+
+    # The same vcpkg binary cache as build.yml's Windows job, which builds the same
+    # preset: see the comments there
+    - name: Restore vcpkg binary cache
+      id: restore-vcpkg-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ github.workspace }}\vcpkg-binary-cache
+        key: ${{ env.VCPKG_CACHE_PREFIX }}${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'ports/**', 'triplets/**') }}-${{ github.run_id }}
+        restore-keys: |
+          ${{ env.VCPKG_CACHE_PREFIX }}${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'ports/**', 'triplets/**') }}-
+          ${{ env.VCPKG_CACHE_PREFIX }}
+
+    - name: Create vcpkg binary cache directory
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Force "$env:VCPKG_DEFAULT_BINARY_CACHE" | Out-Null
+        $count = (Get-ChildItem -Recurse -File "$env:VCPKG_DEFAULT_BINARY_CACHE" | Measure-Object).Count
+        "VCPKG_CACHE_RESTORED_FILES=$count" >> $env:GITHUB_ENV
+
+    - name: Set up MSVC developer environment
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Set up vcpkg
+      shell: pwsh
+      run: |
+        "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV
+
+    - name: Configure CMake
+      run: cmake --preset=${{ env.PRESET }}
+
+    - name: Check for new vcpkg packages
+      id: check-vcpkg-cache
+      if: always() && steps.restore-vcpkg-cache.outcome == 'success'
+      shell: pwsh
+      run: |
+        $count = (Get-ChildItem -Recurse -File "$env:VCPKG_DEFAULT_BINARY_CACHE" | Measure-Object).Count
+        "changed=$($count -ne [int]$env:VCPKG_CACHE_RESTORED_FILES)" >> $env:GITHUB_OUTPUT
+
+    - name: Save vcpkg binary cache
+      if: always() && steps.check-vcpkg-cache.outputs.changed == 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ github.workspace }}\vcpkg-binary-cache
+        key: ${{ steps.restore-vcpkg-cache.outputs.cache-primary-key }}
+
+    - name: Build
+      run: cmake --build --preset=${{ env.PRESET }}
+
+    - name: Test
+      run: ctest --preset=${{ env.PRESET }}
+
+    # The static CRT: no Visual C++ Redistributable DLLs
+    - name: Check that the C runtime is linked statically
+      shell: pwsh
+      run: |
+        $deps = dumpbin /nologo /dependents build\bin\ncpwsafe.exe
+        $deps
+        $crt = $deps | Select-String -Pattern '(vcruntime|msvcp|api-ms-win-crt|ucrtbase)'
+        if ($crt) {
+          "::error::ncpwsafe.exe needs the Visual C++ runtime DLLs: $crt"
+          exit 1
+        }
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: man-html
+        path: man-html
+
+    - name: Package
+      shell: pwsh
+      run: |
+        $share = "build/vcpkg_installed/$env:TRIPLET/share"
+        $licenses = @(
+          "ncurses=$share/ncurses/copyright",
+          "ICU=$share/icu/copyright",
+          "OpenSSL=$share/openssl/copyright",
+          "getopt=$share/getopt-win32/copyright"
+        ) -join ';'
+        cmake -DBUILD_DIR=build -DPLATFORM=windows-x64 -DOUTPUT_DIR=dist `
+          -DMAN_HTML=man-html/ncpwsafe.1.html "-DLICENSES=$licenses" `
+          -P cmake/MakePackage.cmake
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+    - name: Smoke test
+      shell: pwsh
+      run: |
+        Expand-Archive (Get-Item dist/ncpwsafe-*-windows-x64.zip) -DestinationPath smoke
+        smoke/ncpwsafe/ncpwsafe.exe --version
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        smoke/ncpwsafe/ncpwsafe.exe --generate-password --password-count=3
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: package-windows
+        path: dist/*.zip
+        if-no-files-found: error
+
+    - name: Upload vcpkg logs
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: vcpkg-logs-release
+        path: |
+          build/vcpkg-manifest-install.log
+          build/vcpkg_installed/vcpkg/blds/**/*.log
+          ${{ env.VCPKG_ROOT }}/buildtrees/**/*.log
+        if-no-files-found: ignore
+
+  publish:
+    name: Checksums and draft release
+    needs: [check, linux, windows]
+    runs-on: ubuntu-22.04
+    # Only this job can write to the repository, to create the release
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      GLIBC: ${{ needs.linux.outputs.glibc }}
+      # A release only from a tag, and not in a dry run
+      CREATE_RELEASE: ${{ github.ref_type == 'tag' && (github.event_name == 'push' || !inputs.dry-run) }}
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/download-artifact@v4
+      with:
+        pattern: package-*
+        path: dist
+        merge-multiple: true
+
+    - name: Write SHA256SUMS
+      working-directory: dist
+      run: |
+        sha256sum ncpwsafe-* > SHA256SUMS
+        cat SHA256SUMS
+
+    - name: Write the release notes
+      run: sed -e "s/GLIBC_VERSION/$GLIBC/g" -e "s/VERSION/$VERSION/g" .github/release-notes.md > release-notes.md
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: release-v${{ env.VERSION }}
+        path: |
+          dist/*
+          release-notes.md
+        if-no-files-found: error
+
+    - name: Create the draft release
+      if: env.CREATE_RELEASE == 'true'
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --draft --verify-tag \
+          --title "ncpwsafe $VERSION" --notes-file release-notes.md

@@ -6,12 +6,18 @@
 #
 # It reads the version from CMakeLists.txt without configuring the project, so it
 # needs none of the dependencies. Pass -DEXPECT_VERSION=X.Y.Z to only check that
-# the version it reads is X.Y.Z (the build's tests do this, see test/CMakeLists.txt).
+# the version it reads is X.Y.Z (the build's tests do this, see test/CMakeLists.txt),
+# or -DPRINT_VERSION=ON to print the version on stdout and nothing else.
 
 cmake_minimum_required(VERSION 3.21)
 
 include("${CMAKE_CURRENT_LIST_DIR}/ReadVersion.cmake")
 read_project_version(version)
+
+if(PRINT_VERSION)
+    execute_process(COMMAND ${CMAKE_COMMAND} -E echo "${version}")
+    return()
+endif()
 
 if(DEFINED EXPECT_VERSION)
     if(NOT version STREQUAL EXPECT_VERSION)
