@@ -685,6 +685,7 @@ DialogResult AccountsWin::ProcessInput()
                         MessageBox(app_).Show(win_, "An error occurred changing the account database password.");
                     }
                 }
+                SetCommandBar();
             }
             break;
         }

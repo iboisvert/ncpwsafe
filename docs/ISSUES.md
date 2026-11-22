@@ -8,14 +8,6 @@ Known open issues. Severity is one of:
 
 Issues 1–4 were found by trying out the UI brush-up (branch `uiux`, 2026-11-21).
 
-## 1. The command bar is not updated for the Change Account Database Password dialog
-
-**Severity:** Minor
-
-`ChangeDbPasswordDlg` registers its actions (`^S` Save and close, `^X` Cancel) in its constructor (`src/ChangeDbPasswordDlg.cpp:13`), but `ChangeDbPasswordDlg::Show()` never calls `app_.GetCommandBar().Show(this)`. While the dialog is open, the command bar still shows the keys of the window underneath. The same is true after the "Password is empty. Are you sure?" message box in `ValidateForm()`, which switches the bar to Yes/No and doesn't switch it back. Compare `ChangePasswordDlg` (`src/ChangePasswordDlg.cpp:22`) and `AccountDetailsDlg::SetCommandBarWin()`, which do both.
-
-**Fix:** call `app_.GetCommandBar().Show(this)` before `dialog.Show()`, and again after the message box in `ValidateForm()`. Add a TUI test that checks the command bar while the dialog is open.
-
 ## 2. F1 opens the terminal's help instead of the ncpwsafe help
 
 **Severity:** Important

@@ -25,19 +25,23 @@ bool ChangeDbPasswordDlg::ValidateForm(const Dialog &dialog)
     {
         const char *msg = "Account database password is incorrect";
         MessageBox(app_).Show(win, msg);
+        app_.GetCommandBar().Show(this);
         return false;
     }
     if (dialog.GetValue(NEW_PASSWORD) != dialog.GetValue(NEW_PASSWORD_CONFIRM))
     {
         const char *msg = "New passwords do not match";
         MessageBox(app_).Show(win, msg);
+        app_.GetCommandBar().Show(this);
         return false;
     }
     if (dialog.GetValue(NEW_PASSWORD).empty())
     {
         app_.GetCommandBar().Show(CommandBarWin::YES_NO);
         const char *msg = "Password is empty. Are you sure?";
-        if (MessageBox(app_).Show(win, msg, &YesNoKeyHandler) != DialogResult::YES)
+        const bool yes = MessageBox(app_).Show(win, msg, &YesNoKeyHandler) == DialogResult::YES;
+        app_.GetCommandBar().Show(this);
+        if (!yes)
             return false;
     }
 
@@ -55,6 +59,7 @@ DialogResult ChangeDbPasswordDlg::Show(WINDOW *parent)
 
     auto f_validate = std::bind(&ChangeDbPasswordDlg::ValidateForm, this, _1);
     Dialog dialog(app_, fields, /*readOnly*/ false, f_validate);
+    app_.GetCommandBar().Show(this);
     DialogResult result = dialog.Show(parent, "Change Account Database Password");
     if (result == DialogResult::OK)
     {
