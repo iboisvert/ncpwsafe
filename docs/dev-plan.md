@@ -271,14 +271,26 @@ password-handling code.
 
 ### 2.1 Current state
 
-- Colour is not enabled: `start_color()` is commented out in `PWSafeApp::InitTUI`.
-- Styling is limited to `A_BOLD` (dialog labels and the generated password) and `A_REVERSE`/`A_DIM`
-  (command bar).
-- The accounts window is a flat, two-column `menu` of titles. Groups (`FT_GROUP`) are not shown as
-  groups, which makes large databases hard to scan.
-- The command bar shows only as many commands as fit. Requested: "Print page #", a "More"
-  command, and "F1 Help".
-- A dialog's labels and fields have the same visual weight. Read-only and editable fields look alike.
+The first milestones are done (see §2.8):
+
+- `Theme` (`src/Theme.{h,cpp}`) maps semantic roles to attributes. Colour uses the 8 basic colours
+  over the terminal's background; `NO_COLOR` or the `theme = mono` pref turns it off. Every role
+  keeps a non-colour cue and the selection is always reverse video. Symbols (`▾ ▸ … ✓ › •`) fall
+  back to ASCII when the locale isn't UTF-8.
+- The accounts list is one column: a heading for each group (with a rule and the number of
+  accounts), the accounts indented beneath with their user names muted. Headings collapse and
+  expand with Left/Right, Space or Enter. `AccountList` holds the rows and is unit-tested;
+  `AccountsWin` draws them (the `menu` library is no longer used).
+- The title bar shows the file, `*` for unsaved changes or `[read-only]`, and the selection with
+  its position (`Banking › Chequing  3/7`).
+- The command bar ends with `F1 More` when it is full; F1 shows every key with its description.
+- View Account is in sections (Account, Credentials, Notes), the focused field is highlighted,
+  and a hidden password shows as 8 bullets.
+- Copying to the clipboard is confirmed in the bottom border.
+
+Not done yet: `[theme]` per-role overrides and the `light` theme, `--no-color`, nested groups
+(`a.b.c`) as a tree, saving collapsed groups in prefs, the detail pane (U-3), type-to-jump and Vim
+keys (U-8), dimming rather than hiding read-only commands (U-10), and the remaining items below.
 
 ### 2.2 Goals
 
@@ -419,8 +431,18 @@ This works with the existing `ScopedResizeHandler` stack.
 
 ### 2.8 Milestones
 
-| # | Milestone | Depends on |
-|---|---|---|
+| # | Milestone | Depends on | Status |
+|---|---|---|---|
+| U-1 | `Theme` and roles, colour enabled, existing windows switched to roles (no layout changes). | — | Done, except `[theme]` overrides, `light`, `--no-color` |
+| U-5 | Command bar overhaul. | U-1 | Done: key caps, `F1 More`, status in the title bar |
+| U-6 | F1 help overlay. | U-5 | Done |
+| U-2 / U-4 | Grouped accounts list with richer rows. | U-1 | Done, except nested groups and saved collapse state |
+| U-7 / U-8 | Search and navigation polish. | U-2 | Search expands collapsed groups; the rest to do |
+| U-9 / U-10 / U-11 | Dialog polish: masking, indicators, message boxes. | U-1 | Masking, sections, focus, modified/read-only, copy feedback done; reveal timeout, message boxes to do |
+| U-3 | Detail pane. | U-2 | To do |
+| U-12 / U-13 / U-14 | Mouse, minimum-size handling, first-run help. | — | To do |
+
+---|---|---|
 | U-1 | `Theme` and roles, colour enabled, existing windows switched to roles (no layout changes). | — |
 | U-5 | Command bar overhaul. | U-1 |
 | U-6 | F1 help overlay. | U-5 |
@@ -485,6 +507,8 @@ in §3.4.
 
 ### 3.5 Done
 
+- UI brush-up milestones U-1, U-2/U-4, U-5 and U-6 (see §2.8), which also cover the old items
+  "Colors", "Improve command bar", "F1 Help" and "Display user name in account list"
 - Export database, and export as CSV
 - Write last opened database to prefs
 - Database copy-on-backup, and backup on save
