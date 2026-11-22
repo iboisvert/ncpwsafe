@@ -10,5 +10,17 @@ set(CMAKE_C_FLAGS_INIT "${_NCPWSAFE_MSVC_FLAGS}")
 set(CMAKE_CXX_FLAGS_INIT "${_NCPWSAFE_MSVC_FLAGS} /permissive- /Zc:__cplusplus")
 unset(_NCPWSAFE_MSVC_FLAGS)
 
+# The C runtime must match the vcpkg libraries' (VCPKG_CRT_LINKAGE of the triplet):
+# static (/MT) for x64-windows-static*, the release preset's, so the executable needs
+# no Visual C++ Redistributable; otherwise the DLL (/MD), as for x64-windows-static-md
+if(VCPKG_TARGET_TRIPLET MATCHES "-static" AND NOT VCPKG_TARGET_TRIPLET MATCHES "-static-md")
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+else()
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+endif()
+# libconfini's cmake_minimum_required() predates CMAKE_MSVC_RUNTIME_LIBRARY (policy
+# CMP0091), which it would otherwise ignore, keeping the default /MD
+set(CMAKE_POLICY_DEFAULT_CMP0091 NEW)
+
 # MSVC supports AddressSanitizer only, not UBSan
 set(NCPWSAFE_SANITIZE_FLAGS "/fsanitize=address")

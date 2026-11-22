@@ -58,7 +58,7 @@
     {
       "name": "x64-windows-msvc-release",
       "inherits": [ "base", "x64-windows-msvc", "release" ],
-      "cacheVariables": { "VCPKG_TARGET_TRIPLET": "x64-windows-static-md-release" }
+      "cacheVariables": { "VCPKG_TARGET_TRIPLET": "x64-windows-static-release" }
     }
   ],
   "buildPresets": [
