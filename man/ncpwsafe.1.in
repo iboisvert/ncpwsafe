@@ -1,7 +1,7 @@
 .\" Copyright (C) 2026 Ian Boisvert
 .\" SPDX-License-Identifier: GPL-3.0-or-later
 .\"
-.\" CMake fills in @NCPWSAFE_VERSION@ (configure_file). Preview the result with
+.\" CMake fills in the version (configure_file). Preview the result with
 .\" man -l build/man/ncpwsafe.1
 .Dd November 22, 2026
 .Dt NCPWSAFE 1
@@ -228,8 +228,10 @@ Shows a generated password, which can be generated again, made longer or
 shorter, or made of other characters (the policies of
 .Fl -password-policy ) .
 .Ss Change Account Database Password
-Asks for the new database password twice.
-The new password takes effect when the database is saved.
+Asks for the current database password and for the new one twice.
+The database file is encrypted with the new password at once, after a copy
+is saved (see
+.Cm backup-before-save ) .
 .Ss Search
 Opened with
 .Ic / ,
@@ -385,15 +387,13 @@ The preferences file is an INI file of
 lines.
 .Nm
 reads it at startup and writes it when the user interface exits.
-A value can use environment variables as
-.Li ${NAME} .
 .Bl -tag -width Ds
 .It Cm db-pathname Ns = Ns Ar file
 The database to open when none is given on the command line.
 .Nm
 sets it to the last database opened.
 The default is
-.Pa ${HOME}/.pwsafe.dat .
+.Pa ~/.pwsafe.dat .
 .It Cm backup-before-save Ns = Ns Cm true | false
 Save a copy of the database before saving changes to it.
 The default is
@@ -406,6 +406,27 @@ Draw without colour, using only bold, underline, dim and reverse video.
 Without it, colour is used when the terminal supports it and
 .Ev NO_COLOR
 is not set.
+.It Cm auto-sign-off Ns = Ns Ar period
+The program will exit with status 124, discarding unsaved changes, if idle for
+.Ar period .
+.Ar period
+is a number followed by an optional unit:
+.Cm s
+for seconds,
+.Cm m
+for minutes or
+.Cm h
+for hours, for example
+.Li 90s
+or
+.Li 1h .
+The default unit is minutes.
+.Cm 0
+turns auto sign-off off.
+An invalid value is ignored.
+The default is
+.Cm 5m .
+Time the computer spends asleep counts.
 .It Cm backup. Ns Ar n
 The copies of the database
 .Nm
@@ -428,10 +449,8 @@ kept.
 .It Ev HOME
 The home directory, for the default preferences file and database.
 On Windows,
-.Li ${HOME}
-in a preference falls back to
-.Ev USERPROFILE ,
-and the preferences are under
+.Ev USERPROFILE
+is used instead, and the preferences are under
 .Ev APPDATA .
 .It Ev LANG , LC_ALL , LC_CTYPE
 Account text is UTF-8.
@@ -483,6 +502,11 @@ An error, such as an invalid argument or an incorrect password; or the user
 interface was left with
 .Ic ^X ,
 or the password prompt was cancelled.
+.It 124
+The program exited after the idle period expired; see
+.Cm auto-sign-off
+in
+.Sx PREFERENCES .
 .El
 .Sh EXAMPLES
 Open a database read-only, reading its password from
@@ -524,6 +548,12 @@ In Release builds,
 .Nm
 cannot be traced by a debugger and writes no core dumps, which would hold
 decrypted passwords.
+.It
+After the
+.Cm auto-sign-off
+period without a key press,
+.Nm
+quits and clears the database from memory, discarding unsaved changes.
 .It
 A password copied to the clipboard stays there until something else is copied.
 .It
