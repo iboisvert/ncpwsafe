@@ -49,6 +49,15 @@ so `ncpwsafe.exe` can be copied and run on its own.
 On Windows the configuration file is `%APPDATA%\ncpwsafe\ncpwsafe.ini`,
 and the default database is in `%USERPROFILE%`.
 
+## Documentation
+
+The `ncpwsafe(1)` man page describes the user interface and its keys, the
+command line and the preferences file. After building, read it with
+```
+$ man -l build/man/ncpwsafe.1
+```
+`cmake --install build` installs it with the executable.
+
 ## Colours
 
 ncpwsafe uses colour when the terminal supports it. Set the `NO_COLOR`

@@ -219,6 +219,14 @@ options and the checks in `ValidateArgs`, exit codes, messages, and the
 effect on files (what was written, what an export contains, backups). Most
 of this is in `main.cpp`, which the unit tests don't link.
 
+`cli.man_page` (`test_man_page.py`) checks the man page against the
+sources: every option in `--help` has an entry in DESCRIPTION or OPTIONS
+(and the other way around, except the Debug-only `--test-db` options in a
+Release build), every key of a command bar `Action` list is in KEYS, and
+every key constant in `src/Prefs.h` is in PREFERENCES. It lints the
+configured page (`NCPWSAFE_MAN_PAGE`) with mandoc, or with groff when
+mandoc isn't installed; that test is skipped when neither is.
+
 **TUI end-to-end test** for user-visible flows that only work when several
 components are put together: key bindings, dialogs and their validation,
 what ends up saved, read-only mode, the clipboard, resize. Cover the main
