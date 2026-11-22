@@ -158,11 +158,11 @@ DialogResult MessageBox::ProcessInput(KeyHandler handler)
     DialogResult result = DialogResult::CANCEL;
     if (win_ == nullptr)
     {
-        // The window couldn't be created, wgetch() would return ERR at once
+        // The window couldn't be created, ReadKey() would return ERR at once
         return result;
     }
     int c;
-    while ((c = wgetch(win_)) != ERR)
+    while ((c = ReadKey(win_)) != ERR)
     {
         if (c == KEY_RESIZE)
         {

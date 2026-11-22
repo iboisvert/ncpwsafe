@@ -1,6 +1,17 @@
 /* Copyright 2023 Ian Boisvert */
 #include "AccountRecord.h"
 #include "libicu.h"
+#include "Utils.h"
+
+void AccountRecord::Wipe()
+{
+    for (auto &field : fields_)
+    {
+        ZeroString(field.second);
+    }
+    fields_.clear();
+    dirty_ = false;
+}
 
 AccountRecord AccountRecord::FromPwsDbRecord(const PwsDbRecord *prec)
 {

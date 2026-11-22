@@ -4,6 +4,7 @@
 #include <climits>
 #include <cwchar>
 
+#include "AutoSignOff.h"
 #include "Dialog.h"
 #include "MessageBox.h"
 #include "Utils.h"
@@ -97,7 +98,17 @@ DialogResult Dialog::Show(WINDOW *parent, const std::string &title)
     DialogResult result;
     {
         ScopedResizeHandler resize_handler(app_, [this]() { OnResize(); });
-        result = ProcessInput();
+        try
+        {
+            result = ProcessInput();
+        }
+        catch (const AutoSignOff &)
+        {
+            // The fields may hold a password: scramble them before unwinding
+            RandomizeBuffers();
+            EndTUI();
+            throw;
+        }
     }
 
     RandomizeBuffers();

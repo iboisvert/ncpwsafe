@@ -1,6 +1,7 @@
 /* Copyright 2022 Ian Boisvert */
 #include "config.h"
 #include "Utils.h"
+#include "AutoSignOff.h"
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
@@ -321,10 +322,51 @@ bool SetUtf8CtypeLocale()
     return false;
 }
 
+/**
+ * `wget_wch()`, but if an idle timer is set, wait in steps of at most a second so that
+ * the timer is checked, and throw `AutoSignOff` when it expires.
+ */
+static int WaitForKey(WINDOW *win, wint_t &key)
+{
+    IdleTimer *timer = GetKeyIdleTimer();
+    if (timer == nullptr || !timer->Enabled() || win == nullptr)
+    {
+        return wget_wch(win, &key);
+    }
+    for (;;)
+    {
+        if (timer->Expired())
+        {
+            wtimeout(win, -1);
+            throw AutoSignOff();
+        }
+        const int wait_ms = static_cast<int>(std::min<int64_t>(std::max<int64_t>(timer->RemainingMs(), 1), 1000));
+        const int64_t start = timer->Now();
+        wtimeout(win, wait_ms);
+        const int rc = wget_wch(win, &key);
+        wtimeout(win, -1);
+        if (rc != ERR)
+        {
+            if (!(rc == KEY_CODE_YES && key == KEY_RESIZE))
+            {
+                // A key was pressed. Resizing the terminal doesn't count as input
+                timer->Touch();
+            }
+            return rc;
+        }
+        if (timer->Now() - start < wait_ms / 2 && !timer->Expired())
+        {
+            // ERR long before the timeout: an error, not a timeout. Return it, as
+            // without a timer, rather than calling wget_wch() again at once forever
+            return ERR;
+        }
+    }
+}
+
 int ReadKey(WINDOW *win, wchar_t &wch)
 {
     wint_t key;
-    int rc = wget_wch(win, &key);
+    int rc = WaitForKey(win, key);
     if (rc == KEY_CODE_YES)
     {
         return static_cast<int>(key);

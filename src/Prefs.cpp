@@ -17,6 +17,7 @@ static std::map<std::string, std::string> DEFAULTS{
     {Prefs::DB_PATHNAME, "${HOME}/.pwsafe.dat"},
     {Prefs::BACKUP_BEFORE_SAVE, "true"},
     {Prefs::BACKUP_COUNT, "3"},
+    {Prefs::AUTO_SIGN_OFF, "5m"},
 };
 
 Prefs Prefs::instance_;

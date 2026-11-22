@@ -168,10 +168,15 @@ Every test case gets:
 Always wait for something on screen after sending keys, rather than
 sleeping. When a key should do nothing, send a key that does something
 visible after it and wait for that, then check that nothing else changed
-(see `test_readonly.py`).
+(see `test_readonly.py`). The exception is a test of time itself:
+`test_auto_sign_off.py` sleeps to check that ncpwsafe is still open after
+some time, and keeps its periods to a few seconds.
 
 Exit codes: 0 after `^S` (save and exit), 1 (`e2elib.PRC_ERR_FAIL`) after
-leaving with `^X` or cancelling the password prompt.
+leaving with `^X` or cancelling the password prompt, 124 after an auto
+sign-off. Every TUI test runs with the default auto sign-off of 5 minutes;
+to test it, write a short `auto-sign-off` to `self.config_file` before
+starting ncpwsafe.
 
 ### Clipboard
 

@@ -5,6 +5,7 @@ list(APPEND SRC
     AccountDetailsDlg.cpp
     AccountList.cpp
     AccountsWin.cpp
+    AutoSignOff.cpp
     ChangeDbPasswordCommand.cpp
     ChangeDbPasswordDlg.cpp
     ChangePasswordDlg.cpp

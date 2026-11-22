@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "AccountDb.h"
+#include "AutoSignOff.h"
 #include "AccountsWin.h"
 #include "CommandBarWin.h"
 #include "ProgArgs.h"
@@ -34,7 +35,12 @@ public:
     /** Init state and TUI */
     void Init(ProgArgs args);
 
-    /** Open and edit an account database */
+    /**
+     * Open and edit an account database.
+     * After the auto sign-off period without input, returns `DialogResult::CANCEL`
+     * with `SignedOff()` `true`: unsaved changes are discarded, and the database
+     * password and accounts are wiped from memory.
+     */
     DialogResult Show();
 
     /** Save database */
@@ -52,6 +58,24 @@ public:
     const ProgArgs &GetArgs() const
     {
         return args_;
+    }
+
+    /** `true` if `Show()` returned because of an auto sign-off */
+    bool SignedOff() const
+    {
+        return signed_off_;
+    }
+
+    /** `true` if the auto sign-off discarded unsaved changes to the database */
+    bool SignOffDiscardedChanges() const
+    {
+        return sign_off_discarded_changes_;
+    }
+
+    /** The auto sign-off period in seconds, 0 if auto sign-off is off */
+    long AutoSignOffSeconds() const
+    {
+        return idle_timer_.Period();
     }
 
     /** Get reference to account database */
@@ -137,10 +161,16 @@ private:
     static constexpr int MIN_TERM_COLS = 20;
 
     void InitTUI();
+    /** Prompt for the database password, then show the accounts, see `Show()` */
+    DialogResult OpenAndEdit();
     void LayoutTUI();
     void DrawFrame();
     void EndTUI();
     void ProcessInput();
+    /** Read the auto sign-off period from the preferences */
+    void InitAutoSignOff();
+    /** Clear the screen and wipe the database after an auto sign-off */
+    void SignOff();
 
     ResultCode BackupDbImpl();
     void CleanBackups();
@@ -166,6 +196,9 @@ private:
     void DrawFooter();
     int save_cursor_ = 0;
     std::vector<ResizeHandler> resize_handlers_;
+    IdleTimer idle_timer_;
+    bool signed_off_ = false;
+    bool sign_off_discarded_changes_ = false;
 
 #ifdef FRIEND_TEST
     FRIEND_TEST(AppTest, TestBackupDb_DstDoesntExist);

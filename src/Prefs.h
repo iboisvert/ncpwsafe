@@ -34,6 +34,13 @@ public:
      * when the terminal supports it and `NO_COLOR` is not set.
      */
     static constexpr const char *THEME = "theme";
+    /**
+     * Auto sign-off period, string. After this long without input, ncpwsafe quits
+     * and discards unsaved changes. A number with an optional unit `s`, `m` or `h`;
+     * a number without a unit is minutes. `0` turns auto sign-off off.
+     * See `ParseAutoSignOff()`.
+     */
+    static constexpr const char *AUTO_SIGN_OFF = "auto-sign-off";
 
     /**
      * Initialize Prefs from defaults

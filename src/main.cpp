@@ -604,6 +604,16 @@ int main(int argc, char *argv[])
         DialogResult rc = app.Show();
         result = static_cast<int>(rc == DialogResult::OK ? RC_SUCCESS : RC_FAILURE);
         app.SavePrefs();
+        if (app.SignedOff())
+        {
+            fprintf(stderr, "%s: signed off after %s without input\n", NCPWSAFE_APPNAME,
+                    FormatDuration(app.AutoSignOffSeconds()).c_str());
+            if (app.SignOffDiscardedChanges())
+            {
+                fprintf(stderr, "Unsaved changes were discarded.\n");
+            }
+            result = EXIT_AUTO_SIGN_OFF;
+        }
         break;
     }
     case Operation::CHANGE_DB_PASSWORD: 

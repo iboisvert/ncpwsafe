@@ -35,6 +35,9 @@ public:
     {
         return dirty_;
     }
+
+    /** Overwrite every field value with zeros and remove the fields */
+    void Wipe();
     /** Resets the dirty state to `false` */
     void ClearDirty() const
     {

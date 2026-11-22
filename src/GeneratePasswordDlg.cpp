@@ -165,7 +165,7 @@ DialogResult GeneratePasswordDlg::ProcessInput()
 {
     DialogResult retval = DialogResult::CANCEL;
     int ch;
-    while ((ch = wgetch(win_)) != ERR)
+    while ((ch = ReadKey(win_)) != ERR)
     {
         switch (ch)
         {
