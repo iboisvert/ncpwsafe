@@ -15,19 +15,6 @@ Issues 1–9 were found by a code review of the Windows MSVC port (branch `dev/b
 
 **Fix:** `setlocale(LC_CTYPE, ".UTF-8")`.
 
-## 7. Windows-specific code outside `Win32.{h,cpp}`
-
-**Severity:** Minor
-
-AGENTS.md says "Windows-specific code lives in `src/Win32.{h,cpp}`", but there are `#ifdef _WIN32` blocks in:
-
-- `src/Utils.cpp:116`: `USERPROFILE` fallback for `HOME` in `ExpandEnvVars`
-- `src/ProgArgs.cpp:14`: `APPDATA` default config path
-- `src/PWSafeApp.cpp:402`: `localtime_s`
-- `src/main.cpp:25`, `:41`, `:556`: includes, `ProgramName()`, `win32::InitConsole()`
-
-**Fix:** move these into `Win32.{h,cpp}` helpers (e.g. `win32::LocalTime`, `win32::DefaultConfigPath`), or reword the rule to allow small `#ifdef _WIN32` blocks.
-
 ## 9. `ReadPasswordFileTest` temp file is not created exclusively
 
 **Severity:** Minor
