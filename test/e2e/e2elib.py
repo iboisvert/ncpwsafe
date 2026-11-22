@@ -116,9 +116,9 @@ class E2ETestCase(unittest.TestCase):
             self.env["USERPROFILE"] = str(self.home)
             self.env["APPDATA"] = str(appdata)
             self.env["LOCALAPPDATA"] = str(self.home / "AppData" / "Local")
-            self.config_file = appdata / "ncpwsafe" / "ncpwsafe-config.ini"
+            self.config_file = appdata / "ncpwsafe" / "ncpwsafe.ini"
         else:
-            self.config_file = self.home / ".config" / "ncpwsafe" / "ncpwsafe-config.ini"
+            self.config_file = self.home / ".config" / "ncpwsafe" / "ncpwsafe.ini"
 
     # Files --------------------------------------------------------------
 

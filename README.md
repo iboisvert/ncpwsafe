@@ -46,15 +46,15 @@ takes a while. glog is only installed when configuring with `-DUSE_GLOG=ON`.
 
 The executable is statically linked against its dependencies,
 so `ncpwsafe.exe` can be copied and run on its own.
-On Windows the configuration file is `%APPDATA%\ncpwsafe\ncpwsafe-config.ini`,
+On Windows the configuration file is `%APPDATA%\ncpwsafe\ncpwsafe.ini`,
 and `${HOME}` in preference values falls back to `%USERPROFILE%`.
 
 ## Colours
 
 ncpwsafe uses colour when the terminal supports it. Set the `NO_COLOR`
 environment variable (see https://no-color.org), or `theme = mono` in the
-configuration file (`~/.config/ncpwsafe/ncpwsafe-config.ini`, or
-`%APPDATA%\ncpwsafe\ncpwsafe-config.ini` on Windows), to draw with
+configuration file (`~/.config/ncpwsafe/ncpwsafe.ini`, or
+`%APPDATA%\ncpwsafe\ncpwsafe.ini` on Windows), to draw with
 bold, underline, dim and reverse video only.
 
 ## Auto sign-off

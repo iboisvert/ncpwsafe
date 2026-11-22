@@ -13,7 +13,7 @@ const size_t DEFAULT_GENERATE_PASSWORD_COUNT = 1;
 const size_t DEFAULT_PASSWORD_POLICY = 2;
 const size_t DEFAULT_PASSWORD_LENGTH = 20;
 #ifdef _WIN32
-std::string DEFAULT_CONFIG_FILE = win32::RoamingAppDataDir() + "/ncpwsafe/ncpwsafe-config.ini";
+std::string DEFAULT_CONFIG_FILE = win32::RoamingAppDataDir() + "/ncpwsafe/ncpwsafe.ini";
 #else
-std::string DEFAULT_CONFIG_FILE = ExpandEnvVars("${HOME}/.config/ncpwsafe/ncpwsafe-config.ini");
+std::string DEFAULT_CONFIG_FILE = ExpandEnvVars("${HOME}/.config/ncpwsafe/ncpwsafe.ini");
 #endif
