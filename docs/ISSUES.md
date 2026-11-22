@@ -39,14 +39,6 @@ The README already suggests editing the file by hand (`theme = mono`), and the p
 **Fix:** take only `INI_KEY` nodes, and use the node's section (`append_to`) to tell top-level keys
 from keys in sections. Add a unit test that reads a file with comments, blank lines and sections.
 
-## 4. The save-error Retry? prompt can't be cancelled with ^X, and declining exits 0
-
-**Severity:** Important
-
-When saving fails, `AccountsWin::Save()` asks `Retry?` and shows `^X Cancel` in the command bar, but `YesNoCancelKeyHandler` cancels on `^C`, so `^X` does nothing. Answering `n` sets `retval = true`, so the program exits with `DialogResult::OK` and status 0 although nothing was saved. ncpwsafe(1) says status 0 means the changes were saved.
-
-**Fix:** make `YesNoCancelKeyHandler` accept `^X` (or show the key it really accepts), and return failure when the user declines to retry, so the exit status is not 0. Add a TUI test that makes the save fail (for example a read-only directory) and checks both keys and the exit status.
-
 ## 5. Changing the database password loses unsaved changes and writes a mix of saved and unsaved data
 
 **Severity:** Critical

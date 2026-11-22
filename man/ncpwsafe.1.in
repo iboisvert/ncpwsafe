@@ -277,6 +277,13 @@ Copy the selected account's password to the clipboard.
 Change the database password.
 .It Ic ^S
 Save the changes to the database and exit.
+If the database can't be written,
+.Ic y
+tries again,
+.Ic n
+exits without saving and
+.Ic ^X
+goes back to the list.
 .It Ic ^X
 Exit without saving; asks for confirmation when there are unsaved changes.
 .It Ic ^G
