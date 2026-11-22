@@ -2,6 +2,7 @@
 #include "config.h"
 #include "Utils.h"
 #include "AutoSignOff.h"
+#include "Win32.h"
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
@@ -95,52 +96,25 @@ void ZeroFieldsBuffer(FIELD **fields)
     }
 }
 
-/** Expand environment variables in the string */
-std::string ExpandEnvVars(const std::string &str)
+/** The user's home directory */
+std::string HomeDir()
 {
-    static const size_t npos = std::string::npos;
-
-    std::string expanded;
-    bool found_var = false;
-
-    size_t last_end_pos = 0, start_pos = str.find("${");
-    while (start_pos != npos)
-    {
-        found_var = true;
-
-        size_t end_pos = str.find('}', start_pos+2);
-        if (end_pos != npos)
-        {
-            expanded.append(str, last_end_pos, start_pos-last_end_pos);
-
-            std::string env_var{str, start_pos+2, end_pos-(start_pos+2)};
-            const char *value = getenv(env_var.c_str());
 #ifdef _WIN32
-            // HOME is not normally set on Windows
-            if (!value && env_var == "HOME")
-            {
-                value = getenv("USERPROFILE");
-            }
+    const char *home = getenv("USERPROFILE");
+#else
+    const char *home = getenv("HOME");
 #endif
-            if (value)
-            {
-                expanded.append(value);
-            }
+    return home ? home : "";
+}
 
-            last_end_pos = end_pos+1;
-        }
-        start_pos = str.find("${", end_pos);
-    }
-
-    if (found_var)
-    {
-        expanded.append(str, last_end_pos);
-        return expanded;
-    }
-    else
-    {
-        return str;
-    }
+/** The directory for ncpwsafe's per-user data */
+std::string UserAppDataDir()
+{
+#ifdef _WIN32
+    return win32::RoamingAppDataDir() + "/ncpwsafe";
+#else
+    return HomeDir() + "/.config/ncpwsafe";
+#endif
 }
 
 size_t Utf8Length(std::string_view text)

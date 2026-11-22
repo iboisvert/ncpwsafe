@@ -142,8 +142,8 @@ Every test case gets:
   `%TEMP%` on Windows;
 - its own `$HOME` in that directory (on Windows, also `%USERPROFILE%` and
   `%APPDATA%`), so the preferences file
-  (`~/.config/ncpwsafe/ncpwsafe-config.ini`, or
-  `%APPDATA%\ncpwsafe\ncpwsafe-config.ini` on Windows) and database backups
+  (`~/.config/ncpwsafe/ncpwsafe.ini`, or
+  `%APPDATA%\ncpwsafe\ncpwsafe.ini` on Windows) and database backups
   never touch your real home directory;
 - for TUI tests, its own tmux server (`tmux -L <unique name> -f /dev/null`),
   so tests can run in parallel and never see your own tmux sessions or

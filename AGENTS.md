@@ -27,7 +27,7 @@ ctest --preset=x64-linux-gcc-debug -L cli     # end-to-end CLI tests (-L tui: UI
 - End-to-end tests need Python 3 (standard library only); the TUI tests also need tmux and are reported as skipped without it.
 - CI (`.github/workflows/build.yml`) runs the `x64-linux-gcc-release` and `x64-linux-clang-release` presets on Ubuntu (configure, build, ctest).
 - `CMakeLists.txt` rejects in-source builds (they leave `CMakeCache.txt`, `Makefile`s, `config.h` etc. in the source tree); use `build/`.
-- `config.h` is generated from `config.h.in` into the build dir (app name/version, default config path `$HOME/.config/ncpwsafe/ncpwsafe.ini`, `HAVE_SYS_*` checks).
+- `config.h` is generated from `config.h.in` into the build dir (app name/version, `HAVE_SYS_*` checks). The default preferences path, `~/.config/ncpwsafe/ncpwsafe.ini` (`%APPDATA%\ncpwsafe\ncpwsafe.ini` on Windows), is `DEFAULT_CONFIG_FILE` in `src/ProgArgs.cpp`.
 
 ## Architecture
 
