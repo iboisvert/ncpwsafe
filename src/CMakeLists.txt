@@ -81,7 +81,6 @@ if(WIN32)
 endif()
 set_target_properties(ncpwsafe 
     PROPERTIES 
-    VERSION ${NCPWSAFE_VERSION}
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 target_link_libraries(ncpwsafe 

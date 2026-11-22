@@ -19,13 +19,7 @@ endif()
 add_executable(e2e-mkdb mkdb.cpp)
 target_link_libraries(e2e-mkdb libncpwsafe)
 
-if(WIN32)
-    # ncpwsafe.exe, Windows has no versioned file name
-    set(E2E_NCPWSAFE "$<TARGET_FILE:ncpwsafe>")
-else()
-    # The unversioned symlink, as users run it (TARGET_FILE is ncpwsafe-<version>)
-    set(E2E_NCPWSAFE "$<TARGET_FILE_DIR:ncpwsafe>/ncpwsafe")
-endif()
+set(E2E_NCPWSAFE "$<TARGET_FILE:ncpwsafe>")
 
 set(E2E_ENV
     "NCPWSAFE=${E2E_NCPWSAFE}"
