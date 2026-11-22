@@ -224,6 +224,16 @@ class EditTest(e2elib.TuiTestCase):
         self.assertEqual(app.wait_exit(), e2elib.PRC_ERR_FAIL)
         self.assertDbContains(db, pw, e2elib.read_spec())
 
+    def test_title_marks_unsaved_changes(self):
+        app, _, _ = self.open_db()
+        self.assertNotIn("*", app.screen()[0])
+        self.select(app, "Chequing")
+        app.send("C-d")
+        app.wait_for("Delete account Chequing")
+        app.send("y")
+        app.wait_gone("Delete account")
+        app.wait_until(lambda: "small.dat * " in app.screen()[0], "the title to mark unsaved changes")
+
     def test_delete_unique_title_omits_user(self):
         # The uniqueness check in AccountsWin::DeleteEntry() used to be
         # inverted, so the user was named unless every account had the same title

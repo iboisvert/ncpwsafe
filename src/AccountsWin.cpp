@@ -356,11 +356,30 @@ void AccountsWin::DrawAccount(int y, const AccountList::Row &row, bool selected,
     SetAttrs(win_, A_NORMAL);
 }
 
+std::string AccountsWin::StatusText() const
+{
+    const AccountList::Row *row = list_.SelectedRow();
+    if (row == nullptr)
+        return std::string();
+    const std::string group = row->group.empty() ? "" : PrintableText(row->group.c_str());
+    if (row->kind == AccountList::RowKind::HEADING)
+        return group.empty() ? "(no group)" : group;
+
+    const AccountRecords &records = app_.GetDb().Records();
+    auto it = std::find_if(records.begin(), records.end(), [row](const AccountRecord &r) { return &r == row->record; });
+    const std::string title = PrintableText(row->record->GetField(FT_TITLE, ""));
+    std::string text = group.empty() ? title : group + " " + app_.GetTheme().Sym(Symbol::SEPARATOR) + " " + title;
+    text.append("  ").append(std::to_string(std::distance(records.begin(), it) + 1));
+    text.append("/").append(std::to_string(std::distance(records.begin(), records.end())));
+    return text;
+}
+
 void AccountsWin::Draw()
 {
     if (win_ == nullptr)
         return;
     werase(win_);
+    app_.SetStatus(StatusText());
 
     const Theme &theme = app_.GetTheme();
     const int width = getmaxx(win_);
@@ -757,6 +776,8 @@ DialogResult AccountsWin::ProcessInput()
             break;
         }
         Draw();
+        update_panels();
+        doupdate();
     }
 
 done:

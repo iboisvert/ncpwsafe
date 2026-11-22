@@ -27,8 +27,6 @@ void CommandBarWin::Redraw()
     CommandBarWin::DrawActions(app_, win_, last_actions_, last_opts_);
 }
 
-static const char *STATUS_READ_ONLY = "RO";
-
 void CommandBarWin::ShowActions(const PWSafeApp &app, WINDOW *win, const std::vector<Action> &actions, int opts)
 {
     DrawActions(app, win, actions, opts);
@@ -40,9 +38,7 @@ void CommandBarWin::DrawActions(const PWSafeApp &app, WINDOW *win, const std::ve
     const Theme &theme = app.GetTheme();
     wattrset(win, theme.Attr(Role::KEY_DESC));
 
-    const bool read_only = app.GetDb().ReadOnly();
-    int status_len = read_only ? 2 : 0;
-    int beg_x = getbegx(win), max_x = getmaxx(win) - status_len;
+    int beg_x = getbegx(win), max_x = getmaxx(win);
 
     wmove(win, /*y*/ 0, beg_x);
 
@@ -74,10 +70,5 @@ void CommandBarWin::DrawActions(const PWSafeApp &app, WINDOW *win, const std::ve
         waddch(win, ' ');
 
     whline(win, ' ', max_x-col);
-    if (read_only)
-    {
-        ScopedAttr warning(win, theme, Role::WARNING);
-        mvwaddstr(win, /*y*/0, max_x, STATUS_READ_ONLY);
-    }
     wattrset(win, A_NORMAL);
 }

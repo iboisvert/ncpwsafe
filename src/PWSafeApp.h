@@ -108,6 +108,15 @@ public:
     }
 
     /**
+     * Set the status shown at the right of the title bar, e.g. the selected account,
+     * and redraw the title bar. The window isn't refreshed.
+     */
+    void SetStatus(const std::string &status);
+
+    /** Redraw the title bar, e.g. after the database has changed. The window isn't refreshed */
+    void DrawTitle();
+
+    /**
      * Lay out all windows to fit the terminal after it has been resized.
      * Call when `wgetch()` returns `KEY_RESIZE`.
      */
@@ -140,6 +149,7 @@ private:
     WINDOW *commandbar_win_ = nullptr;  // Command bar
     PANEL *commandbar_panel_ = nullptr; // Command bar panel
     WINDOW *win_ = nullptr;            // Content of accounts list window
+    std::string status_;               // Right side of the title bar
     int save_cursor_ = 0;
     std::vector<ResizeHandler> resize_handlers_;
 

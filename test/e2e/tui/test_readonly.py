@@ -23,6 +23,10 @@ class ReadOnlyTest(e2elib.TuiTestCase):
         for action in ("^A Add", "^D Delete", "^S Save", "^C Change password"):
             self.assertNotIn(action, bar)
 
+    def test_title_shows_read_only(self):
+        app, _, _ = self.open_db("-r")
+        self.assertIn("small.dat [read-only]", app.screen()[0])
+
     def test_editing_keys_do_nothing(self):
         app, db, pw = self.open_db("-r")
         before = digest(db)

@@ -72,6 +72,15 @@ class NavigationTest(e2elib.TuiTestCase):
         app.wait_for("▾ Banking")
         self.assertNotIn("View Account", app.text())
 
+    def test_title_shows_selection(self):
+        app, _, _ = self.open_db()
+        # The group and title of the selected account, and its position among all accounts
+        self.assertRegex(app.screen()[0], r"^lqq ncpwsafe 0\.1 qq small\.dat q+ Router  1/7 qqk")
+        app.send("Down", "Down", "Down")
+        app.wait_until(lambda: "Banking › Chequing  3/7" in app.screen()[0], "the selection in the title")
+        app.send("Down", "Down")
+        app.wait_until(lambda: " Email " in app.screen()[0], "the heading in the title")
+
     def test_stays_at_ends(self):
         app, _, _ = self.open_db()
         self.assertPath(app, [("Up", "(no group)"), ("Up", "(no group)"), ("End", "Bookstore"),

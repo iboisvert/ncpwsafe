@@ -63,8 +63,10 @@ private:
     int ListHeight() const;
     /** Width of the title column, from the longest title */
     int TitleColumnWidth(int width) const;
-    /** Draw the visible rows */
+    /** Draw the visible rows, and the selection in the title bar */
     void Draw();
+    /** The selection, for the title bar: "Banking › Chequing  3/7" */
+    std::string StatusText() const;
     void DrawHeading(int y, const AccountList::Row &row, bool selected);
     void DrawAccount(int y, const AccountList::Row &row, bool selected, int title_width);
     /** Lay out the list after the terminal has been resized */
