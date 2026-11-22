@@ -147,6 +147,37 @@ size_t Utf8Length(std::string_view text)
     return std::count_if(text.begin(), text.end(), [](char c) { return (c & 0xC0) != 0x80; });
 }
 
+int DisplayWidth(std::string_view text)
+{
+    int width = 0;
+    std::mbstate_t state{};
+    const char *p = text.data(), *end = text.data() + text.size();
+    while (p < end)
+    {
+        wchar_t wc;
+        size_t n = std::mbrtowc(&wc, p, static_cast<size_t>(end - p), &state);
+        if (n == static_cast<size_t>(-1) || n == static_cast<size_t>(-2))
+        {
+            // Not valid in this locale: one column, skip one byte
+            state = std::mbstate_t{};
+            ++width;
+            ++p;
+            continue;
+        }
+        if (n == 0)
+            n = 1;
+#ifdef _WIN32
+        // MSVC has no wcwidth()
+        int w = 1;
+#else
+        int w = wcwidth(wc);
+#endif
+        width += w < 0 ? 1 : w;
+        p += n;
+    }
+    return width;
+}
+
 /** Number of bytes in the first `n` characters of UTF-8 text */
 static size_t Utf8PrefixBytes(std::string_view text, size_t n)
 {

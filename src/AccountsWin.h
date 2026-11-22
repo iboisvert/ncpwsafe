@@ -30,6 +30,7 @@ public:
     void SetCurrentItem(ITEM *item) const
     {
         if (item != nullptr) set_current_item(menu_, item);
+        DecorateGroupItems();
     }
 
 private:
@@ -80,6 +81,11 @@ private:
     void DestroyMenu();
     /** Lay out the menu after the terminal has been resized */
     void OnResize();
+    /**
+     * Draw the visible group headings in the heading style. The `menu` library
+     * draws every item alike, so this is done after each change to the menu.
+     */
+    void DecorateGroupItems() const;
     void SetCommandBar();
     DialogResult ProcessInput();
 

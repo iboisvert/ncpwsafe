@@ -263,6 +263,7 @@ void AccountsWin::SetSelection(const AccountRecord &record) const
     {
         set_current_item(menu_, pitem);
     }
+    DecorateGroupItems();
 }
 
 const AccountRecord *AccountsWin::GetSelection() const
@@ -311,6 +312,33 @@ static bool IsGroupMenuItem(const ITEM *item)
 {
     assert(item);
     return item_userptr(item) == nullptr && item_name(item) != EMPTY_MENU_ITEM;
+}
+
+void AccountsWin::DecorateGroupItems() const
+{
+    if (menu_ == nullptr || menu_win_ == nullptr)
+        return;
+    const attr_t attrs = app_.GetTheme().Attr(Role::HEADING);
+    int rows, cols;
+    menu_format(menu_, &rows, &cols);
+    const int top = top_row(menu_), count = item_count(menu_);
+    if (count <= 0 || top < 0)
+        return;  // An empty list
+    const ITEM *current = current_item(menu_);
+    for (int row = 0; row < rows; ++row)
+    {
+        // Group headings are always in the first column, see CreateMenu()
+        const int idx = (top + row) * cols;
+        if (idx >= count || menu_items_[idx] == nullptr)
+            break;
+        const ITEM *item = menu_items_[idx];
+        if (item != current && IsGroupMenuItem(item))
+        {
+            mvwchgat(menu_win_, row, /*x*/ 0, DisplayWidth(item_name(item)), attrs & ~A_COLOR,
+                     static_cast<short>(PAIR_NUMBER(attrs)), nullptr);
+        }
+    }
+    wsyncup(menu_win_);
 }
 
 void AccountsWin::CreateMenu()
@@ -394,6 +422,7 @@ void AccountsWin::LayoutMenu()
     set_menu_format(menu_, menuWin_nlines, NCOLS);
 
     post_menu(menu_);
+    DecorateGroupItems();
 }
 
 void AccountsWin::DestroyMenu()
@@ -433,6 +462,7 @@ void AccountsWin::OnResize()
     {
         set_current_item(menu_, selection);
     }
+    DecorateGroupItems();
     touchwin(win_);
 }
 
@@ -1034,6 +1064,7 @@ DialogResult AccountsWin::ProcessInput()
         default:
             break;
         }
+        DecorateGroupItems();
     }
 
 done:

@@ -293,6 +293,18 @@ TEST_F(Utf8LocaleTest, PrintableTextUtf8)
     EXPECT_EQ("?", PrintableText(""));
 }
 
+TEST_F(Utf8LocaleTest, DisplayWidthUtf8)
+{
+    if (!setlocale(LC_CTYPE, "C.UTF-8")) GTEST_SKIP() << "C.UTF-8 locale is not installed";
+    EXPECT_EQ(0, DisplayWidth(""));
+    EXPECT_EQ(6, DisplayWidth("Router"));
+    EXPECT_EQ(4, DisplayWidth("Café"));
+    // Wide characters take two columns
+    EXPECT_EQ(6, DisplayWidth("日本語"));
+    // Not valid UTF-8, a column for each bad byte
+    EXPECT_EQ(3, DisplayWidth("a\xff" "b"));
+}
+
 TEST_F(Utf8LocaleTest, PrintableTextCLocale)
 {
     setlocale(LC_CTYPE, "C");
