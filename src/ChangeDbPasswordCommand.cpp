@@ -40,7 +40,7 @@ int ChangeDbPasswordCommand::Write()
     app_.BackupDb();
 
     std::string old_password = db.Password();
-    db.Password() = new_password_;
+    SetDbPassword(new_password_);
     int rc = RC_SUCCESS;
     if (db.WriteDb(&rc))
     {
@@ -48,8 +48,21 @@ int ChangeDbPasswordCommand::Write()
     }
     else
     {
-        db.Password() = old_password;
+        SetDbPassword(old_password);
     }
     ZeroString(old_password);
     return rc;
+}
+
+void ChangeDbPasswordCommand::SetDbPassword(const std::string &password)
+{
+    // Zero the old password first: assigning a shorter one would leave the rest of it in the buffer
+    std::string &db_password = app_.GetDb().Password();
+    ZeroString(db_password);
+    db_password = password;
+}
+
+ChangeDbPasswordCommand::~ChangeDbPasswordCommand()
+{
+    ZeroString(new_password_);
 }
