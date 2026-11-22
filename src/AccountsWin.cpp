@@ -650,6 +650,11 @@ DialogResult AccountsWin::ProcessInput()
     int c;
     while ((c = wgetch(win_)) != ERR)
     {
+        if (c != KEY_RESIZE)
+        {
+            // A message is shown until the next key
+            app_.ClearMessage();
+        }
         switch (c)
         {
         case KEY_RESIZE:
@@ -717,8 +722,15 @@ DialogResult AccountsWin::ProcessInput()
             const AccountRecord *record = list_.SelectedRecord();
             if (record != nullptr)
             {
-                const std::string str = record->GetField(c == KEY_CTRL('U') ? FT_USER : FT_PASSWORD, "");
-                if (CopyTextToClipboard(app_, win_, str) > 0)
+                const bool user = c == KEY_CTRL('U');
+                const std::string str = record->GetField(user ? FT_USER : FT_PASSWORD, "");
+                const int rc = CopyTextToClipboard(app_, win_, str);
+                if (rc == 0)
+                {
+                    app_.SetMessage(std::string("Copied the ") + (user ? "user name" : "password") + " of " +
+                                    PrintableText(record->GetField(FT_TITLE, "")));
+                }
+                else if (rc > 0)
                 {
                     app_.GetCommandBar().Show(this);
                 }

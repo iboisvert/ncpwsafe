@@ -38,6 +38,19 @@ class ClipboardTest(e2elib.TuiTestCase):
         # The password is never shown
         self.assertNotIn("pw-cheq-1", app.text())
 
+    def test_copy_shows_message_until_next_key(self):
+        app, _, _ = self.open_db()
+        self.select_chequing(app)
+        app.send("C-p")
+        self.wait_clipboard(app, "pw-cheq-1")
+        # In the bottom border of the list
+        screen = app.wait_for("Copied the password of Chequing")
+        self.assertIn("Copied the password of Chequing", app.screen()[-2])
+        self.assertNotIn("pw-cheq-1", screen)
+        app.send("Down")
+        app.wait_highlighted("Savings")
+        app.wait_gone("Copied the password")
+
     def test_copy_on_group_does_nothing(self):
         app, _, _ = self.open_db()
         app.send("Down", "Down")

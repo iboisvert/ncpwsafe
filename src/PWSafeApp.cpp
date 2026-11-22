@@ -208,6 +208,7 @@ void PWSafeApp::DrawFrame()
     werase(accounts_win_);
     box(accounts_win_, /*verch*/ 0, /*horch*/ 0);
     DrawTitle();
+    DrawFooter();
     // accounts_win_ is a subwindow of stdscr, which is the bottom panel
     touchwin(root_win_);
 }
@@ -266,6 +267,43 @@ void PWSafeApp::DrawTitle()
     }
     // accounts_win_ is a subwindow of stdscr, the bottom panel: mark the change in stdscr
     wsyncup(accounts_win_);
+}
+
+void PWSafeApp::DrawFooter()
+{
+    if (accounts_win_ == nullptr)
+        return;
+    const int width = getmaxx(accounts_win_), y = getmaxy(accounts_win_) - 1;
+    if (width < 8 || y < 1)
+        return;
+    mvwhline(accounts_win_, y, 1, ACS_HLINE, width - 2);
+    if (!message_.empty())
+    {
+        const std::string text = std::string(" ") + theme_.Sym(Symbol::CHECK) + " " + message_ + " ";
+        ScopedAttr attrs(accounts_win_, theme_, message_role_);
+        mvwaddstr(accounts_win_, y, 3, FitText(text, width - 6, theme_.Sym(Symbol::ELLIPSIS)).c_str());
+    }
+    wsyncup(accounts_win_);
+}
+
+void PWSafeApp::SetMessage(const std::string &message, Role role)
+{
+    message_ = message;
+    message_role_ = role;
+    DrawFooter();
+    update_panels();
+    doupdate();
+}
+
+void PWSafeApp::ClearMessage()
+{
+    if (!message_.empty())
+    {
+        message_.clear();
+        DrawFooter();
+        update_panels();
+        doupdate();
+    }
 }
 
 /**

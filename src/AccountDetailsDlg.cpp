@@ -89,17 +89,17 @@ bool AccountDetailsDlg::InputHandler(Dialog &dialog, int ch, DialogResult &/*res
     else if (ch == KEY_CTRL('U'))
     {
         const std::string user = dialog.GetCurrentValue(FT_USER);
-        if (!user.empty())
+        if (!user.empty() && CopyTextToClipboard(app_, dialog.GetParentWindow(), user) == 0)
         {
-            CopyTextToClipboard(app_, dialog.GetParentWindow(), user);
+            app_.SetMessage("Copied the user name");
         }
     }
     else if (ch == KEY_CTRL('P'))
     {
         std::string password = dialog.GetCurrentValue(FT_PASSWORD);
-        if (!password.empty())
+        if (!password.empty() && CopyTextToClipboard(app_, dialog.GetParentWindow(), password) == 0)
         {
-            CopyTextToClipboard(app_, dialog.GetParentWindow(), password);
+            app_.SetMessage("Copied the password");
         }
         ZeroMemory(password.data(), password.size());
     }

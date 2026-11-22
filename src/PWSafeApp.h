@@ -117,6 +117,15 @@ public:
     void DrawTitle();
 
     /**
+     * Show a short message in the bottom border of the accounts list, e.g. after
+     * copying to the clipboard, until `ClearMessage()`. The screen is updated.
+     */
+    void SetMessage(const std::string &message, Role role = Role::SUCCESS);
+
+    /** Remove the message, if there is one. The screen is updated. Call when a key is pressed */
+    void ClearMessage();
+
+    /**
      * Lay out all windows to fit the terminal after it has been resized.
      * Call when `wgetch()` returns `KEY_RESIZE`.
      */
@@ -150,6 +159,11 @@ private:
     PANEL *commandbar_panel_ = nullptr; // Command bar panel
     WINDOW *win_ = nullptr;            // Content of accounts list window
     std::string status_;               // Right side of the title bar
+    std::string message_;              // In the bottom border, see SetMessage()
+    Role message_role_ = Role::SUCCESS;
+
+    /** Draw the bottom border, with the message. The window isn't refreshed */
+    void DrawFooter();
     int save_cursor_ = 0;
     std::vector<ResizeHandler> resize_handlers_;
 

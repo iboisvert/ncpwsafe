@@ -323,6 +323,8 @@ DialogResult Dialog::ProcessInput()
             app_.HandleResize();
             continue;
         }
+        // A message is shown until the next key
+        app_.ClearMessage();
 
         if (input_delegate_(*this, ch, result))
         {
