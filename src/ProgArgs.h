@@ -23,6 +23,7 @@ struct InputProgArgs
     bool cmd_export_db_ = false;
     bool cmd_change_db_password_ = false;
     bool help_ = false;  // -h, --help: show the usage and exit
+    bool version_ = false;  // -V, --version: show the version and exit
 
     std::optional<bool> force_;                       // Force overwrite output file
     std::optional<std::string> database_;                 // Account database

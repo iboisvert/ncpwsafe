@@ -1,4 +1,5 @@
 """TUI: moving the selection in the accounts list, and search."""
+import re
 import sys
 from pathlib import Path
 
@@ -75,7 +76,7 @@ class NavigationTest(e2elib.TuiTestCase):
     def test_title_shows_selection(self):
         app, _, _ = self.open_db()
         # The group and title of the selected account, and its position among all accounts
-        self.assertRegex(app.screen()[0], r"^lqq ncpwsafe 0\.1 qq small\.dat q+ Router  1/7 qqk")
+        self.assertRegex(app.screen()[0], rf"^lqq ncpwsafe {re.escape(e2elib.VERSION)} qq small\.dat q+ Router  1/7 qqk")
         app.send("Down", "Down", "Down")
         app.wait_until(lambda: "Banking › Chequing  3/7" in app.screen()[0], "the selection in the title")
         app.send("Down", "Down")

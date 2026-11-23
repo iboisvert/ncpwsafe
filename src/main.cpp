@@ -133,7 +133,8 @@ static void Usage(const char *progName)
             "  -o,--out=PATHNAME   Output file\n"
             "\n"
             "Help options:\n"
-            "  -h,--help            Display this help text and exit\n",
+            "  -h,--help            Display this help text and exit\n"
+            "  -V,--version         Display the version and exit\n",
             progName, 
             DEFAULT_CONFIG_FILE.c_str(),
             DEFAULT_GENERATE_LANGUAGE, DEFAULT_GENERATE_GROUP_COUNT, DEFAULT_GENERATE_ITEM_COUNT,
@@ -352,6 +353,7 @@ static constexpr struct option options[] {
     {"test-db-groups", required_argument, nullptr, O_TEST_DB_GROUPS},
     {"test-db-items", required_argument, nullptr, O_TEST_DB_ITEMS},
     {"help", no_argument, nullptr, 'h'},
+    {"version", no_argument, nullptr, 'V'},
     {"password", required_argument, nullptr, 'P'}, 
     {"password-file", required_argument, nullptr, O_PASSWORD_FILE},
     {"read-only", no_argument, nullptr, 'r'},
@@ -413,7 +415,7 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
 
     int option_index = 0;
     int c;
-    while ((c = getopt_long(argc, argv, "c:ho:P:r", options, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "c:ho:P:rV", options, &option_index)) != -1)
     {
         switch (c)
         {
@@ -528,6 +530,10 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
             args.help_ = true;
             return true;
         }
+        case 'V': {
+            args.version_ = true;
+            return true;
+        }
         case '?': {
             // Unknown argument
             return false;
@@ -588,6 +594,11 @@ int main(int argc, char *argv[])
     if (input_args.help_)
     {
         Usage(ProgramName(argv[0]).c_str());
+        return 0;
+    }
+    if (input_args.version_)
+    {
+        printf("%s %s\n", NCPWSAFE_APPNAME, NCPWSAFE_VERSION);
         return 0;
     }
 

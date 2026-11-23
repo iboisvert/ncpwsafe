@@ -828,11 +828,9 @@ M1 was done in #14:
 - `-h` is now accepted, `-h`/`--help` print the usage to stdout and exit 0, and the `--help` typos
   are fixed.
 
-Left:
-
-- There is still no `install(TARGETS ncpwsafe)` rule, so `cmake --install` installs the page but
-  not the executable.
-- Shipping the page with the release executables waits for the release pipeline (§6, R2).
+Since then, with the product releases (§6): `cmake --install` installs the executable too, and
+the release packages include the page, installed under `share/man/man1` in the Linux package and
+rendered to HTML in the Windows one. Nothing is left of this feature.
 
 The rest of this section is the design M1 followed.
 
@@ -1240,19 +1238,22 @@ and attaches the packages, with the man page, to a GitHub release.
 
 ### 6.1 Current state
 
-- `.github/workflows/build.yml` builds and tests `x64-windows-msvc-release` on Windows (#4) and
-  `x64-linux-gcc-release` and `x64-linux-clang-release` on Ubuntu. It already runs on `v*` tags,
-  but publishes nothing except the vcpkg logs when the Windows job fails.
-- The version is `VERSION 0.1` in the top-level `project()`, passed to `config.h`
-  (`NCPWSAFE_VERSION`) and the man page. There are no tags, and nothing checks that a tag matches
-  the version. There is no `--version` option.
-- The Linux executable links the system's shared libraries (ncursesw, formw, menuw, panelw, ICU,
-  nettle), so it runs only on a system with the same library versions as the build machine.
-- The Windows build links its vcpkg dependencies statically, but with the dynamic CRT
-  (`x64-windows-static-md`), so it needs the Visual C++ Redistributable installed.
-- `libpwsafe` and `libconfini` are fetched at `GIT_TAG HEAD` (`cmake/ResolveDependencies.cmake`),
-  so building the same tag twice can give different results.
-- `cmake --install` installs the man page (not on Windows) but not the executable (§4.1).
+R1 to R4 are built, but no release has been made yet: the first is made by pushing the tag
+`v0.1.0` (see Releasing in `README.md`). Try the workflow first with a dry run.
+
+- The version is `0.1.0` in the top-level `project()`. `-V`/`--version` prints it, and
+  `cmake/CheckReleaseVersion.cmake` fails unless a tag is `v` followed by it.
+- `libpwsafe` and `libconfini` are pinned to commit hashes in `cmake/ResolveDependencies.cmake`;
+  neither fork has tags yet.
+- `.github/workflows/release.yml` runs on `v*` tags, and by hand with a dry-run input. It builds
+  and tests the Linux package on ubuntu-22.04 and the Windows package with the static CRT, makes
+  `SHA256SUMS`, and creates a draft release from a tag. `build.yml` no longer runs on tags, and
+  also builds the static preset. Neither workflow has run on GitHub yet.
+- `cmake/MakePackage.cmake` makes the packages with `cmake --install`; `release.package` tests it.
+- Linux: the `x64-linux-gcc-static-release` preset links every dependency except glibc
+  statically (§6.5). libpwsafe uses OpenSSL's libcrypto, not nettle as this plan first said:
+  ncpwsafe links ncurses, ICU and libcrypto.
+- README screenshots: `docs/images/`, taken with `docs/images/make-screenshots.py` (§6.8).
 
 ### 6.2 Goals
 
@@ -1289,13 +1290,21 @@ and attaches the packages, with the man page, to a GitHub release.
   the same. CPack can make the archives, but a few lines of shell are simpler to read; pick one in
   R2.
 - ncpwsafe is GPLv3, and the statically linked libraries are GPL-compatible (ncurses is MIT-style,
-  ICU is under the Unicode licence, nettle is LGPLv3/GPLv2+). Include their licence notices in the
+  ICU is under the Unicode licence, OpenSSL 3 is Apache 2.0). Include their licence notices in the
   packages, in a `THIRD-PARTY-LICENSES` file, and link to the source of the tag in the release.
 - Name the Linux runtime need in the release notes and the README: `xclip` (and an X or XWayland
   display) to copy to the clipboard. Windows uses the native clipboard.
 - Mention auto sign-off's default of 5 minutes in the first release's notes (§3.4).
 
 ### 6.5 Linux build
+
+**Decision (R3):** link everything statically except glibc, rather than build against musl. The
+executable is built on ubuntu-22.04 with `-static-libstdc++ -static-libgcc` and the static
+libraries of Ubuntu's `-dev` packages, so it needs glibc 2.35 or newer and nothing else. ICU's
+data library isn't linked in, as ncpwsafe's ICU functions don't need it: stripped, the
+executable is about 6 MB. The static ncurses looks for terminfo in `/etc/terminfo`,
+`/lib/terminfo` and `/usr/share/terminfo`, as Ubuntu's does; no built-in fallback entries.
+The original musl plan follows, for reference.
 
 - Link every dependency statically, so the executable runs on other distros than the CI runner's
   Ubuntu: ncursesw with formw/menuw/panelw, ICU, nettle, libpwsafe, libconfini.
@@ -1376,10 +1385,10 @@ page can see what ncpwsafe looks like before downloading it:
 
 | # | Milestone | Depends on | Status |
 |---|---|---|---|
-| R1 | `--version`; `install(TARGETS ncpwsafe)`; pin `libpwsafe` and `libconfini`; the version-against-tag check. | M1 | |
-| R2 | Release workflow: Windows package (static CRT), and the current dynamically linked Linux build packaged as is, labelled for the runner's Ubuntu version; `SHA256SUMS`; draft release. | R1 | |
-| R3 | Statically linked Linux build (musl), tested on other distros, replacing R2's Linux package. | R2 | |
-| R4 | README screenshots of the accounts list and of editing an account (§6.8). | — | |
+| R1 | `--version`; `install(TARGETS ncpwsafe)`; pin `libpwsafe` and `libconfini`; the version-against-tag check. | M1 | Done (commit hashes, as the forks have no tags) |
+| R2 | Release workflow: Windows package (static CRT), and the current dynamically linked Linux build packaged as is, labelled for the runner's Ubuntu version; `SHA256SUMS`; draft release. | R1 | Done, with R3's Linux package; not yet run on GitHub |
+| R3 | Statically linked Linux build (musl), tested on other distros, replacing R2's Linux package. | R2 | Done, with glibc instead of musl (§6.5) |
+| R4 | README screenshots of the accounts list and of editing an account (§6.8). | — | Done, scripted |
 | R5 | Optional: attestations, Windows code signing, distro packages (AUR, a Debian package). | R2 | |
 
 ---
@@ -1494,8 +1503,8 @@ in §7.4.
 2. ~~**U-1, U-5, U-6, U-2/U-4**~~ (theme, command bar, help, grouped list): done in #12.
 3. ~~**S1** (auto sign-off)~~: done in #13.
 4. ~~**M1** (man page)~~: done in #14.
-5. **R1, R2, R4** (versions, release workflow, README screenshots): a first release of the
-   application as it is, now that it has a man page. R3 (static Linux build) can follow at any point.
+5. ~~**R1 to R4**~~ (versions, release workflow, static Linux build, README screenshots): built;
+   the first release is made by pushing `v0.1.0`.
 6. **D1 → D4** (new format, library, import): the data store everything else builds on.
 7. **C1**, **P2 → P4** (configuration files, templates and CLI): the CLI half of templates without UI
    work.

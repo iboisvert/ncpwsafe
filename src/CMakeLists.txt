@@ -81,13 +81,22 @@ if(WIN32)
 endif()
 set_target_properties(ncpwsafe 
     PROPERTIES 
-    VERSION ${NCPWSAFE_VERSION}
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 target_link_libraries(ncpwsafe 
     libncpwsafe
 )
-install (TARGETS ncpwsafe RUNTIME)
+if(NCPWSAFE_STATIC_DEPS)
+    # Only glibc stays a shared library: its version is the one requirement on the system.
+    # Not for the test executables, which link the shared GoogleTest and so libstdc++
+    target_link_options(ncpwsafe PRIVATE -static-libstdc++ -static-libgcc)
+endif()
+if(WIN32)
+    # <prefix>\ncpwsafe.exe, as in the release zip: Windows programs don't use a bin directory
+    install(TARGETS ncpwsafe RUNTIME DESTINATION .)
+else()
+    install(TARGETS ncpwsafe RUNTIME)
+endif()
 
 add_compile_definitions(
     "$<$<CONFIG:RELEASE>:NDEBUG>"

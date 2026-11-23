@@ -11,7 +11,7 @@ if(USE_GLOG)
     list(APPEND VCPKG_MANIFEST_FEATURES "glog")
 endif()
 project(ncpwsafe 
-    VERSION 0.1 
+    VERSION 0.1.0
     DESCRIPTION "An ncurses terminal program that manages encrypted password databases"
     HOMEPAGE_URL "https://github.com/iboisvert/ncpwsafe"
     LANGUAGES C CXX
@@ -19,6 +19,12 @@ project(ncpwsafe
 option(BUILD_TESTING "Enable unit tests" ON)
 option(NCPWSAFE_DEBUG_SANITIZE "Enable AddressSanitizer and UBSan, requires full recompile" OFF)
 option(USE_GLOG "Enable logging" OFF)
+option(NCPWSAFE_STATIC_DEPS
+    "Link ncurses, ICU, OpenSSL and the GCC runtimes statically, for an executable that runs on other distros (Linux)"
+    OFF)
+if(NCPWSAFE_STATIC_DEPS AND (WIN32 OR NOT CMAKE_SYSTEM_NAME STREQUAL "Linux"))
+    message(FATAL_ERROR "NCPWSAFE_STATIC_DEPS is for Linux builds; Windows builds link their vcpkg dependencies statically")
+endif()
 
 set(NCPWSAFE_APPNAME "${CMAKE_PROJECT_NAME}")
 set(NCPWSAFE_VERSION "${CMAKE_PROJECT_VERSION}")

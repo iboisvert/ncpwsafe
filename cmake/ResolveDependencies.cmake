@@ -4,10 +4,13 @@ macro(resolve_dependencies)
         find_package(PkgConfig REQUIRED)
     endif()
 
+    # The forks are pinned to commits, so that building a tag of ncpwsafe always
+    # gives the same result. Updating a fork is a change to ncpwsafe: set the new
+    # commit here.
     FetchContent_Declare(
         libpwsafe
         GIT_REPOSITORY https://github.com/iboisvert/libpwsafe.git
-        GIT_TAG HEAD
+        GIT_TAG fb4b3c886fe49d09816c86bd87382852afbe71bd
         # URL https://github.com/iboisvert/libpwsafe/archive/refs/heads/main.zip
         # SOURCE_DIR /workspaces/libpwsafe
     )
@@ -15,11 +18,15 @@ macro(resolve_dependencies)
     set(LIBPWSAFE_BUILD_TESTS OFF CACHE INTERNAL "Disable libpwsafe tests")
     set(LIBPWSAFE_BUILD_SHARED OFF CACHE INTERNAL "Disable libpwsafe shared lib")
     set(LIBPWSAFE_DEBUG_SANITIZE ${NCPWSAFE_DEBUG_SANITIZE})
+    if(NCPWSAFE_STATIC_DEPS)
+        # libpwsafe's find_package(OpenSSL) then finds libcrypto.a
+        set(OPENSSL_USE_STATIC_LIBS TRUE)
+    endif()
 
     FetchContent_Declare(
         libconfini
         GIT_REPOSITORY https://github.com/iboisvert/libconfini.git
-        GIT_TAG HEAD
+        GIT_TAG 531bd1c7583b2cda9748b07fde92db9e79c42ba7
     )
 
     FetchContent_MakeAvailable(libpwsafe libconfini)
@@ -46,9 +53,34 @@ macro(resolve_dependencies)
         if(USE_GLOG)
             pkg_check_modules(GLOG REQUIRED libglog)
         endif()
+        if(NCPWSAFE_STATIC_DEPS)
+            find_static_libraries(NCURSES_LINK_LIBRARIES NCURSES)
+            find_static_libraries(ICU_LINK_LIBRARIES ICU)
+        endif()
     endif()
     add_compile_definitions($<$<BOOL:${GLOG_FOUND}>:HAVE_GLOG>)
 endmacro()
+
+# Set `<var>` to the static libraries of the pkg-config modules found with
+# pkg_check_modules(<prefix> ...): the full path of each lib<name>.a in the modules'
+# --static link flags, for target_link_libraries(). glibc's libraries and the GCC
+# runtimes are left as names, so that they stay shared (see NCPWSAFE_STATIC_DEPS).
+function(find_static_libraries var prefix)
+    set(shared_libs c m dl pthread rt util stdc++ gcc gcc_s)
+    set(libs)
+    foreach(name IN LISTS ${prefix}_STATIC_LIBRARIES)
+        if(name IN_LIST shared_libs)
+            list(APPEND libs ${name})
+            continue()
+        endif()
+        find_library(${prefix}_STATIC_${name} NAMES lib${name}.a HINTS ${${prefix}_STATIC_LIBRARY_DIRS})
+        if(NOT ${prefix}_STATIC_${name})
+            message(FATAL_ERROR "Static library lib${name}.a not found, it is needed for NCPWSAFE_STATIC_DEPS")
+        endif()
+        list(APPEND libs ${${prefix}_STATIC_${name}})
+    endforeach()
+    set(${var} ${libs} PARENT_SCOPE)
+endfunction()
 
 # Find a library built by vcpkg in both release and debug configurations,
 # and set `<var>` to a list suitable for target_link_libraries()

@@ -46,6 +46,8 @@ def _env_path(name, default=None):
 NCPWSAFE = _env_path("NCPWSAFE")
 E2E_MKDB = _env_path("E2E_MKDB")
 FIXTURES = _env_path("E2E_FIXTURES", E2E_DIR / "fixtures")
+# The version in the top-level project(), as --version and the title bar show it
+VERSION = os.environ.get("NCPWSAFE_VERSION", "")
 
 # Fixture: password file and account spec for the "small" database
 SMALL_PASSWORD = (FIXTURES / "small.pw").read_text(encoding="utf-8").splitlines()[0]

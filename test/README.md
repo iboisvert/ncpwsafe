@@ -1,12 +1,13 @@
 # Testing ncpwsafe
 
-There are two kinds of tests, and CTest runs both:
+There are three kinds of tests, and CTest runs them all:
 
 | Kind | Where | What it checks | CTest labels |
 |---|---|---|---|
 | Unit tests | `test/*-tests.cpp` | Classes in `libncpwsafe`, with GoogleTest | none |
 | End-to-end CLI tests | `test/e2e/cli/` | The `--generate-password`, `--export-db`, `--change-password` and `--test-db` commands, run as a user would | `e2e`, `cli` |
 | End-to-end TUI tests | `test/e2e/tui/` | The ncurses UI, driven through a detached tmux server | `e2e`, `tui` |
+| Release script tests | `test/CMakeLists.txt`, `test/release/` | The scripts the release workflow runs: `cmake/CheckReleaseVersion.cmake`, which checks the tag against the version, and `cmake/MakePackage.cmake`, which packages the build (`release.package` packages this build and checks the archive's files) | `release` |
 
 ## Requirements
 
@@ -40,7 +41,7 @@ cmake --build --preset=x64-linux-gcc-debug
 
 ctest --preset=x64-linux-gcc-debug                    # everything
 ctest --preset=x64-linux-gcc-debug -j8                # in parallel, every test is isolated
-ctest --preset=x64-linux-gcc-debug -LE e2e            # unit tests only
+ctest --preset=x64-linux-gcc-debug -LE 'e2e|release'  # unit tests only
 ctest --preset=x64-linux-gcc-debug -L cli             # CLI tests only
 ctest --preset=x64-linux-gcc-debug -L tui             # TUI tests only
 ctest --preset=x64-linux-gcc-debug -R tui.edit        # one test file

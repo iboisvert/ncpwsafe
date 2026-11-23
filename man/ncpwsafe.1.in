@@ -33,6 +33,8 @@
 .Ar database
 .Nm
 .Fl h | Fl -help
+.Nm
+.Fl V | Fl -version
 .Sh DESCRIPTION
 .Nm
 is an ncurses program that manages account password databases in the
@@ -115,6 +117,10 @@ instead.
 Overwrite an existing output file.
 .It Fl h , Fl -help
 Print a summary of the commands and options, and exit.
+.It Fl V , Fl -version
+Print the version, as
+.Dq ncpwsafe X.Y.Z ,
+and exit.
 .El
 .Ss Open database options
 .Bl -tag -width Ds
@@ -503,8 +509,10 @@ The default database.
 .It 0
 Success: the changes were saved with
 .Ic ^S ,
-a command succeeded, or
-.Fl -help .
+a command succeeded,
+.Fl -help
+or
+.Fl -version .
 .It 1
 An error, such as an invalid argument or an incorrect password; or the user
 interface was left with
