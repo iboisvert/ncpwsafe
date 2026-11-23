@@ -222,8 +222,10 @@ jobs:
           "OpenSSL=$share/openssl/copyright",
           "getopt=$share/getopt-win32/copyright"
         ) -join ';'
+        # Quote every -D argument with a "." in it: PowerShell splits an unquoted
+        # argument that starts with "-" at the first "."
         cmake -DBUILD_DIR=build -DPLATFORM=windows-x64 -DOUTPUT_DIR=dist `
-          -DMAN_HTML=man-html/ncpwsafe.1.html "-DLICENSES=$licenses" `
+          "-DMAN_HTML=man-html/ncpwsafe.1.html" "-DLICENSES=$licenses" `
           -P cmake/MakePackage.cmake
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
@@ -242,6 +244,18 @@ jobs:
         path: dist/*.zip
         if-no-files-found: error
 
+    # upload-artifact needs every path under one directory, and VCPKG_ROOT (C:) isn't
+    # under the workspace (D:): copy vcpkg's build logs into the workspace first
+    - name: Collect vcpkg logs
+      if: failure()
+      shell: pwsh
+      run: |
+        $buildtrees = "$env:VCPKG_ROOT/buildtrees"
+        if (Test-Path $buildtrees) {
+          robocopy $buildtrees vcpkg-logs/buildtrees *.log /S /NFL /NDL /NJH /NJS /NP | Out-Null
+        }
+        exit 0
+
     - name: Upload vcpkg logs
       if: failure()
       uses: actions/upload-artifact@v4
@@ -250,7 +264,7 @@ jobs:
         path: |
           build/vcpkg-manifest-install.log
           build/vcpkg_installed/vcpkg/blds/**/*.log
-          ${{ env.VCPKG_ROOT }}/buildtrees/**/*.log
+          vcpkg-logs/**/*.log
         if-no-files-found: ignore
 
   publish:
