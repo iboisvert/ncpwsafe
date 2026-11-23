@@ -299,7 +299,7 @@ Keep the existing options working, and add:
 
 | New or changed | Responsibility |
 |---|---|
-| `src/SecureRandom.{h,cpp}` (replaces `RandUtils.h`) | `getrandom()` when `HAVE_SYS_RANDOM_H` is set, otherwise `/dev/urandom` or nettle's `yarrow256`. `uniform(n)` uses rejection sampling, which has no modulo bias. |
+| `src/SecureRandom.{h,cpp}` (replaces `RandUtils.h`) | `getrandom()` when `HAVE_SYS_RANDOM_H` is set, otherwise `/dev/urandom` or OpenSSL's `RAND_bytes()`. `uniform(n)` uses rejection sampling, which has no modulo bias. |
 | `src/PasswordTemplate.{h,cpp}` | Plain data struct with `Validate()`, `EstimateEntropyBits()` and `Generate(SecureRandom&)`. Replaces `PasswordPolicy`. |
 | `src/WordList.{h,cpp}` | Built-in and file-based word lists. |
 | `src/PasswordTemplateStore.{h,cpp}` | Reads the `[template.*]` sections of the system or user configuration file with libconfini, through `Filesystem` so tests can mock it, and merges them with the built-ins. Looks up templates by name. Owned by `PWSafeApp`. |
@@ -957,8 +957,8 @@ The library is `libncpwsafe` (C prefix `ncpw_`), and its files use the extension
   `randombytes_buf()` for salts, nonces and keys.
 
 libsodium is packaged by every Linux distribution, OpenBSD and vcpkg. Neither nettle (no Argon2) nor
-OpenSSL before 3.2 (no Argon2) provides everything needed. ncpwsafe itself doesn't use nettle; only
-libpwsafe does.
+OpenSSL before 3.2 (no Argon2) provides everything needed. ncpwsafe doesn't use nettle, and
+libpwsafe uses OpenSSL's libcrypto.
 
 ### 5.4 File format (version 1)
 

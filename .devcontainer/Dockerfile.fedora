@@ -5,7 +5,7 @@ FROM fedora:latest
 RUN dnf makecache \
     && dnf install -y \
         git pkgconf-pkg-config cmake make gcc gcc-c++ clang clang-tools-extra libasan libubsan gdb rpm-build sudo \
-        ncurses-devel libicu-devel nettle-devel gtest-devel glog-devel openssl-devel \
+        ncurses-devel libicu-devel gtest-devel glog-devel openssl-devel \
         xclip \
     && dnf clean all \
     && groupadd --gid 1000 vscode \

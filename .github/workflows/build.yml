@@ -121,7 +121,7 @@ jobs:
       if: ${{ matrix.os == 'ubuntu-latest' }}
       run: |
         sudo apt-get update -y
-        sudo apt-get install -y libncurses-dev libicu-dev nettle-dev libgtest-dev python3 tmux
+        sudo apt-get install -y libncurses-dev libicu-dev libssl-dev libgtest-dev python3 tmux
 
     - name: Configure CMake
       run: cmake --preset=${{ matrix.preset }}
