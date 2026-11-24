@@ -16,8 +16,10 @@ PasswordPromptResult PromptForPassword(const char *prompt, std::string &password
 
 #include <cerrno>
 #include <csignal>
+#include <cstdint>
 #include <cstring>
 #include <fcntl.h>
+#include <sys/select.h>
 #include <termios.h>
 #include <unistd.h>
 
@@ -26,21 +28,44 @@ namespace
 
 /**
  * The signals caught while the prompt is shown, so that the terminal's settings
- * are restored before they take their usual action
+ * are restored before they take their usual action. The signals that end the
+ * process come first: when several arrive, the first of them in this list is the
+ * one that is raised again (see `CaughtSignal()`).
  */
 constexpr int CAUGHT_SIGNALS[] = {SIGHUP, SIGINT, SIGQUIT, SIGTERM, SIGTSTP, SIGTTIN, SIGTTOU};
 constexpr size_t CAUGHT_SIGNAL_COUNT = sizeof(CAUGHT_SIGNALS) / sizeof(CAUGHT_SIGNALS[0]);
 
-volatile std::sig_atomic_t caught_signal = 0;
+/** For each signal of `CAUGHT_SIGNALS`, nonzero once it was caught */
+volatile std::sig_atomic_t caught[CAUGHT_SIGNAL_COUNT];
 
 void OnSignal(int sig)
 {
-    caught_signal = sig;
+    for (size_t i = 0; i < CAUGHT_SIGNAL_COUNT; ++i)
+    {
+        if (CAUGHT_SIGNALS[i] == sig)
+            caught[i] = 1;
+    }
+}
+
+/** The first of `CAUGHT_SIGNALS` that was caught, or 0 */
+int CaughtSignal()
+{
+    for (size_t i = 0; i < CAUGHT_SIGNAL_COUNT; ++i)
+    {
+        if (caught[i])
+            return CAUGHT_SIGNALS[i];
+    }
+    return 0;
+}
+
+bool IsStopSignal(int sig)
+{
+    return sig == SIGTSTP || sig == SIGTTIN || sig == SIGTTOU;
 }
 
 /**
  * Catch `CAUGHT_SIGNALS` for the lifetime of the object, except those that are ignored.
- * Without `SA_RESTART`, so that a signal interrupts `read()`.
+ * Without `SA_RESTART`, so that a signal interrupts `tcsetattr()` and `pselect()`.
  */
 class ScopedSignalCatcher
 {
@@ -50,7 +75,8 @@ class ScopedSignalCatcher
 public:
     ScopedSignalCatcher()
     {
-        caught_signal = 0;
+        for (size_t i = 0; i < CAUGHT_SIGNAL_COUNT; ++i)
+            caught[i] = 0;
         struct sigaction sa;
         std::memset(&sa, 0, sizeof(sa));
         sa.sa_handler = OnSignal;
@@ -80,6 +106,41 @@ public:
     ScopedSignalCatcher &operator=(const ScopedSignalCatcher &) = delete;
 };
 
+/**
+ * Block `CAUGHT_SIGNALS` for the lifetime of the object. A signal that arrives
+ * meanwhile is delivered by `pselect()` with `Unblocked()`, or when the object is
+ * destroyed. So a signal can't arrive between checking for one and starting to
+ * wait for input, where it wouldn't interrupt the wait.
+ */
+class ScopedSignalBlock
+{
+    sigset_t saved_;
+
+public:
+    ScopedSignalBlock()
+    {
+        sigset_t block;
+        sigemptyset(&block);
+        for (int sig : CAUGHT_SIGNALS)
+            sigaddset(&block, sig);
+        sigprocmask(SIG_BLOCK, &block, &saved_);
+    }
+
+    ~ScopedSignalBlock()
+    {
+        sigprocmask(SIG_SETMASK, &saved_, nullptr);
+    }
+
+    /** The signal mask before the object blocked the signals */
+    const sigset_t &Unblocked() const
+    {
+        return saved_;
+    }
+
+    ScopedSignalBlock(const ScopedSignalBlock &) = delete;
+    ScopedSignalBlock &operator=(const ScopedSignalBlock &) = delete;
+};
+
 /** Append `c` to `str`. When `str` has to grow, its old buffer is zeroed rather than left on the heap */
 void AppendSecret(std::string &str, char c)
 {
@@ -102,7 +163,7 @@ void WriteAll(int fd, const char *text)
         ssize_t n = write(fd, text, len);
         if (n < 0)
         {
-            if (errno == EINTR && !caught_signal)
+            if (errno == EINTR)
                 continue;
             return;
         }
@@ -113,24 +174,36 @@ void WriteAll(int fd, const char *text)
 
 /**
  * Read a line from `fd` and append it to `line`, without its line ending.
+ * Call with `CAUGHT_SIGNALS` blocked: they are unblocked, as `wait_mask`, only while
+ * waiting for input, so one that arrives always ends the wait.
  * @returns 1 for a line, 0 if input ended before a line ending,
  * -1 on an error or a caught signal, with `errno` set
  */
-int ReadLine(int fd, std::string &line)
+int ReadLine(int fd, std::string &line, const sigset_t &wait_mask)
 {
     int status = -1;
     char c = 0;
     for (;;)
     {
-        if (caught_signal)
+        if (CaughtSignal())
         {
             errno = EINTR;
+            break;
+        }
+        fd_set fds;
+        FD_ZERO(&fds);
+        FD_SET(fd, &fds);
+        if (pselect(fd + 1, &fds, nullptr, nullptr, nullptr, &wait_mask) < 0)
+        {
+            // EINTR: a caught signal is found above, any other is ignored
+            if (errno == EINTR)
+                continue;
             break;
         }
         ssize_t n = read(fd, &c, 1);
         if (n < 0)
         {
-            if (errno == EINTR && !caught_signal)
+            if (errno == EINTR)
                 continue;
             break;
         }
@@ -150,13 +223,27 @@ int ReadLine(int fd, std::string &line)
     return status;
 }
 
+/**
+ * The length from which the terminal may have dropped what was typed on a line.
+ * In canonical mode, Linux keeps 4095 bytes of a line (`N_TTY_BUF_SIZE` less one)
+ * and discards what is typed after them, except the line ending.
+ */
+size_t LineLimit([[maybe_unused]] int fd)
+{
+#ifdef __linux__
+    return 4095;
+#else
+    long max_canon = fpathconf(fd, _PC_MAX_CANON);
+    return max_canon > 1 ? static_cast<size_t>(max_canon) - 1 : SIZE_MAX;
+#endif
+}
+
 }  // namespace
 
 PasswordPromptResult PromptForPassword(const char *prompt, std::string &password)
 {
-    // The terminal's settings before the first prompt. When the process is stopped
-    // while the settings can't be restored (moved to the background), the prompt
-    // starts again, and these are the settings to go back to
+    // The terminal's settings before the first prompt, which the prompt goes back to,
+    // also when it starts again after the process is stopped
     struct termios original;
     bool have_original = false;
 
@@ -195,28 +282,35 @@ PasswordPromptResult PromptForPassword(const char *prompt, std::string &password
             noecho.c_lflag &= ~(ECHO | ECHONL);
             // Line editing (erase, kill) still works
             noecho.c_lflag |= ICANON;
-            // Echo is turned off before the prompt is shown, and what was typed before it is discarded
-            if (tcsetattr(fd, TCSAFLUSH, &noecho) == 0)
+            // Enter ends the line, also on a terminal set to -icrnl
+            noecho.c_iflag |= ICRNL;
+            noecho.c_iflag &= ~IGNCR;
+            // Echo is turned off before the prompt is shown, and what was typed before it
+            // is discarded. With the signals not blocked yet, a process in the background
+            // gets SIGTTOU here, and stops
+            bool echo_off = tcsetattr(fd, TCSAFLUSH, &noecho) == 0;
+            saved_errno = errno;
             {
-                WriteAll(fd, prompt);
-                status = ReadLine(fd, line);
-                saved_errno = errno;
-                // Enter wasn't echoed either
-                WriteAll(fd, "\n");
-                // Also discards anything typed after Enter, which wasn't echoed
-                while (tcsetattr(fd, TCSAFLUSH, &original) != 0 && errno == EINTR
-                       && caught_signal != SIGTTOU)
-                {
-                    // Interrupted, try again
-                }
-            }
-            else
-            {
+                ScopedSignalBlock blocked;
                 // Never read a password that would be echoed
-                saved_errno = errno;
-            }
-            sig = caught_signal;
+                if (echo_off && !CaughtSignal())
+                {
+                    WriteAll(fd, prompt);
+                    status = ReadLine(fd, line, blocked.Unblocked());
+                    saved_errno = errno;
+                    // Enter wasn't echoed either
+                    WriteAll(fd, "\n");
+                }
+                if (echo_off)
+                {
+                    // Also discards anything typed after Enter, which wasn't echoed. With
+                    // SIGTTOU blocked, this works also after being moved to the background
+                    tcsetattr(fd, TCSAFLUSH, &original);
+                }
+            }  // A signal that arrived meanwhile is caught now
+            sig = CaughtSignal();
         }  // The signal handlers are restored
+        const size_t line_limit = LineLimit(fd);
         close(fd);
 
         if (sig != 0)
@@ -224,7 +318,7 @@ PasswordPromptResult PromptForPassword(const char *prompt, std::string &password
             ZeroString(line);
             // The signal's usual action, now that the terminal is restored: most end the process
             raise(sig);
-            if (sig == SIGTSTP || sig == SIGTTIN || sig == SIGTTOU)
+            if (IsStopSignal(sig))
             {
                 // Stopped, then continued: prompt again
                 continue;
@@ -233,6 +327,12 @@ PasswordPromptResult PromptForPassword(const char *prompt, std::string &password
             return PasswordPromptResult::FAILED;
         }
 
+        if (status == 1 && line.size() >= line_limit)
+        {
+            // Part of what was typed may be missing
+            ZeroString(line);
+            return PasswordPromptResult::TOO_LONG;
+        }
         if (status == 1)
         {
             password.swap(line);

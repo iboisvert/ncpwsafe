@@ -210,11 +210,13 @@ of its own, which is its controlling terminal, and returns a
 | `expect(text)` | Wait for `text` in the output after the last match, or fail with the output after 10 s |
 | `send(text)` | Type `text`, e.g. `"\x03"` for Ctrl-C or `"\x04"` for Ctrl-D |
 | `echo_enabled()` | Whether the terminal echoes what is typed: `False` while a prompt is shown |
+| `attrs()` | The terminal's settings, as `termios.tcgetattr()` returns them |
 | `wait()` | Wait for ncpwsafe to exit and return its exit code, or `-N` if signal `N` ended it |
 | `output` | Everything written to the terminal: the prompts, standard output and error, lines ending with CR LF |
 
-Wait for a prompt before typing the answer: ncpwsafe discards what was
-typed before the prompt was shown. These tests use Python's `pty` module,
+`start_on_terminal(..., icrnl=False)` sets the terminal to `stty -icrnl`
+before ncpwsafe starts. Wait for a prompt before typing the answer:
+ncpwsafe discards what was typed before the prompt was shown. These tests use Python's `pty` module,
 so they're skipped on Windows (`@unittest.skipUnless(e2elib.HAS_PTY, ...)`).
 See `cli/test_password_prompt.py` for the prompt itself, and
 `cli/test_change_password.py` and `cli/test_test_db.py` for the commands

@@ -101,7 +101,8 @@ int CopyTextToClipboard(const std::string &text);
  * ends the process while the prompt is shown.
  *
  * @returns `NO_TERMINAL` if the process has no console, `CANCELLED` if the line
- * typed is Ctrl+Z, `FAILED` with `errno` set if reading fails
+ * typed is Ctrl+Z, or after Ctrl+C when it doesn't end the process, `FAILED` with
+ * `errno` set if reading fails
  */
 PasswordPromptResult ReadConsolePassword(const char *prompt, std::string &password);
 

@@ -169,10 +169,11 @@ class E2ETestCase(unittest.TestCase):
                               **({"stdin": subprocess.DEVNULL} if input is None else {"input": input}),
                               **no_terminal)
 
-    def start_on_terminal(self, *args):
+    def start_on_terminal(self, *args, icrnl=True):
         """Start ncpwsafe with a pseudo-terminal as its controlling terminal, to answer its
-        password prompts. Returns a TerminalApp, closed when the test ends. Not on Windows."""
-        app = TerminalApp([str(NCPWSAFE), *map(str, args)], self.env, self.tmp)
+        password prompts. Returns a TerminalApp, closed when the test ends. Not on Windows.
+        With `icrnl=False`, the terminal is set to `stty -icrnl` first."""
+        app = TerminalApp([str(NCPWSAFE), *map(str, args)], self.env, self.tmp, icrnl=icrnl)
         self.addCleanup(app.close)
         return app
 
@@ -209,12 +210,17 @@ class TerminalApp:
     standard output and error are mixed, and lines end with CR LF.
     """
 
-    def __init__(self, argv, env, cwd):
+    def __init__(self, argv, env, cwd, icrnl=True):
         import pty
         pid, fd = pty.fork()
         if pid == 0:
             # Child: pty.fork() made the terminal its controlling terminal
             try:
+                if not icrnl:
+                    import termios
+                    attrs = termios.tcgetattr(0)
+                    attrs[0] &= ~termios.ICRNL
+                    termios.tcsetattr(0, termios.TCSANOW, attrs)
                 os.chdir(cwd)
                 os.execve(argv[0], argv, env)
             finally:
@@ -262,10 +268,15 @@ class TerminalApp:
         self.expect(prompt)
         self.send(text + "\r")
 
+    def attrs(self):
+        """The terminal's settings, as termios.tcgetattr() returns them"""
+        import termios
+        return termios.tcgetattr(self.fd)
+
     def echo_enabled(self):
         """`True` if the terminal echoes what is typed (its ECHO flag)"""
         import termios
-        return bool(termios.tcgetattr(self.fd)[3] & termios.ECHO)
+        return bool(self.attrs()[3] & termios.ECHO)
 
     def wait(self, timeout=30):
         """Wait for ncpwsafe to exit, reading its output. Returns its exit code, or -N if

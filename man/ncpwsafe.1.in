@@ -78,6 +78,8 @@ A prompt is shown on, and the password read from, the terminal
 .Pq Pa /dev/tty ,
 or the console on Windows, rather than standard input and output, and the
 password is not shown as it is typed.
+A password as long as the terminal keeps on one line, 4095 bytes on Linux, is
+refused rather than taken cut short.
 Without a terminal, for example in a script or a
 .Xr cron 8
 job, the command fails; use

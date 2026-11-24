@@ -91,6 +91,27 @@ class PasswordPromptTest(e2elib.E2ETestCase):
         self.assertEqual(app.wait(), 0, app.output)
         self.assertTrue(out.exists())
 
+    def test_enter_without_icrnl(self):
+        # On a terminal set to -icrnl, Enter (CR) doesn't end a line in canonical mode
+        db, _ = self.make_db()
+        app = self.start_on_terminal("--export-db", "-o", "out.csv", db, icrnl=False)
+        app.answer(PROMPT, e2elib.SMALL_PASSWORD)
+        self.assertEqual(app.wait(), 0, app.output)
+        self.assertTrue((self.tmp / "out.csv").exists())
+        # The terminal's own setting is restored
+        import termios
+        self.assertFalse(app.attrs()[0] & termios.ICRNL)
+
+    def test_too_long(self):
+        # Linux keeps 4095 bytes of a line and drops the rest: refuse it rather than
+        # take a password cut short
+        app, out = self.start_export()
+        app.answer(PROMPT, "x" * 5000)
+        self.assertEqual(app.wait(), e2elib.PRC_ERR_FAIL)
+        self.assertIn("The password is too long to type at the prompt, use --password-file", app.output)
+        self.assertTrue(app.echo_enabled())
+        self.assertFalse(out.exists())
+
     def test_end_of_input(self):
         app, out = self.start_export()
         app.expect(PROMPT)

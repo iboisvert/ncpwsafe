@@ -843,14 +843,14 @@ One page, `ncpwsafe(1)`, with these sections:
 | NAME, SYNOPSIS | One synopsis line for opening a database and one for each command. |
 | DESCRIPTION | What ncpwsafe does, the V1/V2 Password Safe formats, read-only mode, backups before saving, and the need for `xclip` to copy to the clipboard. |
 | COMMANDS | Opening a database (the default), `--generate-password`, `--export-db`, `--change-password`. `--test-db` only in Debug builds, so leave it out of the page or mark it as such. |
-| OPTIONS | Every option in `options[]`, grouped as in `--help`, with defaults. Mark `-P/--password` and `--new-password` as deprecated and explain why, pointing to `--password-file` and `--new-password-file`. |
+| OPTIONS | Every option in `options[]`, grouped as in `--help`, with defaults. `--password-file`, and the terminal prompt that commands show without it (`-P/--password`, `--new-password` and `--new-password-file` were removed, since other users can read a password on the command line). |
 | USER INTERFACE | The screens and what each is for: the unlock prompt, the accounts list (collapsible groups, the title bar status, the copy confirmation), the account details dialog (sections, masked password, multi-line notes), change account password, generate password, change database password, the search bar, the `^G` help, message boxes and confirmations. What changes in read-only mode. Resizing the terminal. |
 | KEYS | A table of keys for each screen: the command bar keys from each window's `Action` list, plus the keys the command bar doesn't show (navigation, `/`, field movement, `y`/`n` in confirmations). |
 | PREFERENCES | Which file is read (§1.4), what ncpwsafe writes and how, the `-c/--config` override, the INI format, the `[template.NAME]` sections, and each key with its type, default and meaning: `db-pathname`, `backup-before-save`, `backup-count`, `theme`, `auto-sign-off` (§3), and later the template settings and theme overrides (§1, §2.3). How backup files are named, and which keys ncpwsafe writes itself (`db-pathname`, `backup.N`). |
 | FILES | The user and system configuration files (§1.4), the default database, backup files, the `.lock` file, and the database format (§5). |
 | ENVIRONMENT | `HOME`; `LC_ALL`/`LC_CTYPE`/`LANG` and the fallback to a UTF-8 `LC_CTYPE`; `TERM`; `NO_COLOR`; `DISPLAY` for `xclip`; `NCPWSAFE_XCLIP`. |
 | EXIT STATUS | 0 on success, the `ResultCode` values a user can see, and the auto sign-off code (§3). |
-| SECURITY | Passwords on the command line can be seen by other users; use `--password-file` (with `<(pass show …)` as an example). Core dumps and ptrace are blocked in Release builds. Auto sign-off. Copied passwords stay on the clipboard. |
+| SECURITY | Passwords aren't taken on the command line, where other users can see them: they are typed at a prompt or read with `--password-file` (with `<(pass show …)` as an example). Core dumps and ptrace are blocked in Release builds. Auto sign-off. Copied passwords stay on the clipboard. |
 | EXAMPLES | Opening read-only, exporting to a file, generating ten passwords, changing the database password from files. |
 | SEE ALSO, BUGS, AUTHORS | `xclip(1)`, Password Safe; `docs/ISSUES.md` and the issue tracker. |
 

@@ -143,6 +143,17 @@ class ChangePasswordPromptTest(e2elib.E2ETestCase):
         self.assertIn("New account database password is required", app.output)
         self.assertEqual(digest(db), before)
 
+    def test_new_password_too_long(self):
+        # Both prompts would drop the same bytes, so the passwords would match
+        db, pw = self.make_db()
+        before = digest(db)
+        app = self.start_on_terminal("--change-password", "--password-file", pw, db)
+        app.answer(NEW_PROMPT, "x" * 5000)
+        self.assertEqual(app.wait(), e2elib.PRC_ERR_FAIL)
+        self.assertIn("The password is too long to type at the prompt\r\n", app.output)
+        self.assertNotIn(CONFIRM_PROMPT, app.output)
+        self.assertEqual(digest(db), before)
+
     def test_end_of_input_at_new_password(self):
         db, pw = self.make_db()
         before = digest(db)

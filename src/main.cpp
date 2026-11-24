@@ -492,6 +492,12 @@ static bool PromptPassword(const char *prompt, std::string &password, const char
         return Error("No terminal to prompt for the password on\n");
     case PasswordPromptResult::CANCELLED:
         return Error("No password was entered\n");
+    case PasswordPromptResult::TOO_LONG:
+        if (file_option)
+        {
+            return Error("The password is too long to type at the prompt, use %s\n", file_option);
+        }
+        return Error("The password is too long to type at the prompt\n");
     case PasswordPromptResult::FAILED:
     default:
         return Error("Unable to read the password from the terminal: %s\n", strerror(errno));

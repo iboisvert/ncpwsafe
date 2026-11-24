@@ -311,9 +311,24 @@ int CopyTextToClipboard(const std::string &text)
     return result;
 }
 
-/** The console input that `ReadConsolePassword()` turned echo off for, and its mode before */
+/**
+ * The console input that `ReadConsolePassword()` turned echo off for, and its mode before.
+ * The control handler runs on a thread of its own, so they are used with the lock held.
+ */
 static HANDLE password_input = INVALID_HANDLE_VALUE;
 static DWORD password_input_mode = 0;
+static SRWLOCK password_input_lock = SRWLOCK_INIT;
+
+/** How long to wait for the control handlers to end the process after Ctrl+C at the prompt */
+static const DWORD CTRL_EVENT_WAIT_MS = 2000;
+
+static void SetPasswordInput(HANDLE input, DWORD mode)
+{
+    AcquireSRWLockExclusive(&password_input_lock);
+    password_input = input;
+    password_input_mode = mode;
+    ReleaseSRWLockExclusive(&password_input_lock);
+}
 
 /**
  * Console control handler while a password is read: turns echo back on,
@@ -321,9 +336,10 @@ static DWORD password_input_mode = 0;
  */
 static BOOL WINAPI RestoreEchoOnCtrlEvent(DWORD)
 {
-    HANDLE input = password_input;
-    if (input != INVALID_HANDLE_VALUE)
-        SetConsoleMode(input, password_input_mode);
+    AcquireSRWLockExclusive(&password_input_lock);
+    if (password_input != INVALID_HANDLE_VALUE)
+        SetConsoleMode(password_input, password_input_mode);
+    ReleaseSRWLockExclusive(&password_input_lock);
     return FALSE;
 }
 
@@ -369,13 +385,12 @@ PasswordPromptResult ReadConsolePassword(const char *prompt, std::string &passwo
         return PasswordPromptResult::NO_TERMINAL;
     }
 
-    password_input_mode = mode;
-    password_input = input;
+    SetPasswordInput(input, mode);
     // Called before the handlers set earlier, such as InitConsole()'s
     SetConsoleCtrlHandler(RestoreEchoOnCtrlEvent, TRUE);
 
     PasswordPromptResult result = PasswordPromptResult::FAILED;
-    int saved_errno = EIO;
+    const int saved_errno = EIO;
     std::wstring line;
     // Most passwords fit without growing, see AppendSecret()
     line.reserve(256);
@@ -389,15 +404,22 @@ PasswordPromptResult ReadConsolePassword(const char *prompt, std::string &passwo
 
         wchar_t buf[64];
         bool eol = false;
+        bool aborted = false;
         while (!eol)
         {
             DWORD n = 0;
-            if (!ReadConsoleW(input, buf, static_cast<DWORD>(sizeof(buf) / sizeof(buf[0])), &n, nullptr))
-                break;
-            if (n == 0)
+            BOOL ok = ReadConsoleW(input, buf, static_cast<DWORD>(sizeof(buf) / sizeof(buf[0])), &n, nullptr);
+            if (!ok || n == 0)
             {
-                // Ctrl+C or Ctrl+Break: the control handlers end the process
-                saved_errno = EINTR;
+                if (ok || GetLastError() == ERROR_OPERATION_ABORTED)
+                {
+                    // Ctrl+C or Ctrl+Break. The control handlers, on another thread, turn
+                    // echo back on and end the process: wait for them, rather than go on
+                    // to print an error as the process ends. Still running after that,
+                    // Ctrl+C doesn't end the process (it is ignored)
+                    Sleep(CTRL_EVENT_WAIT_MS);
+                    aborted = true;
+                }
                 break;
             }
             // A line ends with CR LF. The rest of the line, past the end of `buf`,
@@ -415,9 +437,9 @@ PasswordPromptResult ReadConsolePassword(const char *prompt, std::string &passwo
         WriteConsoleA(output, "\r\n", 2, &written, nullptr);
         SetConsoleMode(input, mode);
 
-        if (eol && line == L"\x1a")
+        if (aborted || (eol && line == L"\x1a"))
         {
-            // Ctrl+Z, end of input
+            // Ctrl+C that didn't end the process, or Ctrl+Z, end of input
             result = PasswordPromptResult::CANCELLED;
         }
         else if (eol && line.size() <= static_cast<size_t>(INT_MAX))
@@ -438,8 +460,9 @@ PasswordPromptResult ReadConsolePassword(const char *prompt, std::string &passwo
         }
     }
 
+    // Before closing `input`, which the control handler may be about to use
+    SetPasswordInput(INVALID_HANDLE_VALUE, 0);
     SetConsoleCtrlHandler(RestoreEchoOnCtrlEvent, FALSE);
-    password_input = INVALID_HANDLE_VALUE;
     ZeroWideString(line);
     CloseHandle(output);
     CloseHandle(input);
