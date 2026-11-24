@@ -23,7 +23,14 @@ int ExportDbCommand::Execute()
     {
         return RC_ERR_CANT_OPEN_FILE;
     }
-    std::unique_ptr<FILE, decltype(&fclose)> pf{f, &fclose};
+    // A deleter type rather than decltype(&fclose), whose attributes (glibc's __nonnull)
+    // a template argument can't keep (-Wignored-attributes)
+    struct FileCloser
+    {
+        // Write errors aren't reported (docs/ISSUES.md)
+        void operator()(FILE *file) const { (void)fclose(file); }
+    };
+    std::unique_ptr<FILE, FileCloser> pf{f};
 
     // Header
     fprintf(f, "UUID,Group,Title,User,Password,Notes\n");

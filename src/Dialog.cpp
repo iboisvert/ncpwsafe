@@ -253,7 +253,7 @@ void Dialog::DrawMasks()
     for (size_t i = 0; i + 1 < fields_.size(); ++i)
     {
         FIELD *field = fields_[i];
-        if (!dialog_fields_[i].m_masked || (field_opts(field) & O_PUBLIC) != 0)
+        if (!dialog_fields_[i].m_masked || HasFieldOpts(field, O_PUBLIC))
             continue;
         const char *buf = field_buffer(field, 0);
         if (buf == nullptr || std::string_view(buf).find_first_not_of(' ') == std::string_view::npos)

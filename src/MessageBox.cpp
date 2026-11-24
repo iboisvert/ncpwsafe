@@ -21,8 +21,8 @@ static std::vector<std::string> LayoutMsg(const WINDOW *parent, const std::strin
 {
     int maxy, maxx;
     getmaxyx(parent, maxy, maxx);
-    std::vector<std::string> lines = WrapText(msg, std::max(1, maxx - 2 * MARGIN));
-    size_t max_lines = std::max(1, maxy - 2 * MARGIN);
+    std::vector<std::string> lines = WrapText(msg, static_cast<size_t>(std::max(1, maxx - 2 * MARGIN)));
+    const auto max_lines = static_cast<size_t>(std::max(1, maxy - 2 * MARGIN));
     if (lines.size() > max_lines)
     {
         lines.resize(max_lines);

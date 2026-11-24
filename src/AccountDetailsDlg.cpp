@@ -82,7 +82,10 @@ bool AccountDetailsDlg::InputHandler(Dialog &dialog, int ch, DialogResult &/*res
     else if (ch == KEY_CTRL('V'))
     {
         FIELD *field = dialog.GetField(FT_PASSWORD);
-        set_field_opts(field, field_opts(field) ^ O_PUBLIC);
+        if (HasFieldOpts(field, O_PUBLIC))
+            field_opts_off(field, O_PUBLIC);
+        else
+            field_opts_on(field, O_PUBLIC);
     }
     // Copy from the form fields, not account_rec_: the fields hold
     // edits (and ^C password changes) that are not yet saved
@@ -108,7 +111,7 @@ bool AccountDetailsDlg::InputHandler(Dialog &dialog, int ch, DialogResult &/*res
 
 void AccountDetailsDlg::SetCommandBarWin(bool read_only)
 {
-    const unsigned char opts = read_only ? CBOPTS_READONLY : ~CBOPTS_READONLY;
+    const unsigned char opts = read_only ? CBOPTS_READONLY : static_cast<unsigned char>(~CBOPTS_READONLY);
     app_.GetCommandBar().Show(this, opts);
 }
 

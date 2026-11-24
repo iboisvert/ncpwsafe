@@ -652,8 +652,6 @@ int main(int argc, char *argv[])
         return PRC_ERR_FAIL;
     }
 
-    srand(time(0));
-
     PWSafeApp app;
     app.Init(input_args);
     // The password has been copied to the app, wipe this copy
@@ -697,8 +695,8 @@ int main(int argc, char *argv[])
     {
         size_t count = args.generate_password_count_;
         size_t length = args.password_length_;
-        int policyIndex = args.password_policy_ - 1;
-        const char *policyName = PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(policyIndex));
+        const char *policyName =
+            PasswordPolicy::GetName(static_cast<PasswordPolicy::Composition>(args.password_policy_ - 1));
         fprintf(stdout, "Generating %zd password%s of length %zd using policy %s\n", count, count == 1 ? "" : "s",
                 length, policyName);
         const auto passwords = GeneratePasswordCommand{app}.Execute();

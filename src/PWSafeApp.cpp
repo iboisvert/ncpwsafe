@@ -29,8 +29,8 @@ void PWSafeApp::Init(ProgArgs args)
 
     // Get progname
     std::string prog_name = args.prog_name_;
-    int pos = prog_name.rfind(L'/');
-    if (pos > -1)
+    size_t pos = prog_name.rfind('/');
+    if (pos != std::string::npos)
     {
         prog_name = prog_name.substr(pos + 1);
     }
@@ -453,11 +453,11 @@ static backup_list_t::iterator FilterBackups(backup_list_t &backups, size_t back
     {
         // Swap the most recent backups at the end of the list 
         // with the items at the beginning
-        for (backup_list_t::iterator src = backups.end()-backup_count, dst = backups.begin(); src != backups.end(); ++src, ++dst)
+        for (backup_list_t::iterator src = backups.end() - static_cast<std::ptrdiff_t>(backup_count), dst = backups.begin(); src != backups.end(); ++src, ++dst)
         {
             swap(*dst, *src);
         }
-        retval = backups.begin() + backup_count;
+        retval = backups.begin() + static_cast<std::ptrdiff_t>(backup_count);
     }
     return retval;
 }
@@ -473,7 +473,7 @@ void PWSafeApp::CleanBackups()
 
     char key[32];
     long lval = prefs_.GetPrefValue<long>(Prefs::BACKUP_COUNT);
-    size_t backup_count = lval > 0 ? lval : 0;
+    size_t backup_count = lval > 0 ? static_cast<size_t>(lval) : 0;
 
     backup_list_t backups;
 
@@ -511,7 +511,7 @@ void PWSafeApp::CleanBackups()
 #endif
     }
 
-    const size_t len = pos - backups.begin();
+    const auto len = static_cast<size_t>(pos - backups.begin());
     for (nbackup = 0; nbackup != len; ++nbackup)
     {
         snprintf(key, 32, "backup.%zu", nbackup);
@@ -601,7 +601,7 @@ ResultCode PWSafeApp::BackupDbImpl()
         }
 #if HAVE_GLOG
         long lval = prefs_.GetPrefValue<long>(Prefs::BACKUP_COUNT);
-        size_t backup_count = lval > 0 ? lval : 0;
+        size_t backup_count = lval > 0 ? static_cast<size_t>(lval) : 0;
         LOG_IF(INFO, nbackup == MAX_BACKUPS) << "Too many account database backup files stored in preferences (" << MAX_BACKUPS << ")";
         LOG_IF(WARNING, backup_count >= MAX_BACKUPS) << "Preference \"backup-count\" is set too high (" << backup_count << "), it should be less than (" << MAX_BACKUPS << ")";
 #endif        

@@ -53,6 +53,16 @@ inline int ReadKey(WINDOW *win)
  */
 void ZeroFieldsBuffer(FIELD **fields);
 
+/**
+ * Whether the curses field has all the options `opts` (`O_PUBLIC`, ...).
+ * Use it instead of `field_opts(field) & O_PUBLIC`: recent ncurses define the `O_*`
+ * options as unsigned, and `Field_Options` is an `int`.
+ */
+inline bool HasFieldOpts(const FIELD *field, Field_Options opts)
+{
+    return (field_opts(field) & opts) == opts;
+}
+
 void ZeroMemory(void *p, size_t len);
 
 /** Overwrite the contents of `str` with zeros, then clear it */
