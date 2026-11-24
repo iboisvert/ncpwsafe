@@ -843,14 +843,14 @@ One page, `ncpwsafe(1)`, with these sections:
 | NAME, SYNOPSIS | One synopsis line for opening a database and one for each command. |
 | DESCRIPTION | What ncpwsafe does, the V1/V2 Password Safe formats, read-only mode, backups before saving, and the need for `xclip` to copy to the clipboard. |
 | COMMANDS | Opening a database (the default), `--generate-password`, `--export-db`, `--change-password`. `--test-db` only in Debug builds, so leave it out of the page or mark it as such. |
-| OPTIONS | Every option in `options[]`, grouped as in `--help`, with defaults. Mark `-P/--password` and `--new-password` as deprecated and explain why, pointing to `--password-file` and `--new-password-file`. |
+| OPTIONS | Every option in `options[]`, grouped as in `--help`, with defaults. `--password-file`, and the terminal prompt that commands show without it (`-P/--password`, `--new-password` and `--new-password-file` were removed, since other users can read a password on the command line). |
 | USER INTERFACE | The screens and what each is for: the unlock prompt, the accounts list (collapsible groups, the title bar status, the copy confirmation), the account details dialog (sections, masked password, multi-line notes), change account password, generate password, change database password, the search bar, the `^G` help, message boxes and confirmations. What changes in read-only mode. Resizing the terminal. |
 | KEYS | A table of keys for each screen: the command bar keys from each window's `Action` list, plus the keys the command bar doesn't show (navigation, `/`, field movement, `y`/`n` in confirmations). |
 | PREFERENCES | Which file is read (§1.4), what ncpwsafe writes and how, the `-c/--config` override, the INI format, the `[template.NAME]` sections, and each key with its type, default and meaning: `db-pathname`, `backup-before-save`, `backup-count`, `theme`, `auto-sign-off` (§3), and later the template settings and theme overrides (§1, §2.3). How backup files are named, and which keys ncpwsafe writes itself (`db-pathname`, `backup.N`). |
 | FILES | The user and system configuration files (§1.4), the default database, backup files, the `.lock` file, and the database format (§5). |
 | ENVIRONMENT | `HOME`; `LC_ALL`/`LC_CTYPE`/`LANG` and the fallback to a UTF-8 `LC_CTYPE`; `TERM`; `NO_COLOR`; `DISPLAY` for `xclip`; `NCPWSAFE_XCLIP`. |
 | EXIT STATUS | 0 on success, the `ResultCode` values a user can see, and the auto sign-off code (§3). |
-| SECURITY | Passwords on the command line can be seen by other users; use `--password-file` (with `<(pass show …)` as an example). Core dumps and ptrace are blocked in Release builds. Auto sign-off. Copied passwords stay on the clipboard. |
+| SECURITY | Passwords aren't taken on the command line, where other users can see them: they are typed at a prompt or read with `--password-file` (with `<(pass show …)` as an example). Core dumps and ptrace are blocked in Release builds. Auto sign-off. Copied passwords stay on the clipboard. |
 | EXAMPLES | Opening read-only, exporting to a file, generating ten passwords, changing the database password from files. |
 | SEE ALSO, BUGS, AUTHORS | `xclip(1)`, Password Safe; `docs/ISSUES.md` and the issue tracker. |
 
@@ -1165,15 +1165,15 @@ ASan and UBSan.
 **CLI**
 
 ```
-ncpwsafe --import [--password-file=PATH] [--new-password-file=PATH | --keep-password]
+ncpwsafe --import [--password-file=PATH] [--keep-password]
          [-o,--out=PATHNAME] [--force] SOURCE_FILE
 ```
 
-- Reads `SOURCE_FILE` (V1 or V2) with libpwsafe, using the password from `--password-file` (or the
-  deprecated `-P`).
-- The new database's password comes from `--new-password-file`, or `--keep-password` reuses the
-  source's password. One of the two is required, so a weak old password isn't carried over without
-  a choice.
+- Reads `SOURCE_FILE` (V1 or V2) with libpwsafe, using the password from `--password-file`, or
+  prompting for it on the terminal (`PromptForPassword()`), as the other commands do.
+- The new database's password is typed at a prompt, twice, as for `--change-password`, or
+  `--keep-password` reuses the source's password. Without a terminal, `--keep-password` is
+  required, so a weak old password isn't carried over without a choice.
 - The output defaults to `SOURCE_FILE` with its extension replaced by `.ncpwsafe`. An existing output file
   is refused without `--force`, as for `--export-db`.
 - The source file is never changed, renamed or deleted.
@@ -1462,6 +1462,9 @@ in §7.4.
   with capital letters, editing an account's group or title deleting another account, crashes with
   no account selected, `--password-policy` by name, the `--change-password` exit code, `--export-db` without `-o`,
   core dumps and ptrace blocked in Release builds, and in-source builds rejected
+- Password prompts on the terminal, without echo, for the commands that need a password when
+  `--password-file` isn't given, and for the new password of `--change-password` (twice);
+  `-P`/`--password`, `--new-password` and `--new-password-file` removed
 
 ## 8. Open questions
 

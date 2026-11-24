@@ -27,10 +27,8 @@ struct InputProgArgs
 
     std::optional<bool> force_;                       // Force overwrite output file
     std::optional<std::string> database_;                 // Account database
-    std::optional<std::string> password_;                 // Database password
-    std::optional<std::string> new_password_;              // New database password, for when password is being changed
+    std::optional<std::string> password_;                 // Database password, read from password_file_ or prompted for
     std::optional<std::string> password_file_;            // File containing the database password
-    std::optional<std::string> new_password_file_;        // File containing the new database password
     std::optional<bool> read_only_;                    // Database read-only flag
     std::optional<std::string> generate_language_;         // Language to use in generated database
     std::optional<unsigned long> generate_group_count_; // Number of account groups to generate
@@ -84,7 +82,6 @@ struct ProgArgs
     bool force_;                       // Force overwrite output file
     std::string database_;                 // Account database
     std::string password_;                 // Database password
-    std::string new_password_;  // New database password, for when password is being changed
     bool read_only_;                    // Database read-only flag
     std::string generate_language_;         // Language to use in generated database
     unsigned long generate_group_count_; // Number of account groups to generate
@@ -119,7 +116,6 @@ struct ProgArgs
         if (src.force_) force_ = src.force_.value();
         if (src.database_) database_ = src.database_.value();
         if (src.password_) password_ = src.password_.value();
-        if (src.new_password_) new_password_ = src.new_password_.value();
         if (src.read_only_) read_only_ = src.read_only_.value();
         if (src.generate_language_) generate_language_ = src.generate_language_.value();
         if (src.generate_group_count_) generate_group_count_ = src.generate_group_count_.value();

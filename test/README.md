@@ -27,7 +27,8 @@ The unit tests and the CLI tests run on Windows too, with the
 `x64-windows-msvc-*` presets. The CLI tests need Python 3 on the `PATH`
 (it's preinstalled on GitHub's Windows runners). The TUI tests are always
 reported as skipped on Windows, because tmux can't host a native Windows
-console program.
+console program, and so are the CLI tests that answer password prompts,
+which need a pseudo-terminal (see [Password prompts](#password-prompts)).
 
 ## Running the tests
 
@@ -187,6 +188,39 @@ ncpwsafe tries to copy. ncpwsafe runs xclip with only `DISPLAY` and
 `XAUTHORITY` in its environment, so the output path is written into the
 stub instead of being passed through the environment.
 `clipboard_stub(exit_code=1)` makes a stub that fails.
+
+### Password prompts
+
+Without `--password-file`, the commands that need a password prompt for it
+on the terminal, `/dev/tty` (the console on Windows), not standard input.
+So that no test waits for someone to type at the terminal running ctest,
+`run_ncpwsafe()` runs ncpwsafe without one: in a new session on Linux
+(`start_new_session`), detached from the console on Windows
+(`DETACHED_PROCESS`). A prompt then fails with "No terminal to prompt for
+the password on", which some tests check. `run_ncpwsafe(..., input=...)`
+gives it standard input, which a prompt doesn't read.
+
+To answer prompts, `start_on_terminal()` runs ncpwsafe on a pseudo-terminal
+of its own, which is its controlling terminal, and returns a
+`TerminalApp`:
+
+| Method | Does |
+|---|---|
+| `answer(prompt, text)` | Wait for `prompt`, then type `text` and Enter |
+| `expect(text)` | Wait for `text` in the output after the last match, or fail with the output after 10 s |
+| `send(text)` | Type `text`, e.g. `"\x03"` for Ctrl-C or `"\x04"` for Ctrl-D |
+| `echo_enabled()` | Whether the terminal echoes what is typed: `False` while a prompt is shown |
+| `attrs()` | The terminal's settings, as `termios.tcgetattr()` returns them |
+| `wait()` | Wait for ncpwsafe to exit and return its exit code, or `-N` if signal `N` ended it |
+| `output` | Everything written to the terminal: the prompts, standard output and error, lines ending with CR LF |
+
+`start_on_terminal(..., icrnl=False)` sets the terminal to `stty -icrnl`
+before ncpwsafe starts. Wait for a prompt before typing the answer:
+ncpwsafe discards what was typed before the prompt was shown. These tests use Python's `pty` module,
+so they're skipped on Windows (`@unittest.skipUnless(e2elib.HAS_PTY, ...)`).
+See `cli/test_password_prompt.py` for the prompt itself, and
+`cli/test_change_password.py` and `cli/test_test_db.py` for the commands
+that ask for a new password twice.
 
 ### Known bugs
 

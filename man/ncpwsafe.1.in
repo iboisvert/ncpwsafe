@@ -3,7 +3,7 @@
 .\"
 .\" CMake fills in the version (configure_file). Preview the result with
 .\" man -l build/man/ncpwsafe.1
-.Dd November 22, 2026
+.Dd November 24, 2026
 .Dt NCPWSAFE 1
 .Os ncpwsafe @NCPWSAFE_VERSION@
 .Sh NAME
@@ -24,12 +24,11 @@
 .Fl -export-db
 .Fl o Ar file
 .Op Fl -force
-.Fl -password-file Ns = Ns Ar file
+.Op Fl -password-file Ns = Ns Ar file
 .Ar database
 .Nm
 .Fl -change-password
-.Fl -password-file Ns = Ns Ar file
-.Fl -new-password-file Ns = Ns Ar file
+.Op Fl -password-file Ns = Ns Ar file
 .Ar database
 .Nm
 .Fl h | Fl -help
@@ -60,11 +59,34 @@ delete it securely when it is no longer needed.
 .It Fl -change-password
 Change the password of
 .Ar database .
+Once the current password is found to be correct,
+.Nm
+prompts for the new password, then for it again to confirm it.
 .It Fl -test-db
 Write a database of generated test accounts to
-.Ar database .
+.Ar database ,
+prompting for its password twice, like a new password.
 Only in Debug builds.
 .El
+.Pp
+The commands that need the database password read it from the file given with
+.Fl -password-file ,
+or prompt for it.
+Passwords are never given on the command line, where other users could see
+them.
+A prompt is shown on, and the password read from, the terminal
+.Pq Pa /dev/tty ,
+or the console on Windows, rather than standard input and output, and the
+password is not shown as it is typed.
+A password as long as the terminal keeps on one line, 4095 bytes on Linux, is
+refused rather than taken cut short.
+Without a terminal, for example in a script or a
+.Xr cron 8
+job, the command fails; use
+.Fl -password-file .
+The new password of
+.Fl -change-password
+is always typed at the prompt.
 .Pp
 When
 .Ar database
@@ -91,28 +113,16 @@ instead of the default, see
 .It Fl -password-file Ns = Ns Ar file
 Read the database password from the first line of
 .Ar file ,
-without its line ending.
+without its line ending, instead of prompting for it.
 Process substitution works too, for example
 .Fl -password-file Ns = Ns Li <(pass show pwsafe) .
-When a database is opened without a password,
-.Nm
-prompts for one.
-.Fl -export-db
-and
-.Fl -change-password
-need a password from this option or
-.Fl P .
-.It Fl P Ar password , Fl -password Ns = Ns Ar password
-The database password.
-.Sy Deprecated :
-other users can read the command line of a running program, and it is kept
-in the shell history.
-.Nm
-prints a warning, and overwrites the password in its argument list after reading
-it.
-Use
-.Fl -password-file
-instead.
+When a database is opened without this option, or with a password that is
+incorrect, the
+.Sx Unlock Database
+screen asks for the password.
+For
+.Fl -change-password ,
+it is the current password.
 .It Fl -force
 Overwrite an existing output file.
 .It Fl h , Fl -help
@@ -155,17 +165,6 @@ letters, digits and symbols, without characters that look alike
 .It Fl o Ar file , Fl -out Ns = Ns Ar file
 The file to write.
 Required.
-.El
-.Ss Change password options
-.Bl -tag -width Ds
-.It Fl -new-password-file Ns = Ns Ar file
-Read the new password from the first line of
-.Ar file .
-.It Fl -new-password Ns = Ns Ar password
-The new password.
-.Sy Deprecated ,
-for the same reasons as
-.Fl -password .
 .El
 .Ss Test database options
 Only in Debug builds.
@@ -503,6 +502,8 @@ The preferences, or
 on Windows.
 .It Pa ~/.pwsafe.dat
 The default database.
+.It Pa /dev/tty
+The terminal that password prompts are shown on and read from.
 .El
 .Sh EXIT STATUS
 .Bl -tag -width Ds -compact
@@ -514,10 +515,11 @@ a command succeeded,
 or
 .Fl -version .
 .It 1
-An error, such as an invalid argument or an incorrect password; or the user
+An error, such as an invalid argument, an incorrect password, passwords typed
+at a prompt that do not match, or no terminal to prompt on; or the user
 interface was left with
 .Ic ^X ,
-or the password prompt was cancelled.
+or a password prompt was cancelled, with Ctrl-D at a command's prompt.
 .It 124
 The program exited after the idle period expired; see
 .Cm auto-sign-off
@@ -534,31 +536,29 @@ Generate ten passwords of 16 letters and digits:
 .Pp
 .Dl $ ncpwsafe --generate-password --password-count=10 --password-length=16
 .Pp
-Export a database, then delete the export securely:
+Export a database, typing its password at the prompt, then delete the export
+securely:
 .Pp
 .Dl $ ncpwsafe --export-db -o accounts.csv accounts.dat
 .Dl $ shred -u accounts.csv
 .Pp
-Change a database's password, with both passwords in files:
+Change a database's password, reading the current one from
+.Xr pass 1 ;
+.Nm
+prompts for the new one twice:
 .Pp
-.Bd -literal -offset indent
-$ ncpwsafe --change-password --password-file=old.pw \e
-    --new-password-file=new.pw accounts.dat
-.Ed
+.Dl $ ncpwsafe --change-password --password-file=<(pass show pwsafe) accounts.dat
 .Sh SECURITY CONSIDERATIONS
 .Bl -bullet
 .It
-Passwords given with
-.Fl P
-or
-.Fl -new-password
-can be seen by other users while
-.Nm
-starts.
-Use
-.Fl -password-file
-and
-.Fl -new-password-file .
+Passwords are not taken on the command line, where other users could read
+them, and the shell history would keep them: they are typed at a prompt that
+does not show them, or read with
+.Fl -password-file .
+A password file should be readable only by its owner; a password manager with
+process substitution, as in
+.Sx EXAMPLES ,
+leaves no file behind.
 .It
 In Release builds,
 .Nm

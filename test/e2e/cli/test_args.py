@@ -76,42 +76,43 @@ class ArgsTest(e2elib.E2ETestCase):
         self.assertUsage(self.run_ncpwsafe("--export-db", "--password-count=3", "--password-file", pw,
                                            "-o", "out.csv", db))
 
-    def test_password_and_password_file(self):
-        db, pw = self.make_db()
-        proc = self.run_ncpwsafe("--export-db", "--password=x", "--password-file", pw, "-o", "out.csv", db)
-        self.assertUsage(proc)
-        self.assertIn("Only one of --password and --password-file may be specified", proc.stderr)
+    def test_password_file_not_valid_for_generate(self):
+        _, pw = self.make_db()
+        self.assertUsage(self.run_ncpwsafe("--generate-password", "--password-file", pw))
 
-    def test_new_password_and_new_password_file(self):
+    def test_password_options_removed(self):
+        # Passwords on the command line can be seen by other users: they are read from
+        # --password-file or prompted for
         db, pw = self.make_db()
-        proc = self.run_ncpwsafe("--change-password", "--password-file", pw, "--new-password=x",
-                                 "--new-password-file", pw, db)
-        self.assertUsage(proc)
-        self.assertIn("Only one of --new-password and --new-password-file may be specified", proc.stderr)
+        for args in (["-P", "x"], ["--password=x"], ["--new-password=x"], ["--new-password-file", pw]):
+            with self.subTest(args=args):
+                proc = self.run_ncpwsafe("--change-password", "--password-file", pw, *args, db)
+                self.assertUsage(proc)
+                self.assertIn("option", proc.stderr)
+        self.assertDbContains(db, pw, e2elib.read_spec())
+
+    def test_password_options_not_in_help(self):
+        out = self.run_ncpwsafe("--help").stdout
+        self.assertNotIn("-P,", out)
+        self.assertNotIn("--password=", out)
+        self.assertNotIn("--new-password", out)
 
     def test_missing_password_file(self):
         db, _ = self.make_db()
         proc = self.run_ncpwsafe("--export-db", "--password-file", self.tmp / "missing.pw", "-o", "out.csv", db)
-        self.assertUsage(proc)
+        self.assertEqual(proc.returncode, PRC_ERR_FAIL)
+        # Not a usage error
+        self.assertNotIn("Usage:", proc.stdout)
         self.assertIn("Unable to read password file", proc.stderr)
         self.assertIn("missing.pw", proc.stderr)
+        self.assertFalse((self.tmp / "out.csv").exists())
 
-    def test_password_deprecation_warning(self):
-        db, _ = self.make_db()
-        proc = self.run_ncpwsafe("--export-db", f"--password={e2elib.SMALL_PASSWORD}", "-o", "out.csv", db)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        self.assertIn("Warning: --password is deprecated", proc.stderr)
-
-    def test_new_password_deprecation_warning(self):
-        db, pw = self.make_db()
-        proc = self.run_ncpwsafe("--change-password", "--password-file", pw, "--new-password=new-secret", db)
-        self.assertIn("Warning: --new-password is deprecated", proc.stderr)
-
-    def test_password_file_does_not_warn(self):
-        db, pw = self.make_db()
-        proc = self.run_ncpwsafe("--export-db", "--password-file", pw, "-o", "out.csv", db)
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        self.assertNotIn("deprecated", proc.stderr)
+    def test_invalid_args_before_password_file(self):
+        # The arguments are checked before the password file is read
+        proc = self.run_ncpwsafe("--export-db", "--password-file", self.tmp / "missing.pw", "-o", "out.csv",
+                                 self.tmp / "missing.dat")
+        self.assertUsage(proc)
+        self.assertNotIn("Unable to read password file", proc.stderr)
 
 
 if __name__ == "__main__":

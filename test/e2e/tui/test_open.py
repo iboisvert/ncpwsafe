@@ -65,7 +65,7 @@ class OpenTest(e2elib.TuiTestCase):
         db, _ = self.make_db()
         pw = self.password_file("not the password")
         app = self.start("--password-file", pw, db)
-        app.wait_for("The password given on the command line is incorrect")
+        app.wait_for("The password in the password file is incorrect")
         app.send("Enter")
         app.wait_for("Unlock Database")
         app.type(e2elib.SMALL_PASSWORD)

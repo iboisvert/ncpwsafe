@@ -13,22 +13,28 @@ on Windows, %USERPROFILE% and %APPDATA%), so the preferences file and
 database backups never touch the real home directory.
 
 The CLI tests run on Linux and Windows. The TUI tests need tmux, so they
-only run on Linux, and are skipped on Windows.
+only run on Linux, and are skipped on Windows. The tests of the password
+prompts need a pseudo-terminal (`TerminalApp`), and are skipped on Windows.
 """
 
 import csv
 import io
 import os
 import re
+import select
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
 E2E_DIR = Path(__file__).resolve().parent
 IS_WINDOWS = sys.platform == "win32"
+# Pseudo-terminals for the password prompt tests, see TerminalApp
+HAS_PTY = not IS_WINDOWS
 SKIP_EXIT_CODE = 77  # Matches SKIP_RETURN_CODE in CMakeLists.txt
 PRC_ERR_FAIL = 1  # ncpwsafe exit code for failure, or for exiting the UI without saving
 
@@ -147,11 +153,29 @@ class E2ETestCase(unittest.TestCase):
 
     # Running ncpwsafe ---------------------------------------------------
 
-    def run_ncpwsafe(self, *args, timeout=30):
+    def run_ncpwsafe(self, *args, timeout=30, input=None):
+        """Run ncpwsafe without a terminal, so a password prompt fails rather than waiting
+        for input from the terminal running the tests. See start_on_terminal() to answer prompts.
+        Standard input is `input`, or empty."""
+        if IS_WINDOWS:
+            # Without a console, CONIN$ can't be opened
+            no_terminal = {"creationflags": subprocess.DETACHED_PROCESS}
+        else:
+            # A new session has no controlling terminal, /dev/tty can't be opened
+            no_terminal = {"start_new_session": True}
         return subprocess.run([str(NCPWSAFE), *map(str, args)], capture_output=True, text=True,
                               encoding="utf-8", errors="replace",
-                              env=self.env, cwd=self.tmp, timeout=timeout,
-                              stdin=subprocess.DEVNULL, check=False)
+                              env=self.env, cwd=self.tmp, timeout=timeout, check=False,
+                              **({"stdin": subprocess.DEVNULL} if input is None else {"input": input}),
+                              **no_terminal)
+
+    def start_on_terminal(self, *args, icrnl=True):
+        """Start ncpwsafe with a pseudo-terminal as its controlling terminal, to answer its
+        password prompts. Returns a TerminalApp, closed when the test ends. Not on Windows.
+        With `icrnl=False`, the terminal is set to `stty -icrnl` first."""
+        app = TerminalApp([str(NCPWSAFE), *map(str, args)], self.env, self.tmp, icrnl=icrnl)
+        self.addCleanup(app.close)
+        return app
 
     def assertNotCrashed(self, proc):
         """ncpwsafe exited by itself rather than crashing: killed by a signal
@@ -175,6 +199,114 @@ class E2ETestCase(unittest.TestCase):
 
     def assertDbContains(self, db, pwfile, expected_rows):
         self.assertEqual(sorted_rows(self.export(db, pwfile)), sorted_rows(expected_rows))
+
+
+class TerminalApp:
+    """ncpwsafe running on a pseudo-terminal, which is its controlling terminal
+    (`/dev/tty`), standard input, output and error. For the password prompts,
+    which read from the terminal rather than standard input. Not on Windows.
+
+    `output` is everything written to the terminal, including the prompts:
+    standard output and error are mixed, and lines end with CR LF.
+    """
+
+    def __init__(self, argv, env, cwd, icrnl=True):
+        import pty
+        pid, fd = pty.fork()
+        if pid == 0:
+            # Child: pty.fork() made the terminal its controlling terminal
+            try:
+                if not icrnl:
+                    import termios
+                    attrs = termios.tcgetattr(0)
+                    attrs[0] &= ~termios.ICRNL
+                    termios.tcsetattr(0, termios.TCSANOW, attrs)
+                os.chdir(cwd)
+                os.execve(argv[0], argv, env)
+            finally:
+                os._exit(127)
+        self.pid, self.fd = pid, fd
+        self.argv = argv
+        self.returncode = None
+        self._raw = b""
+        self._pos = 0  # In output, after the text expect() matched last
+
+    @property
+    def output(self):
+        return self._raw.decode("utf-8", errors="replace")
+
+    def _read(self, timeout):
+        """Read what is available within `timeout` seconds.
+        Returns True if something was read, None if nothing was, False at the end of the output."""
+        ready, _, _ = select.select([self.fd], [], [], max(timeout, 0))
+        if not ready:
+            return None
+        try:
+            data = os.read(self.fd, 4096)
+        except OSError:
+            # EIO: ncpwsafe exited, and the terminal was closed
+            data = b""
+        self._raw += data
+        return bool(data)
+
+    def expect(self, text, timeout=10):
+        """Wait for `text` in the output after what the previous expect() matched."""
+        deadline = time.monotonic() + timeout
+        while text not in self.output[self._pos:]:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0 or self._read(remaining) is False:
+                raise AssertionError(f"Timed out waiting for {text!r} from {self.argv[1:]}, "
+                                     f"the output is:\n{self.output}")
+        self._pos = self.output.index(text, self._pos) + len(text)
+
+    def send(self, text):
+        """Type `text`, e.g. "\x03" for Ctrl-C"""
+        os.write(self.fd, text.encode("utf-8"))
+
+    def answer(self, prompt, text):
+        """Wait for `prompt`, then type `text` and Enter"""
+        self.expect(prompt)
+        self.send(text + "\r")
+
+    def attrs(self):
+        """The terminal's settings, as termios.tcgetattr() returns them"""
+        import termios
+        return termios.tcgetattr(self.fd)
+
+    def echo_enabled(self):
+        """`True` if the terminal echoes what is typed (its ECHO flag)"""
+        import termios
+        return bool(self.attrs()[3] & termios.ECHO)
+
+    def wait(self, timeout=30):
+        """Wait for ncpwsafe to exit, reading its output. Returns its exit code, or -N if
+        signal N ended it."""
+        deadline = time.monotonic() + timeout
+        while self.returncode is None:
+            pid, status = os.waitpid(self.pid, os.WNOHANG)
+            if pid != 0:
+                self.returncode = os.waitstatus_to_exitcode(status)
+                break
+            if time.monotonic() > deadline:
+                raise AssertionError(f"ncpwsafe {self.argv[1:]} didn't exit, the output is:\n{self.output}")
+            if self._read(0.1) is False:
+                time.sleep(0.01)  # The terminal is closed, wait for the process to end
+        # What's left to read, the terminal may outlive the process
+        while self._read(0) is True:
+            pass
+        return self.returncode
+
+    def close(self):
+        if self.returncode is None:
+            try:
+                os.kill(self.pid, signal.SIGKILL)
+                os.waitpid(self.pid, 0)
+            except OSError:
+                pass
+            self.returncode = -signal.SIGKILL
+        if self.fd is not None:
+            os.close(self.fd)
+            self.fd = None
 
 
 def parse_export(text):

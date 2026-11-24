@@ -1,5 +1,6 @@
 """CLI: --test-db (Debug builds only)."""
 import sys
+import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -61,6 +62,27 @@ class TestDbTest(e2elib.E2ETestCase):
         proc, _ = self.generate(self.tmp / "test.dat", "--test-db-lang=fr")
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("Valid languages for test database are: en-CA, ru", proc.stderr)
+
+    @unittest.skipUnless(e2elib.HAS_PTY, "needs a pseudo-terminal")
+    def test_prompt_for_password(self):
+        # A new database: the password is asked for twice
+        db = self.tmp / "test.dat"
+        app = self.start_on_terminal("--test-db", "--test-db-items=5", db)
+        app.answer("New account database password: ", "typed password")
+        app.answer("Confirm new password: ", "typed password")
+        self.assertEqual(app.wait(), 0, app.output)
+        self.assertNotIn("typed password", app.output)
+        self.assertEqual(len(self.export(db, self.password_file("typed password"))), 5)
+
+    @unittest.skipUnless(e2elib.HAS_PTY, "needs a pseudo-terminal")
+    def test_passwords_do_not_match(self):
+        db = self.tmp / "test.dat"
+        app = self.start_on_terminal("--test-db", db)
+        app.answer("New account database password: ", "typed password")
+        app.answer("Confirm new password: ", "mistyped password")
+        self.assertEqual(app.wait(), e2elib.PRC_ERR_FAIL)
+        self.assertIn("The passwords do not match", app.output)
+        self.assertFalse(db.exists())
 
     def test_invalid_counts(self):
         for arg, msg in (("--test-db-groups=0", "group count must be > 0"),
