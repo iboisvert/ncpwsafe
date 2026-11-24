@@ -610,6 +610,8 @@ ResultCode PWSafeApp::BackupDbImpl()
     {
 #if HAVE_GLOG
         LOG(WARNING) << "Error copying account database file \"" << cause.path1() << "\" to backup file \"" << cause.path2() << "\": " << cause.what();
+#else
+        (void)cause;
 #endif
         status = RC_ERR_BACKUP;
     }

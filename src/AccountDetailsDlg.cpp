@@ -111,7 +111,7 @@ bool AccountDetailsDlg::InputHandler(Dialog &dialog, int ch, DialogResult &/*res
 
 void AccountDetailsDlg::SetCommandBarWin(bool read_only)
 {
-    const unsigned char opts = read_only ? CBOPTS_READONLY : static_cast<unsigned char>(~CBOPTS_READONLY);
+    const int opts = read_only ? CBOPTS_READONLY : ~CBOPTS_READONLY;
     app_.GetCommandBar().Show(this, opts);
 }
 

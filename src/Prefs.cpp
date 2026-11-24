@@ -86,6 +86,8 @@ R Prefs::Get(const std::string &key, const R &default_value)
     {
 #ifdef HAVE_GLOG
         LOG(INFO) << "Exception retrieving preference value for key \"" << key << "\":" << e.what();
+#else
+        (void)e;
 #endif
     }
     return retval;

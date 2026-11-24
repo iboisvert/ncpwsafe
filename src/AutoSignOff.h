@@ -46,7 +46,8 @@ public:
 
     long Period() const
     {
-        return period_ms_ / 1000;
+        // The period was set in seconds as a long, so it fits (long is 32 bits on Windows)
+        return static_cast<long>(period_ms_ / 1000);
     }
 
     bool Enabled() const

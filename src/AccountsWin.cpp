@@ -625,7 +625,7 @@ DialogResult AccountsWin::Show()
 void AccountsWin::SetCommandBar()
 {
     bool read_only = app_.GetDb().ReadOnly();
-    const unsigned char opts = read_only ? CBOPTS_READONLY : static_cast<unsigned char>(~CBOPTS_READONLY);
+    const int opts = read_only ? CBOPTS_READONLY : ~CBOPTS_READONLY;
     app_.GetCommandBar().Show(this, opts);
 }
 
