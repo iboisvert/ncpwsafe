@@ -65,3 +65,9 @@ ctest --preset=x64-linux-gcc-debug -L cli     # end-to-end CLI tests (-L tui: UI
 - `src/en_CA.dat` and `src/ru.dat` are word lists written as C string literals and `#include`d directly into `GenerateTestDbCommand.cpp`. `--test-db` uses them to generate test databases (`--test-db-lang=en-CA|ru`).
 
 `docs/dev-plan.md` tracks planned features and the to-do backlog (§3), and `docs/ISSUES.md` has detailed write-ups of known bugs.
+
+## Code review
+
+- Review every change before pushing it: build, run `ctest`, then review the diff against `main` with the rules in `REVIEW.md` (in Claude Code, `/code-review`). Don't push while an Important finding is open: fix it, or, if it shouldn't be fixed in this change, say why in the pull request. Record Pre-existing findings worth keeping in `docs/ISSUES.md`.
+- Review again after pushing fixes for review comments, before pushing the next round.
+- A change to `REVIEW.md` is reviewed with the version on `main`, so a change can't relax the rules it is judged by.
