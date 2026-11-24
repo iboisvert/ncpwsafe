@@ -93,6 +93,18 @@ jobs:
     - name: Test
       run: ctest --preset=${{ matrix.preset }}
 
+    # upload-artifact needs every path under one directory, and VCPKG_ROOT (C:) isn't
+    # under the workspace (D:): copy vcpkg's build logs into the workspace first
+    - name: Collect vcpkg logs
+      if: failure()
+      shell: pwsh
+      run: |
+        $buildtrees = "$env:VCPKG_ROOT/buildtrees"
+        if (Test-Path $buildtrees) {
+          robocopy $buildtrees vcpkg-logs/buildtrees *.log /S /NFL /NDL /NJH /NJS /NP | Out-Null
+        }
+        exit 0
+
     - name: Upload vcpkg logs
       if: failure()
       uses: actions/upload-artifact@v4
@@ -101,7 +113,7 @@ jobs:
         path: |
           build/vcpkg-manifest-install.log
           build/vcpkg_installed/vcpkg/blds/**/*.log
-          ${{ env.VCPKG_ROOT }}/buildtrees/**/*.log
+          vcpkg-logs/**/*.log
         if-no-files-found: ignore
 
   build-linux:
