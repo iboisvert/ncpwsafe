@@ -18,6 +18,7 @@ list(APPEND SRC
     GenerateTestDbCommand.cpp
     HelpWin.cpp
     MessageBox.cpp
+    PasswordPrompt.cpp
     Policy.cpp
     Prefs.cpp
     ProgArgs.cpp

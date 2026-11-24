@@ -5,6 +5,7 @@
 #include "GeneratePasswordCommand.h"
 #include "GeneratePasswordDlg.h"
 #include "GenerateTestDbCommand.h"
+#include "PasswordPrompt.h"
 #include "ProgArgs.h"
 #include "Utils.h"
 
@@ -85,28 +86,21 @@ static void Usage(const char *progName)
             "  --generate-password  Generate a list of passwords,\n"
             "                       does not change the account database\n"
             "  --export-db          Export account database as plain text\n"
-            "  --change-password    Change the account database password\n"
+            "  --change-password    Change the account database password,\n"
+            "                       prompts for the new password on the terminal\n"
             "\n"
             "Common options:\n"
             "  -c,--config=PATHNAME Specify the configuration file\n"
             "                       Default is %s\n"
             "  DATABASE_FILE        The account database file\n"
-            "  -P,--password=STR    Account database password. Deprecated, the password can\n"
-            "                       be seen by other users, use --password-file instead\n"
             "  --password-file=PATHNAME\n"
             "                       Read the account database password from the first\n"
-            "                       line of a file\n"
+            "                       line of a file. Without it, the commands that need\n"
+            "                       the password prompt for it on the terminal\n"
             "  --force              Force overwrite output file\n"
             "\n"
             "Open database options:\n"
             "  -r,--read-only       Open database as read-only\n"
-            "\n"
-            "Change account database options:\n"
-            "  --new-password=STR   New account database password. Deprecated, use\n"
-            "                       --new-password-file instead\n"
-            "  --new-password-file=PATHNAME\n"
-            "                       Read the new account database password from the first\n"
-            "                       line of a file\n"
             "\n"
             "Generate test database options:\n"
             "  --test-db-lang=STR   Language of strings in generated database\n"
@@ -182,7 +176,7 @@ static bool ValidateArgs(InputProgArgs &args)
             && cmd != Operation::CHANGE_DB_PASSWORD)
             result = false;
     }
-    if (args.password_)
+    if (args.password_file_)
     {
         if (cmd != Operation::OPEN_DB 
             && cmd != Operation::GENERATE_TEST_DB 
@@ -276,10 +270,6 @@ static bool ValidateArgs(InputProgArgs &args)
         {
             result = Error("File %s already exists\n", args.database_->c_str());
         }
-        if (!args.password_ || args.password_->empty())
-        {
-            result = Error("Account database password is required\n");
-        }
     }
 
     if (cmd == Operation::EXPORT_DB)
@@ -291,10 +281,6 @@ static bool ValidateArgs(InputProgArgs &args)
         else if (!fs::Exists(*args.database_))
         {
             result = Error("Account database file %s does not exist\n", args.database_->c_str());
-        }
-        if (!args.password_ || args.password_->empty())
-        {
-            result = Error("Account database password is required\n");
         }
         if (!args.output_file_ || args.output_file_->empty())
         {
@@ -316,14 +302,6 @@ static bool ValidateArgs(InputProgArgs &args)
         {
             result = Error("Account database file %s does not exist\n", args.database_->c_str());
         }
-        if (!args.password_ || args.password_->empty())
-        {
-            result = Error("Account database password is required\n");
-        }
-        if (!args.new_password_ || args.new_password_->empty())
-        {
-            result = Error("New account database password is required\n");
-        }
     }
     return result;
 }
@@ -340,9 +318,7 @@ enum
     O_PASSWORD_LENGTH,
     O_EXPORT_DB,
     O_CHANGE_PASSWORD,
-    O_NEW_PASSWORD,
     O_PASSWORD_FILE,
-    O_NEW_PASSWORD_FILE,
     OPT_FORCE
 };
 
@@ -354,7 +330,6 @@ static constexpr struct option options[] {
     {"test-db-items", required_argument, nullptr, O_TEST_DB_ITEMS},
     {"help", no_argument, nullptr, 'h'},
     {"version", no_argument, nullptr, 'V'},
-    {"password", required_argument, nullptr, 'P'}, 
     {"password-file", required_argument, nullptr, O_PASSWORD_FILE},
     {"read-only", no_argument, nullptr, 'r'},
     {"generate-password", no_argument, nullptr, O_GENERATE_PASSWORD},
@@ -364,47 +339,11 @@ static constexpr struct option options[] {
     {"export-db", no_argument, nullptr, O_EXPORT_DB},
     {"out", required_argument, nullptr, 'o'},
     {"change-password", no_argument, nullptr, O_CHANGE_PASSWORD},
-    {"new-password", required_argument, nullptr, O_NEW_PASSWORD},
-    {"new-password-file", required_argument, nullptr, O_NEW_PASSWORD_FILE},
     {"force", no_argument, nullptr, OPT_FORCE},
     {"config", required_argument, nullptr, 'c'},
     {nullptr, 0, nullptr, 0},
 };
 // clang-format on
-
-/**
- * Overwrite a command-line argument in place, so that it is no longer visible
- * in /proc/<pid>/cmdline (e.g. to ps). It is visible until then.
- */
-static void HideArg(char *arg)
-{
-    ZeroMemory(arg, strlen(arg));
-}
-
-/**
- * If `pathname` is set, read `password` from the file it names.
- * @param option The name of the option that gives the password directly
- * @returns `false` if both the option and the file are given, or the file can't be read
- */
-static bool ReadPasswordFileArg(const char *option, const std::optional<std::string> &pathname,
-    std::optional<std::string> &password)
-{
-    if (!pathname)
-    {
-        return true;
-    }
-    if (password)
-    {
-        return Error("Only one of %s and %s-file may be specified\n", option, option);
-    }
-    std::string value;
-    if (!ReadPasswordFile(*pathname, value))
-    {
-        return Error("Unable to read password file %s: %s\n", pathname->c_str(), strerror(errno));
-    }
-    password = std::move(value);
-    return true;
-}
 
 static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
 {
@@ -415,7 +354,7 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
 
     int option_index = 0;
     int c;
-    while ((c = getopt_long(argc, argv, "c:ho:P:rV", options, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "c:ho:rV", options, &option_index)) != -1)
     {
         switch (c)
         {
@@ -477,19 +416,6 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
             args.cmd_change_db_password_ = true;
             break;
         }
-        case O_NEW_PASSWORD: {
-            assert(optarg);
-            args.new_password_ = optarg;
-            HideArg(optarg);
-            fprintf(stderr, "Warning: --new-password is deprecated, the password can be seen by other users. "
-                "Use --new-password-file instead.\n");
-            break;
-        }
-        case O_NEW_PASSWORD_FILE: {
-            assert(optarg);
-            args.new_password_file_ = optarg;
-            break;
-        }
         case O_GENERATE_TEST_DB: {
             args.cmd_generate_test_db_ = true;
             break;
@@ -507,14 +433,6 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
         case O_TEST_DB_ITEMS: {
             assert(optarg);
             args.generate_item_count_ = strtoul(optarg, nullptr, 10);
-            break;
-        }
-        case 'P': {
-            assert(optarg);
-            args.password_ = optarg;
-            HideArg(optarg);
-            fprintf(stderr, "Warning: --password is deprecated, the password can be seen by other users. "
-                "Use --password-file instead.\n");
             break;
         }
         case O_PASSWORD_FILE: {
@@ -552,14 +470,136 @@ static bool ParseArgs(int argc, char *const argv[], InputProgArgs &args)
         return false;
     }
 
-    if (!ReadPasswordFileArg("--password", args.password_file_, args.password_)
-        || !ReadPasswordFileArg("--new-password", args.new_password_file_, args.new_password_))
-    {
-        return false;
-    }
-
     bool status = ValidateArgs(args);
     return status;
+}
+
+/**
+ * Prompt for a password on the terminal, see `PromptForPassword()`. Prints why if it fails.
+ * @param file_option The option that reads the password from a file instead, or `nullptr`
+ */
+static bool PromptPassword(const char *prompt, std::string &password, const char *file_option)
+{
+    switch (PromptForPassword(prompt, password))
+    {
+    case PasswordPromptResult::OK:
+        return true;
+    case PasswordPromptResult::NO_TERMINAL:
+        if (file_option)
+        {
+            return Error("No terminal to prompt for the password on, use %s\n", file_option);
+        }
+        return Error("No terminal to prompt for the password on\n");
+    case PasswordPromptResult::CANCELLED:
+        return Error("No password was entered\n");
+    case PasswordPromptResult::FAILED:
+    default:
+        return Error("Unable to read the password from the terminal: %s\n", strerror(errno));
+    }
+}
+
+/**
+ * Prompt for a new password on the terminal, then again to confirm it.
+ * @returns `false` if the passwords don't match or are empty, with `password` cleared
+ */
+static bool PromptNewPassword(std::string &password, const char *file_option)
+{
+    std::string confirm;
+    bool ok = PromptPassword("New account database password: ", password, file_option)
+        && PromptPassword("Confirm new password: ", confirm, file_option);
+    if (ok && password != confirm)
+    {
+        ok = Error("The passwords do not match\n");
+    }
+    else if (ok && password.empty())
+    {
+        ok = Error("New account database password is required\n");
+    }
+    ZeroString(confirm);
+    if (!ok)
+    {
+        ZeroString(password);
+    }
+    return ok;
+}
+
+/**
+ * Set `args.password_` to the database password: from `--password-file` if it is given,
+ * otherwise by prompting on the terminal for the commands that need one.
+ * Opening a database without a password file prompts in the user interface instead.
+ * @returns `false` if the password can't be read or is empty, after printing why
+ */
+static bool ReadDbPassword(InputProgArgs &args)
+{
+    const Operation cmd = args.GetCommand();
+    std::string password;
+    bool ok = true;
+    if (args.password_file_)
+    {
+        if (!ReadPasswordFile(*args.password_file_, password))
+        {
+            ok = Error("Unable to read password file %s: %s\n", args.password_file_->c_str(), strerror(errno));
+        }
+    }
+    else if (cmd == Operation::EXPORT_DB || cmd == Operation::CHANGE_DB_PASSWORD)
+    {
+        ok = PromptPassword("Account database password: ", password, "--password-file");
+    }
+    else if (cmd == Operation::GENERATE_TEST_DB)
+    {
+        // A new database: a mistyped password would make it unreadable
+        ok = PromptNewPassword(password, "--password-file");
+    }
+    else
+    {
+        return true;
+    }
+
+    if (ok && password.empty() && cmd != Operation::OPEN_DB)
+    {
+        ok = Error("Account database password is required\n");
+    }
+    if (ok)
+    {
+        args.password_.emplace();
+        args.password_->swap(password);
+    }
+    ZeroString(password);
+    return ok;
+}
+
+/** Run `--change-password`, prompting for the new password once the current one is checked */
+static int ChangeDbPassword(PWSafeApp &app)
+{
+    // Check the current password first, so that a wrong one isn't found
+    // only after the new one was typed twice
+    int rc = RC_SUCCESS;
+    if (app.GetDb().CheckPassword(&rc))
+    {
+        std::string new_password;
+        if (!PromptNewPassword(new_password, nullptr))
+        {
+            return static_cast<int>(RC_FAILURE);
+        }
+        rc = ChangeDbPasswordCommand{app, new_password}.Execute();
+        ZeroString(new_password);
+    }
+
+    if (rc == RC_SUCCESS)
+    {
+        fprintf(stdout, "Account database password changed\n");
+        fflush(stdout);
+        return static_cast<int>(RC_SUCCESS);
+    }
+    if (rc == RC_ERR_INCORRECT_PASSWORD)
+    {
+        fprintf(stderr, "Incorrect account database password\n");
+    }
+    else
+    {
+        fprintf(stderr, "Changing account database password failed\n");
+    }
+    return static_cast<int>(RC_FAILURE);
 }
 
 int main(int argc, char *argv[])
@@ -601,14 +641,17 @@ int main(int argc, char *argv[])
         printf("%s %s\n", NCPWSAFE_APPNAME, NCPWSAFE_VERSION);
         return 0;
     }
+    if (!ReadDbPassword(input_args))
+    {
+        return PRC_ERR_FAIL;
+    }
 
     srand(time(0));
 
     PWSafeApp app;
     app.Init(input_args);
-    // The passwords have been copied to the app, wipe these copies
+    // The password has been copied to the app, wipe this copy
     if (input_args.password_) ZeroString(*input_args.password_);
-    if (input_args.new_password_) ZeroString(*input_args.new_password_);
     const ProgArgs &args = app.GetArgs();
 
     int result = static_cast<int>(RC_SUCCESS);
@@ -633,24 +676,7 @@ int main(int argc, char *argv[])
     }
     case Operation::CHANGE_DB_PASSWORD: 
     {
-        int rc = ChangeDbPasswordCommand{app, args.new_password_}.Execute();
-        if (rc == RC_SUCCESS)
-        {
-            fprintf(stdout, "Account database password changed\n");
-        }
-        else
-        {
-            result = static_cast<int>(RC_FAILURE);
-            if (rc == RC_ERR_INCORRECT_PASSWORD)
-            {
-                fprintf(stderr, "Incorrect account database password\n");
-            }
-            else
-            {
-                fprintf(stderr, "Changing account database password failed\n");
-            }
-        }
-        fflush(stdout);
+        result = ChangeDbPassword(app);
         break;
     }
     case Operation::GENERATE_TEST_DB:

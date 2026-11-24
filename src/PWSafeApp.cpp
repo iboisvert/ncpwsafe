@@ -48,6 +48,9 @@ void PWSafeApp::Init(ProgArgs args)
     }
 
     db_.Password() = args.password_;
+    // The database keeps the password, don't leave copies of it in the arguments
+    ZeroString(args.password_);
+    ZeroString(args_.password_);
 }
 
 void PWSafeApp::InitAutoSignOff()
@@ -112,13 +115,13 @@ DialogResult PWSafeApp::OpenAndEdit()
     // prompt for password, try to Load.
     SafeCombinationPromptDlg pwdprompt(*this);
 
-    // If a password was given on the command line and the database is known,
+    // If a password was read from --password-file and the database is known,
     // from the command line or the preferences, try them first and only
     // prompt if they don't work
     bool try_args = !db_.DbPathname().empty() && !db_.Password().empty();
     if (!db_.Password().empty() && db_.DbPathname().empty())
     {
-        MessageBox(*this).Show(win_, "A password was given on the command line, "
+        MessageBox(*this).Show(win_, "A password file was given, "
             "but no account database was specified");
         ZeroString(db_.Password());
     }
@@ -133,7 +136,7 @@ DialogResult PWSafeApp::OpenAndEdit()
             db_pathname = db_.DbPathname();
             password = db_.Password();
             std::string msg = SafeCombinationPromptDlg::CheckDatabase(db_, db_pathname, password,
-                "The password given on the command line is incorrect");
+                "The password in the password file is incorrect");
             if (msg.empty())
             {
                 dr = DialogResult::OK;

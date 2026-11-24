@@ -16,7 +16,8 @@ class ChangeDbPasswordCommand
     void SetDbPassword(const std::string &password);
 
 public:
-    ChangeDbPasswordCommand(PWSafeApp &app, std::string new_password) : app_{app}, new_password_{new_password} {}
+    /** The command keeps its own copy of `new_password`, and zeroes it when it is destroyed */
+    ChangeDbPasswordCommand(PWSafeApp &app, const std::string &new_password) : app_{app}, new_password_{new_password} {}
     ~ChangeDbPasswordCommand();
     /** Read the database with its current password and write it with the new one, for --change-password */
     int Execute();

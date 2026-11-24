@@ -12,6 +12,8 @@
  */
 #ifdef _WIN32
 
+#include "PasswordPrompt.h"
+
 #include <string>
 
 namespace win32
@@ -87,6 +89,21 @@ enum ClipboardResult
  * @returns One of `ClipboardResult`
  */
 int CopyTextToClipboard(const std::string &text);
+
+/**
+ * Prompt for a password on the console and read it without echoing it,
+ * for `PromptForPassword()`.
+ *
+ * The prompt is written to `CONOUT$` and the password read from `CONIN$`, so
+ * redirected standard input and output aren't used. The line is read as UTF-16
+ * and converted to UTF-8, whatever the console's code page. Echo is turned back
+ * on before returning, and also when Ctrl+C, Ctrl+Break or closing the console
+ * ends the process while the prompt is shown.
+ *
+ * @returns `NO_TERMINAL` if the process has no console, `CANCELLED` if the line
+ * typed is Ctrl+Z, `FAILED` with `errno` set if reading fails
+ */
+PasswordPromptResult ReadConsolePassword(const char *prompt, std::string &password);
 
 }  // namespace win32
 

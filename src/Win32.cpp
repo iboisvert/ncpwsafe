@@ -14,11 +14,13 @@
 #include <sddl.h>
 #include <shlobj.h>
 
+#include <cerrno>
 #include <climits>
 #include <clocale>
 #include <csignal>
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -306,6 +308,143 @@ int CopyTextToClipboard(const std::string &text)
     CloseClipboard();
     if (hwnd != nullptr)
         DestroyWindow(hwnd);
+    return result;
+}
+
+/** The console input that `ReadConsolePassword()` turned echo off for, and its mode before */
+static HANDLE password_input = INVALID_HANDLE_VALUE;
+static DWORD password_input_mode = 0;
+
+/**
+ * Console control handler while a password is read: turns echo back on,
+ * then lets the next handler (in the end, the default one) end the process
+ */
+static BOOL WINAPI RestoreEchoOnCtrlEvent(DWORD)
+{
+    HANDLE input = password_input;
+    if (input != INVALID_HANDLE_VALUE)
+        SetConsoleMode(input, password_input_mode);
+    return FALSE;
+}
+
+/** Overwrite the contents of `str` with zeros, then clear it */
+static void ZeroWideString(std::wstring &str)
+{
+    if (!str.empty())
+        SecureZeroMemory(&str[0], str.size() * sizeof(wchar_t));
+    str.clear();
+}
+
+/** Append `wc` to `str`. When `str` has to grow, its old buffer is zeroed rather than left on the heap */
+static void AppendSecret(std::wstring &str, wchar_t wc)
+{
+    if (str.size() == str.capacity())
+    {
+        std::wstring larger;
+        larger.reserve(str.capacity() * 2);
+        larger.append(str);
+        ZeroWideString(str);
+        str.swap(larger);
+    }
+    str.push_back(wc);
+}
+
+/** Open a console buffer (`CONIN$` or `CONOUT$`) for reading and writing */
+static HANDLE OpenConsole(const wchar_t *name)
+{
+    return CreateFileW(name, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr,
+                       OPEN_EXISTING, 0, nullptr);
+}
+
+PasswordPromptResult ReadConsolePassword(const char *prompt, std::string &password)
+{
+    HANDLE input = OpenConsole(L"CONIN$");
+    if (input == INVALID_HANDLE_VALUE)
+        return PasswordPromptResult::NO_TERMINAL;
+    DWORD mode = 0;
+    HANDLE output = INVALID_HANDLE_VALUE;
+    if (!GetConsoleMode(input, &mode) || (output = OpenConsole(L"CONOUT$")) == INVALID_HANDLE_VALUE)
+    {
+        CloseHandle(input);
+        return PasswordPromptResult::NO_TERMINAL;
+    }
+
+    password_input_mode = mode;
+    password_input = input;
+    // Called before the handlers set earlier, such as InitConsole()'s
+    SetConsoleCtrlHandler(RestoreEchoOnCtrlEvent, TRUE);
+
+    PasswordPromptResult result = PasswordPromptResult::FAILED;
+    int saved_errno = EIO;
+    std::wstring line;
+    // Most passwords fit without growing, see AppendSecret()
+    line.reserve(256);
+    const DWORD noecho = (mode | ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT) & ~ENABLE_ECHO_INPUT;
+    if (SetConsoleMode(input, noecho))
+    {
+        // Discard what was typed before the prompt
+        FlushConsoleInputBuffer(input);
+        DWORD written = 0;
+        WriteConsoleA(output, prompt, static_cast<DWORD>(std::strlen(prompt)), &written, nullptr);
+
+        wchar_t buf[64];
+        bool eol = false;
+        while (!eol)
+        {
+            DWORD n = 0;
+            if (!ReadConsoleW(input, buf, static_cast<DWORD>(sizeof(buf) / sizeof(buf[0])), &n, nullptr))
+                break;
+            if (n == 0)
+            {
+                // Ctrl+C or Ctrl+Break: the control handlers end the process
+                saved_errno = EINTR;
+                break;
+            }
+            // A line ends with CR LF. The rest of the line, past the end of `buf`,
+            // is returned by the next read, so read up to the LF
+            for (DWORD i = 0; i < n && !eol; ++i)
+            {
+                if (buf[i] == L'\n')
+                    eol = true;
+                else if (buf[i] != L'\r')
+                    AppendSecret(line, buf[i]);
+            }
+        }
+        SecureZeroMemory(buf, sizeof(buf));
+        // Enter wasn't echoed either
+        WriteConsoleA(output, "\r\n", 2, &written, nullptr);
+        SetConsoleMode(input, mode);
+
+        if (eol && line == L"\x1a")
+        {
+            // Ctrl+Z, end of input
+            result = PasswordPromptResult::CANCELLED;
+        }
+        else if (eol && line.size() <= static_cast<size_t>(INT_MAX))
+        {
+            const int wlen = static_cast<int>(line.size());
+            int len = wlen == 0 ? 0 : WideCharToMultiByte(CP_UTF8, 0, line.data(), wlen, nullptr, 0, nullptr, nullptr);
+            if (wlen == 0 || len > 0)
+            {
+                std::string value(static_cast<size_t>(len), '\0');
+                if (len > 0)
+                    WideCharToMultiByte(CP_UTF8, 0, line.data(), wlen, &value[0], len, nullptr, nullptr);
+                password.swap(value);
+                // Now the previous value of `password`
+                if (!value.empty())
+                    SecureZeroMemory(&value[0], value.size());
+                result = PasswordPromptResult::OK;
+            }
+        }
+    }
+
+    SetConsoleCtrlHandler(RestoreEchoOnCtrlEvent, FALSE);
+    password_input = INVALID_HANDLE_VALUE;
+    ZeroWideString(line);
+    CloseHandle(output);
+    CloseHandle(input);
+    if (result == PasswordPromptResult::FAILED)
+        errno = saved_errno;
     return result;
 }
 

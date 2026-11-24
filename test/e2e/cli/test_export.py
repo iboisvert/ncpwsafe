@@ -73,10 +73,13 @@ class ExportTest(e2elib.E2ETestCase):
         self.assertIn("Account database file is required", proc.stderr)
 
     def test_password_required(self):
+        # Without --password-file, see test_password_prompt.py
         db, _ = self.make_db()
-        proc = self.run_ncpwsafe("--export-db", "-o", "out.csv", db)
-        self.assertNotEqual(proc.returncode, 0)
+        proc = self.run_ncpwsafe("--export-db", "--password-file", self.write_file("empty.pw", "\n"),
+                                 "-o", "out.csv", db)
+        self.assertEqual(proc.returncode, e2elib.PRC_ERR_FAIL)
         self.assertIn("Account database password is required", proc.stderr)
+        self.assertFalse((self.tmp / "out.csv").exists())
 
     def test_output_required(self):
         # ValidateArgs used to check fs::Exists(*args.output_file_) on the

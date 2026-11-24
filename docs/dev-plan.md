@@ -1165,15 +1165,15 @@ ASan and UBSan.
 **CLI**
 
 ```
-ncpwsafe --import [--password-file=PATH] [--new-password-file=PATH | --keep-password]
+ncpwsafe --import [--password-file=PATH] [--keep-password]
          [-o,--out=PATHNAME] [--force] SOURCE_FILE
 ```
 
-- Reads `SOURCE_FILE` (V1 or V2) with libpwsafe, using the password from `--password-file` (or the
-  deprecated `-P`).
-- The new database's password comes from `--new-password-file`, or `--keep-password` reuses the
-  source's password. One of the two is required, so a weak old password isn't carried over without
-  a choice.
+- Reads `SOURCE_FILE` (V1 or V2) with libpwsafe, using the password from `--password-file`, or
+  prompting for it on the terminal (`PromptForPassword()`), as the other commands do.
+- The new database's password is typed at a prompt, twice, as for `--change-password`, or
+  `--keep-password` reuses the source's password. Without a terminal, `--keep-password` is
+  required, so a weak old password isn't carried over without a choice.
 - The output defaults to `SOURCE_FILE` with its extension replaced by `.ncpwsafe`. An existing output file
   is refused without `--force`, as for `--export-db`.
 - The source file is never changed, renamed or deleted.
@@ -1462,6 +1462,9 @@ in §7.4.
   with capital letters, editing an account's group or title deleting another account, crashes with
   no account selected, `--password-policy` by name, the `--change-password` exit code, `--export-db` without `-o`,
   core dumps and ptrace blocked in Release builds, and in-source builds rejected
+- Password prompts on the terminal, without echo, for the commands that need a password when
+  `--password-file` isn't given, and for the new password of `--change-password` (twice);
+  `-P`/`--password`, `--new-password` and `--new-password-file` removed
 
 ## 8. Open questions
 
