@@ -138,6 +138,9 @@ static int CopyTextToClipboardUnix(const std::string &text)
         }
 
         env.push_back(NULL);
+        // The environment is the user's own DISPLAY and HOME, which xclip needs, and the path
+        // is XCLIP or NCPWSAFE_XCLIP (the test stub): there is nothing to sanitize
+        // NOLINTNEXTLINE(clang-analyzer-optin.taint.GenericTaint)
         execve(xclip_path, const_cast<char **>(args), const_cast<char **>(env.data()));
 
         // if we get here at all, exec failed, but we are in the child
@@ -711,7 +714,7 @@ DialogResult AccountsWin::ProcessInput()
             if (record != nullptr)
             {
                 const bool user = c == KEY_CTRL('U');
-                const std::string str = record->GetField(user ? FT_USER : FT_PASSWORD, "");
+                const std::string str = record->GetField(static_cast<uint8_t>(user ? FT_USER : FT_PASSWORD), "");
                 const int rc = CopyTextToClipboard(app_, win_, str);
                 if (rc == 0)
                 {

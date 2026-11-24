@@ -10,7 +10,8 @@ class TextAreaTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        saved_ctype_ = setlocale(LC_CTYPE, nullptr);
+        const char *ctype = setlocale(LC_CTYPE, nullptr);
+        saved_ctype_ = ctype != nullptr ? ctype : "C";
         // ".UTF-8" is the name on Windows
         if (!setlocale(LC_CTYPE, "C.UTF-8") && !setlocale(LC_CTYPE, ".UTF-8"))
             GTEST_SKIP() << "No UTF-8 locale";

@@ -14,6 +14,11 @@ target_link_libraries(unittests
     libncpwsafe
     GTest::gtest_main
 )
+if(MSVC)
+    # /analyze reports every GoogleTest assertion as a comparison of constants (C6326):
+    # it comes from inside the EXPECT_* macros, not from what the tests compare
+    target_compile_options(unittests PRIVATE /wd6326)
+endif()
 
 include(GoogleTest)
 gtest_discover_tests(unittests WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/../test")
