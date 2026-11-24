@@ -88,7 +88,8 @@ jobs:
         key: ${{ steps.restore-vcpkg-cache.outputs.cache-primary-key }}
 
     - name: Build
-      run: cmake --build --preset=${{ matrix.preset }}
+      # -k 0: Ninja keeps going after a failure, so that a failed build reports every error
+      run: cmake --build --preset=${{ matrix.preset }} -- -k 0
 
     - name: Test
       run: ctest --preset=${{ matrix.preset }}
