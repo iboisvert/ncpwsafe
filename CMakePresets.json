@@ -41,6 +41,12 @@
     },
     { "name": "x64-linux-clang-debug", "inherits": [ "base", "x64-linux-clang", "debug" ] },
     { "name": "x64-linux-clang-release", "inherits": [ "base", "x64-linux-clang", "release" ] },
+    {
+        "name": "x64-linux-clang-sanitize",
+        "description": "Debug build with AddressSanitizer and UBSan, as in CI",
+        "inherits": [ "base", "x64-linux-clang", "debug" ],
+        "cacheVariables": { "NCPWSAFE_DEBUG_SANITIZE": "ON" }
+    },
 
     {
         "name": "x64-windows-msvc", "hidden": true,
@@ -67,6 +73,7 @@
     { "name": "x64-linux-gcc-static-release", "configurePreset": "x64-linux-gcc-static-release" },
     { "name": "x64-linux-clang-debug", "configurePreset": "x64-linux-clang-debug" },
     { "name": "x64-linux-clang-release", "configurePreset": "x64-linux-clang-release" },
+    { "name": "x64-linux-clang-sanitize", "configurePreset": "x64-linux-clang-sanitize" },
     { "name": "x64-windows-msvc-debug", "configurePreset": "x64-windows-msvc-debug" },
     { "name": "x64-windows-msvc-release", "configurePreset": "x64-windows-msvc-release" }
   ],
@@ -76,6 +83,12 @@
     { "name": "x64-linux-gcc-static-release", "configurePreset": "x64-linux-gcc-static-release", "output": { "outputOnFailure": true } },
     { "name": "x64-linux-clang-debug", "configurePreset": "x64-linux-clang-debug" },
     { "name": "x64-linux-clang-release", "configurePreset": "x64-linux-clang-release" },
+    {
+        "name": "x64-linux-clang-sanitize", "configurePreset": "x64-linux-clang-sanitize",
+        "description": "UBSan only prints what it finds unless halt_on_error is set, which makes the test fail",
+        "output": { "outputOnFailure": true },
+        "environment": { "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1" }
+    },
     { "name": "x64-windows-msvc-debug", "configurePreset": "x64-windows-msvc-debug", "output": { "outputOnFailure": true } },
     { "name": "x64-windows-msvc-release", "configurePreset": "x64-windows-msvc-release", "output": { "outputOnFailure": true } }
   ]

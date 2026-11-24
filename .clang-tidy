@@ -1,0 +1,47 @@
+# clang-tidy checks for ncpwsafe's code. CI runs them on the lines that a pull request
+# changes (.github/workflows/build.yml) and fails on any finding there: the existing code
+# has findings that haven't been fixed, so a whole-tree run doesn't come out clean.
+#
+# Turned off, because they don't fit a program built on the curses and libpwsafe C APIs
+# or report what isn't a problem here:
+#   bugprone-easily-swappable-parameters                 most functions with two ints (y, x)
+#   bugprone-signed-bitwise                              curses attributes and keys are ints
+#   cppcoreguidelines-avoid-magic-numbers                screen layout is in literal sizes
+#   cppcoreguidelines-pro-type-vararg                    mvwprintw(), snprintf()
+#   cppcoreguidelines-pro-bounds-pointer-arithmetic      C APIs take pointers and arrays
+#   cppcoreguidelines-pro-bounds-array-to-pointer-decay    (FIELD **, char buffers)
+#   cppcoreguidelines-pro-bounds-avoid-unchecked-container-access   operator[] everywhere
+#   cppcoreguidelines-pro-bounds-constant-array-index    asks for gsl::at(), no GSL here
+#   cppcoreguidelines-owning-memory                      asks for gsl::owner<>, no GSL here
+#   cppcoreguidelines-avoid-const-or-ref-data-members    windows and dialogs keep PWSafeApp &app_
+#   cppcoreguidelines-avoid-goto                         modal loops leave from inside a switch
+#   clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
+#                                                        asks for memcpy_s() etc., not in glibc
+#
+# No WarningsAsErrors: libpwsafe, under build/_deps, runs clang-tidy in its build and
+# would read this file too. CI fails on the findings in clang-tidy's output instead.
+Checks: >
+  -*,
+  bugprone-*,
+  clang-analyzer-*,
+  cert-*,
+  cppcoreguidelines-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-signed-bitwise,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-type-vararg,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-owning-memory,
+  -cppcoreguidelines-avoid-const-or-ref-data-members,
+  -cppcoreguidelines-avoid-goto,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
+# ncpwsafe's headers, not libpwsafe's public header (build/_deps/libpwsafe-src/api)
+HeaderFilterRegex: '/(src|test)/[^/]+\.h$'
+CheckOptions:
+  # A class may declare only a defaulted destructor (a virtual one), or delete copying
+  # without declaring the moves, which are then not declared either
+  cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor: true
+  cppcoreguidelines-special-member-functions.AllowMissingMoveFunctionsWhenCopyIsDeleted: true
