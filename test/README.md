@@ -97,8 +97,17 @@ tmux -L ncpwsafe-e2e-12345-0 attach -r
 in Release builds, and CTest reports it as skipped.
 
 Running the end-to-end tests against a `-DNCPWSAFE_DEBUG_SANITIZE=ON`
-build is a good way to find memory errors in full UI sessions. A sanitizer
-report makes ncpwsafe exit non-zero, which fails the test.
+build is a good way to find memory errors in full UI sessions. CI runs
+every test this way with the `x64-linux-clang-sanitize` presets:
+```sh
+cmake --preset=x64-linux-clang-sanitize
+cmake --build --preset=x64-linux-clang-sanitize
+ctest --preset=x64-linux-clang-sanitize
+```
+An AddressSanitizer report makes ncpwsafe exit non-zero, which fails the
+test. UBSan only prints its reports and carries on unless
+`UBSAN_OPTIONS=halt_on_error=1` is set, which the test preset does: with
+`ctest --test-dir`, or another build directory, set it yourself.
 
 ## How the end-to-end tests work
 

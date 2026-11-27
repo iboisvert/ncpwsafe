@@ -83,7 +83,7 @@ void ZeroFieldsBuffer(FIELD **fields)
 
     for (FIELD *field = *fields; field != nullptr; ++fields, field = *fields)
     {
-        if (field_opts(field) & O_STATIC)
+        if (HasFieldOpts(field, O_STATIC))
         {
             field_info(field, &rows, &cols, nullptr, nullptr, nullptr, nullptr);
         }
@@ -92,7 +92,7 @@ void ZeroFieldsBuffer(FIELD **fields)
             dynamic_field_info(field, &rows, &cols, nullptr);
         }
         cbuf = field_buffer(field, 0);
-        ZeroMemory(cbuf, rows * cols);
+        ZeroMemory(cbuf, static_cast<size_t>(rows) * static_cast<size_t>(cols));
     }
 }
 
@@ -120,7 +120,8 @@ std::string UserAppDataDir()
 size_t Utf8Length(std::string_view text)
 {
     // Count the bytes that aren't UTF-8 continuation bytes
-    return std::count_if(text.begin(), text.end(), [](char c) { return (c & 0xC0) != 0x80; });
+    return static_cast<size_t>(
+        std::count_if(text.begin(), text.end(), [](char c) { return (c & 0xC0) != 0x80; }));
 }
 
 int DisplayWidth(std::string_view text)
@@ -365,7 +366,7 @@ std::string PrintableText(const char *text)
     while (p < end)
     {
         wchar_t wc;
-        size_t n = std::mbrtowc(&wc, p, end - p, &state);
+        size_t n = std::mbrtowc(&wc, p, static_cast<size_t>(end - p), &state);
         if (n == static_cast<size_t>(-1) || n == static_cast<size_t>(-2) || n == 0)
         {
             // Not a character of this character set: replace the byte, and any UTF-8
@@ -376,7 +377,7 @@ std::string PrintableText(const char *text)
             while (p < end && (*p & 0xC0) == 0x80) ++p;
             continue;
         }
-        if (std::iswprint(wc))
+        if (std::iswprint(static_cast<wint_t>(wc)))
         {
             printable.append(p, n);
         }

@@ -34,15 +34,15 @@ static void GetWordList(const std::string &lang, const char ***wordList, size_t 
     }
 }
 
-static std::string GeneratePhrase(const char *words[], unsigned wordsCount, unsigned phraseWordCount)
+static std::string GeneratePhrase(const char *const *words, size_t wordsCount, size_t phraseWordCount)
 {
     RandomState rand;
 
     std::string result;
     const char *sep = "";
-    for (unsigned i = 0; i < phraseWordCount; ++i)
+    for (size_t i = 0; i < phraseWordCount; ++i)
     {
-        int idx = rand() % wordsCount;
+        size_t idx = rand() % wordsCount;
         result.append(sep).append(words[idx]);
         sep = " ";
     }
@@ -72,7 +72,7 @@ int GenerateTestDbCommand::Execute()
     std::vector<std::string> groups(group_count_);
     for (unsigned long i = 1; i < group_count_; ++i)
     {
-        int size = rand() % 3 + 1;
+        size_t size = rand() % 3 + 1;
         groups[i] = GeneratePhrase(words, word_count, size);
     }
 
@@ -80,9 +80,9 @@ int GenerateTestDbCommand::Execute()
     {
         AccountRecord rec;
 
-        int size = rand() % 3 + 1;
+        size_t size = rand() % 3 + 1;
         rec.SetField(FT_TITLE, GeneratePhrase(words, word_count, size).c_str());
-        int idx = rand() % group_count_;
+        size_t idx = rand() % group_count_;
         rec.SetField(FT_GROUP, groups[idx].c_str());
         rec.SetField(FT_USER, words[rand() % word_count]);
         rec.SetField(FT_PASSWORD, words[rand() % word_count]);

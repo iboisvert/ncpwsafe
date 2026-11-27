@@ -1,4 +1,5 @@
 /* Copyright 2023 Ian Boisvert */
+#include <array>
 #include "AccountRecords.h"
 #include "Utils.h"
 
@@ -48,10 +49,10 @@ AccountRecords::iterator AccountRecords::InsertRecord(const AccountRecord &rec)
     iterator it = records_.insert(records_.end(), rec);
     if (update_uuid) 
     {
-        char uuid[33];
-        if (pws_generate_uuid(uuid) == PRC_SUCCESS)
+        std::array<char, 33> new_uuid{};
+        if (pws_generate_uuid(new_uuid.data()) == PRC_SUCCESS)
         {
-            it->SetField(FT_UUID, uuid);
+            it->SetField(FT_UUID, new_uuid.data());
         }
     }
 

@@ -64,7 +64,7 @@ public:
     {
         icu::UnicodeString ustr = icu::UnicodeString::fromUTF8(value);
         return std::find_if(records_.begin(), records_.end(), [field_type, &ustr](const auto &rec){
-            return ustr == icu::UnicodeString::fromUTF8(rec.GetField(field_type, ""));
+            return ustr == icu::UnicodeString::fromUTF8(rec.GetField(static_cast<uint8_t>(field_type), ""));
         });
     }
 

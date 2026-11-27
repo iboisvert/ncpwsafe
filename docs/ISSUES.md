@@ -52,3 +52,16 @@ gets `An error occurred changing the account database password.` and the passwor
 **Fix:** decide whether an empty database password is allowed. If it is, accept it in `Write()`
 (keeping `--change-password`'s check if wanted); if not, reject it in the dialog's validation
 instead of asking. Add a TUI test for the answer.
+
+## 3. `--export-db` reports success when writing the file fails
+
+**Severity:** Important
+
+`ExportDbCommand::Execute()` in `src/ExportDbCommand.cpp` checks only that `fopen()` succeeds. It
+ignores the results of `fprintf()` and of the `fclose()` that flushes the file, and returns
+`RC_SUCCESS`. When the disk is full, or the file is on a network file system that fails on close,
+`--export-db` exits 0 and leaves a truncated export, which the user may keep as their only copy.
+
+**Fix:** close the file explicitly at the end, check `ferror()` and the result of `fclose()`, and
+return an error (and remove the partial file) when either fails. A CLI test can export to
+`/dev/full` on Linux.

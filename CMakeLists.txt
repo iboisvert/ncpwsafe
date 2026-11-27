@@ -18,6 +18,8 @@ project(ncpwsafe
 )
 option(BUILD_TESTING "Enable unit tests" ON)
 option(NCPWSAFE_DEBUG_SANITIZE "Enable AddressSanitizer and UBSan, requires full recompile" OFF)
+option(NCPWSAFE_WARNINGS_AS_ERRORS "Fail the build on compiler warnings in ncpwsafe's own code, as in CI" OFF)
+option(NCPWSAFE_CLANG_TIDY "Run clang-tidy on ncpwsafe's own code as it compiles" ON)
 option(USE_GLOG "Enable logging" OFF)
 option(NCPWSAFE_STATIC_DEPS
     "Link ncurses, ICU, OpenSSL and the GCC runtimes statically, for an executable that runs on other distros (Linux)"
@@ -53,6 +55,31 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 if(NOT DEFINED NCPWSAFE_SANITIZE_FLAGS)
     set(NCPWSAFE_SANITIZE_FLAGS "-fsanitize=address,undefined")
+endif()
+if(NOT DEFINED NCPWSAFE_WERROR_FLAGS)
+    set(NCPWSAFE_WERROR_FLAGS "$<IF:$<CXX_COMPILER_ID:MSVC>,/WX,-Werror>")
+endif()
+
+# After resolve_dependencies(), so that the fetched libraries (libpwsafe, libconfini)
+# don't get these: their warnings aren't ours to fix
+add_compile_options(${NCPWSAFE_WARNING_FLAGS})
+if(NCPWSAFE_WARNINGS_AS_ERRORS)
+    add_compile_options(${NCPWSAFE_WERROR_FLAGS})
+endif()
+
+# clang-tidy (.clang-tidy) on each of ncpwsafe's source files as it compiles. Also after
+# resolve_dependencies(): CMAKE_CXX_CLANG_TIDY only applies to the targets created after it.
+# Its findings are warnings and never fail the build, because the existing code isn't clean
+if(NCPWSAFE_CLANG_TIDY)
+    find_program(NCPWSAFE_CLANG_TIDY_EXE clang-tidy DOC "clang-tidy, for NCPWSAFE_CLANG_TIDY")
+    if(NCPWSAFE_CLANG_TIDY_EXE)
+        # The compile commands carry GCC's or MSVC's warning flags, some of which clang
+        # doesn't know (-Wshadow=local)
+        set(CMAKE_CXX_CLANG_TIDY "${NCPWSAFE_CLANG_TIDY_EXE}" --quiet --extra-arg=-Wno-unknown-warning-option)
+    else()
+        message(WARNING "clang-tidy not found, building without it. Install clang-tidy, "
+            "or configure with -DNCPWSAFE_CLANG_TIDY=OFF to hide this warning")
+    endif()
 endif()
 
 add_compile_definitions(

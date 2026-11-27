@@ -56,7 +56,8 @@ static void DrawAction(const Theme &theme, WINDOW *win, const Action &action)
 void CommandBarWin::DrawActions(const PWSafeApp &app, WINDOW *win, const std::vector<Action> &actions, int opts)
 {
     const Theme &theme = app.GetTheme();
-    wattrset(win, theme.Attr(Role::KEY_DESC));
+    // wattrset() takes the attributes as an int
+    wattrset(win, static_cast<int>(theme.Attr(Role::KEY_DESC)));
 
     const int beg_x = getbegx(win), max_x = getmaxx(win);
     constexpr int SPACER = 2;

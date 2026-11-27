@@ -279,12 +279,12 @@ PasswordPromptResult PromptForPassword(const char *prompt, std::string &password
             ScopedSignalCatcher catcher;
 
             struct termios noecho = original;
-            noecho.c_lflag &= ~(ECHO | ECHONL);
+            noecho.c_lflag &= ~static_cast<tcflag_t>(ECHO | ECHONL);
             // Line editing (erase, kill) still works
             noecho.c_lflag |= ICANON;
             // Enter ends the line, also on a terminal set to -icrnl
             noecho.c_iflag |= ICRNL;
-            noecho.c_iflag &= ~IGNCR;
+            noecho.c_iflag &= ~static_cast<tcflag_t>(IGNCR);
             // Echo is turned off before the prompt is shown, and what was typed before it
             // is discarded. With the signals not blocked yet, a process in the background
             // gets SIGTTOU here, and stops

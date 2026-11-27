@@ -31,10 +31,10 @@ macro(resolve_dependencies)
 
     FetchContent_MakeAvailable(libpwsafe libconfini)
 
-    # libpwsafe enables clang-tidy with `if(DEFINED CLANG_TIDY_EXE)`, which is
-    # also true when clang-tidy was not found (CLANG_TIDY_EXE-NOTFOUND),
-    # and the build then fails trying to run it. This is always the case on Windows.
-    if(TARGET objlib AND NOT CLANG_TIDY_EXE)
+    # libpwsafe runs clang-tidy on its sources whenever it finds it, with its own checks
+    # (-checks= on the command line, which overrides .clang-tidy). Its findings aren't
+    # ours to fix, like its compiler warnings, and they would be mixed in with ours
+    if(TARGET objlib)
         set_property(TARGET objlib PROPERTY C_CLANG_TIDY "")
     endif()
 

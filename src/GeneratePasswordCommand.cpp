@@ -11,9 +11,8 @@ std::vector<std::string> GeneratePasswordCommand::Execute()
 
     size_t count = args.generate_password_count_;
     size_t length = args.password_length_;
-    int policyIndex = args.password_policy_ - 1;
-    PasswordPolicy policy = 
-        PasswordPolicy{static_cast<PasswordPolicy::Composition>(policyIndex), length};
+    PasswordPolicy policy =
+        PasswordPolicy{static_cast<PasswordPolicy::Composition>(args.password_policy_ - 1), length};
 
     std::vector<std::string> passwords;
     for (size_t i = 0; i < count; ++i)

@@ -32,6 +32,12 @@ $ cmake --build build
 $ ./build/bin/ncpwsafe
 ```
 
+When `clang-tidy` is installed, the build runs it on ncpwsafe's own source
+files with the checks in `.clang-tidy`, and prints its findings as warnings.
+The existing code has findings that haven't been fixed. clang-tidy makes a
+full build several times slower; configure with `-DNCPWSAFE_CLANG_TIDY=OFF`
+to build without it.
+
 ### Windows
 
 ncpwsafe builds natively on Windows with MSVC and the Windows SDK.

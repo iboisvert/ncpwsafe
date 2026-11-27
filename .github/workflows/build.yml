@@ -69,8 +69,8 @@ jobs:
         "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV
 
     - name: Configure CMake
-      # Installs dependencies from vcpkg.json in manifest mode
-      run: cmake --preset=${{ matrix.preset }}
+      # Installs dependencies from vcpkg.json in manifest mode.
+      run: cmake --preset=${{ matrix.preset }} -DNCPWSAFE_WARNINGS_AS_ERRORS=ON -DNCPWSAFE_CLANG_TIDY=OFF
 
     - name: Check for new vcpkg packages
       id: check-vcpkg-cache
@@ -88,7 +88,8 @@ jobs:
         key: ${{ steps.restore-vcpkg-cache.outputs.cache-primary-key }}
 
     - name: Build
-      run: cmake --build --preset=${{ matrix.preset }}
+      # -k 0: Ninja keeps going after a failure, so that a failed build reports every error
+      run: cmake --build --preset=${{ matrix.preset }} -- -k 0
 
     - name: Test
       run: ctest --preset=${{ matrix.preset }}
@@ -124,7 +125,8 @@ jobs:
       matrix:
         include:
           - { os: ubuntu-latest, preset: x64-linux-gcc-release }
-          - { os: ubuntu-latest, preset: x64-linux-clang-release }
+          # Debug with AddressSanitizer and UBSan: the second compiler, and the memory checks
+          - { os: ubuntu-latest, preset: x64-linux-clang-sanitize }
           # The release workflow's Linux build (.github/workflows/release.yml)
           - { os: ubuntu-22.04, preset: x64-linux-gcc-static-release }
 
@@ -139,8 +141,15 @@ jobs:
         sudo apt-get update -y
         sudo apt-get install -y pkg-config libncurses-dev libicu-dev libssl-dev libgtest-dev python3 tmux
 
+    # Older ASan runtimes don't fit their shadow memory in the address space of kernels that
+    # randomize more address bits (vm.mmap_rnd_bits=32), and sanitized programs crash at startup
+    - name: Limit address space randomization for ASan
+      if: matrix.preset == 'x64-linux-clang-sanitize'
+      run: sudo sysctl -w vm.mmap_rnd_bits=28
+
     - name: Configure CMake
-      run: cmake --preset=${{ matrix.preset }}
+      # clang-tidy runs in developers' builds, not in CI (NCPWSAFE_CLANG_TIDY in CMakeLists.txt)
+      run: cmake --preset=${{ matrix.preset }} -DNCPWSAFE_WARNINGS_AS_ERRORS=ON -DNCPWSAFE_CLANG_TIDY=OFF
 
     - name: Build
       run: cmake --build --preset=${{ matrix.preset }}

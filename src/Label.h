@@ -22,7 +22,7 @@ public:
     {
         if (attrs)
             wattr_on(win, attrs, nullptr);
-        if (justification != JUSTIFY_LEFT) x = CalcX(x, width, strlen(msg), justification);
+        if (justification != JUSTIFY_LEFT) x = CalcX(x, width, static_cast<int>(strlen(msg)), justification);
         int retval = mvwaddstr(win, y, x, msg);
         if (attrs)
             wattr_off(win, attrs, nullptr);
