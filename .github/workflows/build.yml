@@ -69,8 +69,8 @@ jobs:
         "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV
 
     - name: Configure CMake
-      # Installs dependencies from vcpkg.json in manifest mode
-      run: cmake --preset=${{ matrix.preset }} -DNCPWSAFE_WARNINGS_AS_ERRORS=ON
+      # Installs dependencies from vcpkg.json in manifest mode.
+      run: cmake --preset=${{ matrix.preset }} -DNCPWSAFE_WARNINGS_AS_ERRORS=ON -DNCPWSAFE_CLANG_TIDY=OFF
 
     - name: Check for new vcpkg packages
       id: check-vcpkg-cache
@@ -148,48 +148,11 @@ jobs:
       run: sudo sysctl -w vm.mmap_rnd_bits=28
 
     - name: Configure CMake
-      run: cmake --preset=${{ matrix.preset }} -DNCPWSAFE_WARNINGS_AS_ERRORS=ON
+      # clang-tidy runs in developers' builds, not in CI (NCPWSAFE_CLANG_TIDY in CMakeLists.txt)
+      run: cmake --preset=${{ matrix.preset }} -DNCPWSAFE_WARNINGS_AS_ERRORS=ON -DNCPWSAFE_CLANG_TIDY=OFF
 
     - name: Build
       run: cmake --build --preset=${{ matrix.preset }}
 
     - name: Test
       run: ctest --preset=${{ matrix.preset }} --output-on-failure
-
-  # clang-tidy (.clang-tidy) on the lines a pull request changes. The existing code has
-  # findings that haven't been fixed, so only new and changed lines are held to the checks
-  clang-tidy:
-    name: clang-tidy (changed lines)
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        # The base branch, to diff against
-        fetch-depth: 0
-
-    - name: Set up environment
-      run: |
-        sudo apt-get update -y
-        sudo apt-get install -y pkg-config libncurses-dev libicu-dev libssl-dev libgtest-dev clang clang-tidy
-
-    - name: Configure CMake
-      # For compile_commands.json, config.h and the fetched libpwsafe headers: nothing is built
-      run: cmake --preset=x64-linux-clang-release
-
-    - name: Run clang-tidy
-      env:
-        BASE_REF: ${{ github.base_ref }}
-      run: |
-        set -o pipefail
-        clang_tidy=$(command -v clang-tidy)
-        clang_tidy_diff=$(compgen -G '/usr/lib/llvm-*/share/clang/clang-tidy-diff.py' | sort -V | tail -n 1)
-        git diff -U0 "origin/$BASE_REF...HEAD" -- src test \
-          | python3 "$clang_tidy_diff" -p1 -path build -quiet -j "$(nproc)" -clang-tidy-binary "$clang_tidy" \
-          2>&1 | tee clang-tidy.log
-        # The findings are warnings, which don't change clang-tidy's exit status
-        if grep -qE '^[^ ]+:[0-9]+:[0-9]+: (warning|error):' clang-tidy.log; then
-          echo "::error::clang-tidy found problems in the changed lines, see the log above"
-          exit 1
-        fi

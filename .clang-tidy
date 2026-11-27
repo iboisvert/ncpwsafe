@@ -1,6 +1,6 @@
-# clang-tidy checks for ncpwsafe's code. CI runs them on the lines that a pull request
-# changes (.github/workflows/build.yml) and fails on any finding there: the existing code
-# has findings that haven't been fixed, so a whole-tree run doesn't come out clean.
+# clang-tidy checks for ncpwsafe's code. The CMake build runs them on each source file as
+# it compiles (NCPWSAFE_CLANG_TIDY in CMakeLists.txt), CI doesn't. Editors that use clangd
+# also show them. The existing code has findings that haven't been fixed.
 #
 # Turned off, because they don't fit a program built on the curses and libpwsafe C APIs
 # or report what isn't a problem here:
@@ -18,8 +18,8 @@
 #   clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
 #                                                        asks for memcpy_s() etc., not in glibc
 #
-# No WarningsAsErrors: libpwsafe, under build/_deps, runs clang-tidy in its build and
-# would read this file too. CI fails on the findings in clang-tidy's output instead.
+# No WarningsAsErrors: the existing findings would fail every build, and libpwsafe, under
+# build/_deps, runs clang-tidy in its build and would read this file too.
 Checks: >
   -*,
   bugprone-*,
@@ -38,8 +38,10 @@ Checks: >
   -cppcoreguidelines-avoid-const-or-ref-data-members,
   -cppcoreguidelines-avoid-goto,
   -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
-# ncpwsafe's headers, not libpwsafe's public header (build/_deps/libpwsafe-src/api)
+# ncpwsafe's headers, not the fetched libraries' (build/_deps/libconfini-src/src/confini.h,
+# libpwsafe's api/pwsafe.h). ExcludeHeaderFilterRegex needs clang-tidy 19 or later
 HeaderFilterRegex: '/(src|test)/[^/]+\.h$'
+ExcludeHeaderFilterRegex: '/_deps/'
 CheckOptions:
   # A class may declare only a defaulted destructor (a virtual one), or delete copying
   # without declaring the moves, which are then not declared either

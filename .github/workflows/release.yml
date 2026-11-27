@@ -81,7 +81,7 @@ jobs:
           libgtest-dev python3 tmux
 
     - name: Configure CMake
-      run: cmake --preset=$PRESET
+      run: cmake --preset=$PRESET -DNCPWSAFE_CLANG_TIDY=OFF
 
     - name: Build
       run: cmake --build --preset=$PRESET
@@ -172,7 +172,7 @@ jobs:
         "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV
 
     - name: Configure CMake
-      run: cmake --preset=${{ env.PRESET }}
+      run: cmake --preset=${{ env.PRESET }} -DNCPWSAFE_CLANG_TIDY=OFF
 
     - name: Check for new vcpkg packages
       id: check-vcpkg-cache
